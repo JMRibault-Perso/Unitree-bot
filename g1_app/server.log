@@ -1,0 +1,112 @@
+INFO:     Will watch for changes in these directories: ['/root/G1/unitree_sdk2/g1_app']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [310238] using StatReload
+2026-01-24 13:27:32,999 [DEBUG] g1_app.core.event_bus: Subscribed to 'state_changed' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'state_changed' (total subscribers: 1)
+2026-01-24 13:27:32,999 [DEBUG] g1_app.core.event_bus: Subscribed to 'connection_changed' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'connection_changed' (total subscribers: 1)
+INFO:     Started server process [310242]
+INFO:     Waiting for application startup.
+2026-01-24 13:27:33,016 [INFO] g1_app.core.robot_discovery: Loaded 1 bound robots
+INFO:g1_app.core.robot_discovery:Loaded 1 bound robots
+2026-01-24 13:27:33,016 [INFO] g1_app.core.robot_discovery: Starting robot discovery via multicast UDP...
+INFO:g1_app.core.robot_discovery:Starting robot discovery via multicast UDP...
+2026-01-24 13:27:33,075 [INFO] g1_app.core.robot_discovery: Listening for robot broadcasts on 231.1.1.2:10134
+INFO:g1_app.core.robot_discovery:Listening for robot broadcasts on 231.1.1.2:10134
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 56913) - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-01-24 13:27:43,428 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:27:43,428 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:27:50,488 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:27:50,488 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:44736 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:27:56,575 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:27:56,576 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:28:03,648 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:28:03,649 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+INFO:     ('127.0.0.1', 61555) - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-01-24 13:28:12,932 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:28:12,932 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:28:20,012 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:28:20,012 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49813 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:28:26,076 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:28:26,076 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:28:33,128 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:28:33,128 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:28:43,495 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:28:43,496 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:28:52,843 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:28:52,844 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:29:03,260 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:29:03,260 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:29:13,596 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:29:13,596 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:29:19,671 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:29:19,672 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:64839 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:29:26,732 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:29:26,733 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:29:33,808 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:29:33,809 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+2026-01-24 13:29:43,064 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:29:43,064 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:49271 - "GET /api/discover HTTP/1.1" 200 OK
+INFO:     connection closed
+2026-01-24 13:29:54,539 [DEBUG] g1_app.core.robot_discovery: Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+DEBUG:g1_app.core.robot_discovery:Reachability test failed: Command '['arp-scan', '-I', 'eth1', '--localnet']' timed out after 5 seconds
+2026-01-24 13:29:54,540 [INFO] g1_app.core.robot_discovery: ✗ Robot offline: unitree_dapengche not reachable
+INFO:g1_app.core.robot_discovery:✗ Robot offline: unitree_dapengche not reachable
+INFO:     127.0.0.1:54036 - "GET /api/discover HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [310242]
+INFO:     Stopping reloader process [310238]

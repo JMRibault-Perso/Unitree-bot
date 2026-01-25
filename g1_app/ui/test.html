@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+    <button onclick="testConnect()">Test Connect</button>
+    <button onclick="testDiscover()">Test Discover</button>
+    <div id="output"></div>
+    
+    <script>
+        function testConnect() {
+            document.getElementById('output').textContent = 'Connect clicked!';
+            console.log('testConnect called');
+        }
+        
+        function testDiscover() {
+            document.getElementById('output').textContent = 'Discover clicked!';
+            console.log('testDiscover called');
+        }
+    </script>
+</body>
+</html>

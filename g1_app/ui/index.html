@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G1 Robot Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* Connection Panel */
+        .connection-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+
+        /* Status Display */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .status-item {
+            padding: 15px;
+            border-radius: 5px;
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .led-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-left: 10px;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        /* FSM State Machine */
+        .state-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .state-button {
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .state-button:hover:not(:disabled) {
+            background: #f7fafc;
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .state-button.current {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .state-button.invalid {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .state-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .state-id {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        /* Connection Status Badge */
+        .connection-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .status-connected {
+            background: #48bb78;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #f56565;
+            color: white;
+        }
+
+        /* Messages */
+        .message {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-left: 4px solid #f56565;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #48bb78;
+        }
+
+        .message.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border-left: 4px solid #4299e1;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Velocity Control */
+        .velocity-btn {
+            padding: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .velocity-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .velocity-btn:active {
+            transform: scale(0.95);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .velocity-btn.stop-btn {
+            background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+            border-color: #c53030;
+        }
+
+        .velocity-btn.stop-btn:hover {
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+        }
+
+        .velocity-btn.active {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 0 0 20px rgba(72, 187, 120, 0.6);
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { box-shadow: 0 0 20px rgba(72, 187, 120, 0.6); }
+            to { box-shadow: 0 0 30px rgba(72, 187, 120, 0.9); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 G1 Robot Controller</h1>
+
+        <!-- Bound Robots Panel -->
+        <div class="panel">
+            <h2>📡 Bound Robots</h2>
+            <div id="message" class="message"></div>
+            
+            <div id="discoveredRobots">
+                <div id="robotList"></div>
+            </div>
+        </div>
+
+        <!-- Status Panel -->
+        <div class="panel" id="statusPanel" style="display: none;">
+            <h2>Robot Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Connection</div>
+                    <div class="status-value">
+                        <span id="connectionStatus" class="connection-status status-disconnected">Disconnected</span>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">FSM State</div>
+                    <div class="status-value" id="currentState">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">LED Color</div>
+                    <div class="status-value">
+                        <span id="ledColor">-</span>
+                        <span id="ledIndicator" class="led-indicator"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FSM State Machine Panel -->
+        <div class="panel" id="statePanel" style="display: none;">
+            <h2>FSM State Machine</h2>
+            <p style="margin-bottom: 20px; color: #718096;">
+                Click a state to transition. Only valid transitions are enabled.
+            </p>
+            
+            <div class="state-grid" id="stateGrid">
+                <!-- States will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Velocity Control Panel -->
+        <div class="panel" id="velocityPanel" style="display: none;">
+            <h2>🎮 Velocity Control</h2>
+            <p style="margin-bottom: 15px; color: #718096;">
+                Use WASD keys to move, QE to turn. Space to stop.
+            </p>
+            <div id="velocityStateWarning" style="padding: 10px; margin-bottom: 15px; background: #fed7d7; color: #742a2a; border-radius: 5px; border-left: 4px solid #f56565; display: none;">
+                ⚠️ <strong>Velocity control disabled:</strong> Robot must be in WALK (500), WALK-3DOF (501), or RUN (801) mode.
+            </div>
+            
+            <!-- Velocity Scale Adjustment -->
+            <div style="margin-bottom: 20px; padding: 15px; background: #f7fafc; border-radius: 5px; border: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label style="font-weight: bold; color: #2d3748;">Speed Scale:</label>
+                    <span id="velocityScaleValue" style="font-size: 18px; font-weight: bold; color: #667eea;">1.0x</span>
+                </div>
+                <input type="range" id="velocityScale" min="0.1" max="3.0" step="0.1" value="1.0" 
+                    style="width: 100%; height: 8px; background: linear-gradient(to right, #48bb78, #667eea, #f56565); border-radius: 5px; outline: none;"
+                    oninput="updateVelocityScale(this.value)">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
+                    <span>0.1x (Slow)</span>
+                    <span>1.5x (Default)</span>
+                    <span>3.0x (Fast)</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #4a5568;">
+                    Base speeds: Forward ±0.3 m/s, Strafe ±0.2 m/s, Turn ±0.5 rad/s
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 300px; margin: 0 auto;">
+                <!-- Top row -->
+                <div></div>
+                <button onclick="moveRobotScaled(0.3, 0, 0)" class="velocity-btn" title="W - Forward">⬆️<br>FWD</button>
+                <div></div>
+                
+                <!-- Middle row -->
+                <button onclick="moveRobotScaled(0, 0.2, 0)" class="velocity-btn" title="A - Strafe Left">⬅️<br>LEFT</button>
+                <button onclick="stopRobot()" class="velocity-btn stop-btn" title="Space - Stop">⏹️<br>STOP</button>
+                <button onclick="moveRobotScaled(0, -0.2, 0)" class="velocity-btn" title="D - Strafe Right">➡️<br>RIGHT</button>
+                
+                <!-- Bottom row -->
+                <button onclick="moveRobotScaled(0, 0, 0.5)" class="velocity-btn" title="Q - Turn Left">↶<br>↶ TURN</button>
+                <button onclick="moveRobotScaled(-0.3, 0, 0)" class="velocity-btn" title="S - Backward">⬇️<br>BACK</button>
+                <button onclick="moveRobotScaled(0, 0, -0.5)" class="velocity-btn" title="E - Turn Right">↷<br>TURN ↷</button>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 5px; text-align: center;">
+                <div style="font-size: 14px; color: #4a5568; margin-bottom: 10px;">
+                    <strong>Current Velocity:</strong>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-family: monospace;">
+                    <div>
+                        <div style="color: #718096; font-size: 12px;">Forward (vx)</div>
+                        <div id="velocityVx" style="font-size: 18px; font-weight: bold;">0.00</div>
+                    </div>
+                    <div>
+                        <div style="color: #718096; font-size: 12px;">Strafe (vy)</div>
+                        <div id="velocityVy" style="font-size: 18px; font-weight: bold;">0.00</div>
+                    </div>
+                    <div>
+                        <div style="color: #718096; font-size: 12px;">Turn (ω)</div>
+                        <div id="velocityOmega" style="font-size: 18px; font-weight: bold;">0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // WebSocket connection
+        let ws = null;
+        let isConnected = false;
+        let currentRobotName = null;
+        let discoveredRobots = [];
+
+        // FSM States with their IDs (must match backend FSMState enum names)
+        const FSM_STATES = [
+            { name: 'ZERO_TORQUE', value: 0, description: 'Motors Off' },
+            { name: 'DAMP', value: 1, description: 'Safe Mode (Orange)' },
+            { name: 'SQUAT', value: 2, description: 'Squat Position' },
+            { name: 'SIT', value: 3, description: 'Sitting (Green)' },
+            { name: 'LOCK_STANDING', value: 4, description: 'Standing Up' },
+            { name: 'START', value: 200, description: 'Ready/Standing (Blue)' },
+            { name: 'LOCK_STAND', value: 500, description: 'Walk Mode' },
+            { name: 'STAND_UP', value: 702, description: 'Stand Up (from lying down)' },
+            { name: 'SQUAT_TO_STAND', value: 706, description: 'Squat Down/Up (context-sensitive)' },
+            { name: 'RUN', value: 801, description: 'Run Mode (Faster)' }
+        ];
+
+        // LED color mapping
+        const LED_COLORS = {
+            'orange': '#ed8936',
+            'blue': '#4299e1',
+            'purple': '#9f7aea',
+            'green': '#48bb78',
+            'yellow': '#ecc94b',
+            'red': '#f56565'
+        };
+
+        let currentFsmState = null;
+        let allowedTransitions = [];
+        let buttonsDisabled = false; // Simple flag to disable buttons during transitions
+        let targetState = null; // Track what state we're transitioning to
+        let actionOriginState = null; // Track origin state for action buttons (702/706) - only re-enable when reaching different stable state
+
+        // Initialize WebSocket
+        function initWebSocket() {
+            console.log('🔌 Initializing WebSocket connection...');
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            console.log('🔌 WebSocket URL:', wsUrl);
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                // Send ping every 30 seconds to keep connection alive
+                setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'ping' }));
+                    }
+                }, 30000);
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleWebSocketMessage(msg);
+                } catch (error) {
+                    console.error('WebSocket parse error:', error);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('❌ WebSocket error:', error);
+            };
+            
+            ws.onclose = (event) => {
+                console.log('WebSocket disconnected, reconnecting...');
+                // Reconnect after 2 seconds
+                setTimeout(() => {
+                    initWebSocket();
+                }, 2000);
+            };
+            
+            // Store reference for debugging
+            window.debugWS = ws;
+        }
+
+        // Handle WebSocket messages
+        function handleWebSocketMessage(msg) {
+            if (msg.type === 'state_changed') {
+                const newState = msg.data.fsm_state;
+                const oldState = currentFsmState;
+                
+                // Update the robot state display
+                updateRobotState(msg.data);
+                updateVelocityPanel(); // Update velocity controls when state changes
+                
+                // SAFETY-CRITICAL: Re-enable buttons only when reaching stable endpoint state
+                if (newState && newState !== oldState) {
+                    // Check if we reached target state - if so, clear it and re-enable
+                    if (buttonsDisabled && targetState && newState === targetState) {
+                        console.log(`✓ Reached target state: ${newState} - RE-ENABLING BUTTONS`);
+                        showMessage(`Robot action complete: ${newState}`, 'success');
+                        buttonsDisabled = false;
+                        targetState = null;
+                        actionOriginState = null;
+                        refreshState();
+                    } else if (buttonsDisabled && targetState) {
+                        console.log(`→ Transitioning through ${newState}, target: ${targetState}`);
+                        showMessage(`Transitioning through ${newState}...`, 'info');
+                    } else if (buttonsDisabled && !targetState) {
+                        // No target (was an action state like 702/706) - check if we reached stable state
+                        const stableStates = ['ZERO_TORQUE', 'DAMP', 'START', 'LOCK_STAND', 'LOCK_STANDING', 'RUN'];
+                        const isStableState = stableStates.includes(newState);
+                        const isActionComplete = actionOriginState ? (newState !== actionOriginState) : true;
+                        
+                        if (isStableState && isActionComplete) {
+                            console.log(`✓ Action complete: ${newState} - RE-ENABLING BUTTONS`);
+                            showMessage(`Robot action complete: ${newState}`, 'success');
+                            buttonsDisabled = false;
+                            actionOriginState = null;
+                            refreshState();
+                        } else {
+                            console.log(`⏳ ${newState} - waiting for stable state (origin: ${actionOriginState})`);
+                        }
+                    } else if (!buttonsDisabled && !targetState) {
+                        refreshState();
+                    }
+                }
+            } else if (msg.type === 'connection_changed') {
+                if (msg.data.connected) {
+                    showMessage('Connected to robot', 'success');
+                } else {
+                    // Robot connection lost - reset UI state
+                    showMessage(msg.data.error || 'Robot connection lost', 'error');
+                    isConnected = false;
+                    currentRobotName = null;
+                    
+                    document.getElementById('statusPanel').style.display = 'none';
+                    document.getElementById('statePanel').style.display = 'none';
+                    document.getElementById('connectionStatus').textContent = 'Disconnected';
+                    document.getElementById('connectionStatus').className = 'connection-status status-disconnected';
+                    
+                    // Refresh robot list to show connect buttons again
+                    refreshRobotList();
+                }
+            }
+        }
+
+        // Simplified robot status refresh
+        async function refreshRobotList() {
+            try {
+                const response = await fetch('/api/discover');
+                const data = await response.json();
+                
+                if (data.success) {
+                    discoveredRobots = data.robots || [];
+                    displayDiscoveredRobots(data);
+                } else {
+                    showMessage('Failed to check robot status', 'error');
+                }
+            } catch (error) {
+                showMessage('Error checking robots: ' + error.message, 'error');
+            }
+        }
+
+        // Display discovered robots
+        function displayDiscoveredRobots(data) {
+            const container = document.getElementById('discoveredRobots');
+            const list = document.getElementById('robotList');
+            
+            list.innerHTML = '';
+            
+            const robots = data.robots || [];
+            const boundCount = data.bound_count || 0;
+            
+            if (robots.length === 0) {
+                list.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #718096; background: #f7fafc; border-radius: 5px; border: 1px dashed #cbd5e0;">
+                        <p>🔍 No bound robots found</p>
+                        <p style="font-size: 14px;">Your robots will appear here automatically when they broadcast</p>
+                        <p style="font-size: 12px; margin-top: 5px; color: #a0aec0;">Make sure robot is powered on and on same network</p>
+                    </div>`;
+                container.style.display = 'block';
+                return;
+            }
+            
+            robots.forEach((robot, index) => {
+                const isBound = robot.is_bound || false;
+                const isOnline = robot.is_online || false;
+                const hasIP = robot.ip && robot.ip !== 'null' && robot.ip !== '';
+                const lastSeen = robot.last_seen ? new Date(robot.last_seen).toLocaleString() : 'Never';
+                
+                // Check if this robot is currently connected (user-driven state)
+                const isCurrentlyConnected = isConnected && currentRobotName === robot.name;
+                
+                // Status indicator
+                let statusColor = '#cbd5e0';
+                let statusText = 'Discovering';
+                let statusIcon = '🔍';
+                
+                if (isCurrentlyConnected) {
+                    statusColor = '#38b2ac';
+                    statusText = 'Connected';
+                    statusIcon = '🔗';
+                } else if (isOnline) {
+                    statusColor = '#48bb78';
+                    statusText = 'Online';
+                    statusIcon = '🟢';
+                } else if (hasIP) {
+                    statusColor = '#f56565';
+                    statusText = 'Offline';
+                    statusIcon = '🔴';
+                }
+                
+                // Extract robot model from name (if available)
+                let robotModel = 'G1';
+                if (robot.name && robot.name.toLowerCase().includes('air')) {
+                    robotModel = 'G1 Air';
+                } else if (robot.name && robot.name.toLowerCase().includes('edu')) {
+                    robotModel = 'G1 EDU';
+                } else if (robot.name && robot.name.toLowerCase().includes('g1')) {
+                    robotModel = 'G1';
+                }
+                
+                const robotCard = document.createElement('div');
+                robotCard.style.cssText = `
+                    padding: 15px;
+                    margin-bottom: 10px;
+                    background: ${isCurrentlyConnected ? '#e6fffa' : (isOnline ? '#f0fff4' : '#f7fafc')};
+                    border-radius: 8px;
+                    border: 2px solid ${statusColor};
+                `;
+                
+                // Determine button visibility based on connection state
+                // Connect button: show if online AND not connected
+                const showConnectBtn = isOnline && !isCurrentlyConnected;
+                // Disconnect button: show if currently connected (regardless of online status)
+                const showDisconnectBtn = isCurrentlyConnected;
+                // Offline button: show if not online AND not connected
+                const showOfflineBtn = !isOnline && !isCurrentlyConnected;
+                
+                robotCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span style="font-weight: bold; font-size: 18px; color: #2d3748;">${robot.name}</span>
+                                <span style="font-size: 12px; padding: 2px 8px; background: ${statusColor}; color: white; border-radius: 12px;">${statusIcon} ${statusText}</span>
+                            </div>
+                            <div style="font-size: 14px; color: #718096;">
+                                <div><strong>Model:</strong> ${robotModel}</div>
+                                <div><strong>Serial:</strong> ${robot.serial_number}</div>
+                                ${hasIP ? `<div><strong>IP:</strong> ${robot.ip}</div>` : ''}
+                                <div style="font-size: 12px; color: #a0aec0; margin-top: 4px;">Last seen: ${lastSeen}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                            <button onclick="connectToSelectedRobot('${robot.name}', '${robot.ip || ''}')" 
+                                    id="connectBtn_${robot.name.replace(/[^a-zA-Z0-9]/g, '_')}"
+                                    style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; ${showConnectBtn ? '' : 'display: none;'}">
+                                🔗 Connect
+                            </button>
+                            <button onclick="disconnect()" 
+                                    style="padding: 8px 16px; background: #f56565; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; ${showDisconnectBtn ? '' : 'display: none;'}" 
+                                    id="disconnectBtn_${robot.name.replace(/[^a-zA-Z0-9]/g, '_')}">
+                                🔌 Disconnect
+                            </button>
+                            ${showOfflineBtn ? 
+                                `<button disabled style="padding: 8px 16px; background: #cbd5e0; color: #a0aec0; border: none; border-radius: 5px; cursor: not-allowed;">
+                                    Offline
+                                 </button>` : ''
+                            }
+                            <button onclick="unbindRobot('${robot.name}')" 
+                                    style="padding: 4px 12px; background: #f56565; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                list.appendChild(robotCard);
+            });
+            
+            container.style.display = 'block';
+        }
+
+        // Connect to selected robot
+        async function connectToSelectedRobot(name, ip) {
+            if (!ip) {
+                showMessage('Robot IP not available yet. Wait for broadcast.', 'error');
+                return;
+            }
+            
+            showMessage(`Connecting to ${name}...`, 'info');
+            
+            try {
+                // Find robot's serial number from discovered list
+                const robot = discoveredRobots.find(r => r.name === name);
+                if (!robot) {
+                    showMessage('Robot not found in discovery list', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`/api/connect?ip=${ip}&serial_number=${robot.serial_number}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    isConnected = true;
+                    currentRobotName = name;
+                    
+                    // Show status, state, and velocity panels
+                    const statusPanel = document.getElementById('statusPanel');
+                    const statePanel = document.getElementById('statePanel');
+                    const velocityPanel = document.getElementById('velocityPanel');
+                    const connectionStatus = document.getElementById('connectionStatus');
+                    
+                    if (statusPanel) statusPanel.style.display = 'block';
+                    if (statePanel) statePanel.style.display = 'block';
+                    if (velocityPanel) velocityPanel.style.display = 'block';
+                    if (connectionStatus) {
+                        connectionStatus.textContent = `Connected to ${name}`;
+                        connectionStatus.className = 'connection-status status-connected';
+                    }
+                    
+                    // Refresh robot list to update button states
+                    refreshRobotList();
+                    
+                    // Update robot state if provided
+                    if (data.state) {
+                        updateRobotState(data.state);
+                    }
+                    
+                    // Refresh state after connection
+                    setTimeout(async () => {
+                        await refreshState();
+                        updateVelocityPanel(); // Update velocity controls based on initial state
+                    }, 1000);
+                    
+                    showMessage(`Connected to ${name}`, 'success');
+                } else {
+                    showMessage(`Connection failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Connection error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Unbind (remove) a robot
+        async function unbindRobot(name) {
+            if (!confirm(`Remove ${name} from bound robots? Robot can be re-discovered if it broadcasts again.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/unbind', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`Removed ${name} from bound robots`, 'success');
+                    refreshRobotList();  // Refresh list
+                } else {
+                    showMessage(`Failed to remove ${name}: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Remove error: ${error.message}`, 'error');
+            }
+        }
+
+        // Disconnect from current robot
+        async function disconnect() {
+            try {
+                const response = await fetch('/api/disconnect', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    isConnected = false;
+                    currentRobotName = null;
+                    
+                    // Hide all robot control panels
+                    document.getElementById('statusPanel').style.display = 'none';
+                    document.getElementById('statePanel').style.display = 'none';
+                    document.getElementById('velocityPanel').style.display = 'none';
+                    document.getElementById('connectionStatus').textContent = 'Disconnected';
+                    document.getElementById('connectionStatus').className = 'connection-status status-disconnected';
+                    
+                    // Stop any active movement and reset velocity display
+                    currentVelocity = { vx: 0, vy: 0, omega: 0 };
+                    activeKeys.clear();
+                    updateVelocityDisplay();
+                    
+                    // Refresh robot list to update button states
+                    refreshRobotList();
+                    
+                    showMessage('Disconnected from robot', 'info');
+                } else {
+                    showMessage(`Disconnect failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Disconnect error: ' + error.message, 'error');
+            }
+        }
+
+        // Set FSM state
+        async function setState(stateName) {
+            if (!isConnected) {
+                showMessage('Not connected to robot', 'error');
+                return;
+            }
+            
+            if (buttonsDisabled) {
+                console.log('Buttons disabled, ignoring click');
+                return;
+            }
+            
+            // Disable all buttons during transition - only re-enable based on LED stability
+            buttonsDisabled = true;
+            
+            // CRITICAL: States 702 (STAND_UP) and 706 (SQUAT_TO_STAND) are ACTIONS, not final states
+            // Robot passes through them to reach final state (DAMP or RUN)
+            // Don't track them as targets - just wait for LED to stabilize on final state
+            const isActionState = stateName === 'STAND_UP' || stateName === 'SQUAT_TO_STAND';
+            
+            if (isActionState) {
+                targetState = null; // Don't track action states as targets
+                actionOriginState = currentFsmState; // Record where we started from
+            } else {
+                targetState = stateName; // Track as target for non-action states
+                actionOriginState = null; // Clear origin for regular transitions
+            }
+            showMessage(`Transitioning to ${stateName}...`, 'info');
+            updateStateButtons();
+            
+            try {
+                const response = await fetch(`/api/set_state?state_name=${stateName}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    showMessage('Transition failed: ' + data.error, 'error');
+                    // Re-enable buttons for current state on error
+                    buttonsDisabled = false;
+                    targetState = null; // Clear target state
+                    actionOriginState = null; // Clear origin state
+                    updateStateButtons();
+                }
+            } catch (error) {
+                showMessage('State change error: ' + error.message, 'error');
+                // Re-enable immediately on error  
+                buttonsDisabled = false;
+                updateStateButtons();
+            }
+        }
+
+        // Refresh current state
+        async function refreshState() {
+            try {
+                // Add cache busting to ensure fresh data
+                const response = await fetch('/api/state?_=' + Date.now(), {
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.state) {
+                    currentFsmState = data.state.fsm_state;
+                    allowedTransitions = data.state.allowed_transitions || [];
+                    updateStateButtons();
+                }
+            } catch (error) {
+                console.error('Failed to refresh state:', error);
+            }
+        }
+
+        // Update robot state display
+        function updateRobotState(state) {
+            const oldState = currentFsmState;
+            currentFsmState = state.fsm_state;
+            
+            // Only update allowed transitions if provided (from API calls, not WebSocket)
+            if (state.allowed_transitions && Array.isArray(state.allowed_transitions)) {
+                allowedTransitions = state.allowed_transitions;
+            }
+            
+            document.getElementById('currentState').textContent = state.fsm_state;
+            document.getElementById('ledColor').textContent = state.led_color;
+            
+            // Update LED indicator color
+            const ledIndicator = document.getElementById('ledIndicator');
+            const color = LED_COLORS[state.led_color.toLowerCase()] || '#718096';
+            ledIndicator.style.backgroundColor = color;
+            ledIndicator.style.borderColor = color;
+            
+            updateStateButtons();
+        }
+
+        // Update state buttons
+        function updateStateButtons() {
+            if (!isConnected) return;
+            
+            const grid = document.getElementById('stateGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            
+            // Ensure allowedTransitions is an array
+            const transitions = Array.isArray(allowedTransitions) ? allowedTransitions : [];
+            
+            FSM_STATES.forEach((state, index) => {
+                const button = document.createElement('button');
+                button.className = 'state-button';
+                
+                // Check if this is the current state  
+                const isCurrent = state.name === currentFsmState;
+                if (isCurrent) {
+                    button.classList.add('current');
+                }
+                
+                // Check if transition is allowed
+                const isAllowed = transitions.includes(state.name);
+                
+                // SAFETY-FIRST: During transition (buttonsDisabled), disable ALL buttons except current for visual reference
+                if (buttonsDisabled) {
+                    button.disabled = true;
+                    button.classList.add('invalid');
+                    button.style.opacity = isCurrent ? '0.8' : '0.3';
+                } else if (!isAllowed && !isCurrent) {
+                    // Not transitioning, but this state is not allowed from current state
+                    button.classList.add('invalid');
+                    button.disabled = true;
+                    button.style.opacity = '0.5';
+                } else {
+                    // Either current state or valid transition - enable
+                    button.style.opacity = '1';
+                }
+                
+                // User-friendly display names
+                let displayName = state.name;
+                switch(state.name) {
+                    case 'LOCK_STAND':
+                        displayName = 'WALK';
+                        break;
+                    case 'LOCK_STANDING':
+                        displayName = 'STAND UP';
+                        break;
+                    case 'SQUAT_TO_STAND':
+                        const currentStateObj = FSM_STATES.find(s => s.name === currentFsmState);
+                        const currentStateValue = currentStateObj ? currentStateObj.value : null;
+                        displayName = (currentStateValue === 0 || currentStateValue === 1) ? 'SQUAT UP' : 'SQUAT DOWN';
+                        break;
+                    case 'STAND_UP':
+                        displayName = 'STAND UP';
+                        break;
+                }
+                
+                button.innerHTML = `
+                    <div class="state-name">${displayName.replace(/_/g, ' ')}</div>
+                    <div class="state-id">ID: ${state.value}</div>
+                `;
+                
+                if (!button.disabled) {
+                    button.onclick = () => setState(state.name);
+                }
+                
+                grid.appendChild(button);
+            });
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type} show`;
+            
+            // Only auto-hide error messages, keep success messages visible
+            if (type === 'error') {
+                setTimeout(() => {
+                    messageEl.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Velocity Control Functions
+        let currentVelocity = { vx: 0, vy: 0, omega: 0 };
+        let activeKeys = new Set();
+        let velocityScale = 1.0; // Adjustable speed multiplier
+
+        function isVelocityControlAvailable() {
+            // Velocity control works in WALK (500), WALK-3DOF (501), and RUN (801) modes
+            return currentFsmState === 'LOCK_STAND' || 
+                   currentFsmState === 'LOCK_STAND_ADV' ||
+                   currentFsmState === 'RUN';
+        }
+
+        function updateVelocityScale(value) {
+            velocityScale = parseFloat(value);
+            document.getElementById('velocityScaleValue').textContent = velocityScale.toFixed(1) + 'x';
+        }
+
+        function moveRobotScaled(baseVx, baseVy, baseOmega) {
+            // Apply velocity scale to base values
+            const vx = baseVx * velocityScale;
+            const vy = baseVy * velocityScale;
+            const omega = baseOmega * velocityScale;
+            moveRobot(vx, vy, omega);
+        }
+
+        async function moveRobot(vx, vy, omega) {
+            if (!isConnected) {
+                showMessage('Robot not connected', 'error');
+                return;
+            }
+            
+            if (!isVelocityControlAvailable()) {
+                showMessage('Velocity control only available in WALK (500), WALK-3DOF (501), or RUN (801) mode', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/move', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vx, vy, omega })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    currentVelocity = { vx, vy, omega };
+                    updateVelocityDisplay();
+                } else {
+                    showMessage(`Move failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Move error: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopRobot() {
+            await moveRobot(0, 0, 0);
+            activeKeys.clear();
+            updateButtonStates();
+        }
+
+        function updateVelocityDisplay() {
+            document.getElementById('velocityVx').textContent = currentVelocity.vx.toFixed(2);
+            document.getElementById('velocityVy').textContent = currentVelocity.vy.toFixed(2);
+            document.getElementById('velocityOmega').textContent = currentVelocity.omega.toFixed(2);
+        }
+
+        function updateVelocityPanel() {
+            const velocityPanel = document.getElementById('velocityPanel');
+            if (!velocityPanel || velocityPanel.style.display === 'none') return;
+            
+            const available = isVelocityControlAvailable();
+            const buttons = velocityPanel.querySelectorAll('.velocity-btn');
+            const warning = document.getElementById('velocityStateWarning');
+            
+            buttons.forEach(btn => {
+                btn.disabled = !available;
+                btn.style.opacity = available ? '1' : '0.5';
+                btn.style.cursor = available ? 'pointer' : 'not-allowed';
+            });
+            
+            if (warning) {
+                warning.style.display = available ? 'none' : 'block';
+            }
+        }
+
+        function updateButtonStates() {
+            // Visual feedback for active direction buttons
+            document.querySelectorAll('.velocity-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+        }
+
+        // Keyboard control mapping (base values - will be multiplied by velocityScale)
+        const keyMapBase = {
+            'w': { vx: 0.3, vy: 0, omega: 0 },      // Forward
+            'a': { vx: 0, vy: 0.2, omega: 0 },      // Strafe left
+            's': { vx: -0.3, vy: 0, omega: 0 },     // Backward
+            'd': { vx: 0, vy: -0.2, omega: 0 },     // Strafe right
+            'q': { vx: 0, vy: 0, omega: 0.5 },      // Turn left
+            'e': { vx: 0, vy: 0, omega: -0.5 },     // Turn right
+            ' ': { vx: 0, vy: 0, omega: 0 }         // Stop
+        };
+
+        function getScaledVelocity(baseVel) {
+            return {
+                vx: baseVel.vx * velocityScale,
+                vy: baseVel.vy * velocityScale,
+                omega: baseVel.omega * velocityScale
+            };
+        }
+
+        // Keyboard event handlers
+        document.addEventListener('keydown', async (event) => {
+            const key = event.key.toLowerCase();
+            
+            // Prevent default for space bar to avoid page scroll
+            if (key === ' ') {
+                event.preventDefault();
+            }
+            
+            // Only process if velocity panel is visible and key is mapped
+            const velocityPanel = document.getElementById('velocityPanel');
+            if (velocityPanel.style.display === 'none' || !keyMapBase[key]) {
+                return;
+            }
+            
+            // Check if velocity control is available in current state
+            if (!isVelocityControlAvailable()) {
+                return;
+            }
+            
+            // Avoid repeated keydown events
+            if (activeKeys.has(key)) {
+                return;
+            }
+            
+            activeKeys.add(key);
+            
+            // Space bar immediately stops
+            if (key === ' ') {
+                await stopRobot();
+                return;
+            }
+            
+            // Combine velocities from all active keys with scaling
+            let vx = 0, vy = 0, omega = 0;
+            activeKeys.forEach(k => {
+                const baseVel = keyMapBase[k];
+                const scaled = getScaledVelocity(baseVel);
+                vx += scaled.vx;
+                vy += scaled.vy;
+                omega += scaled.omega;
+            });
+            
+            await moveRobot(vx, vy, omega);
+        });
+
+        document.addEventListener('keyup', async (event) => {
+            const key = event.key.toLowerCase();
+            
+            // Only process if velocity panel is visible and key was active
+            const velocityPanel = document.getElementById('velocityPanel');
+            if (velocityPanel.style.display === 'none' || !activeKeys.has(key)) {
+                return;
+            }
+            
+            activeKeys.delete(key);
+            
+            // Recalculate velocity from remaining active keys with scaling
+            let vx = 0, vy = 0, omega = 0;
+            activeKeys.forEach(k => {
+                const baseVel = keyMapBase[k];
+                const scaled = getScaledVelocity(baseVel);
+                vx += scaled.vx;
+                vy += scaled.vy;
+                omega += scaled.omega;
+            });
+            
+            await moveRobot(vx, vy, omega);
+        });
+
+        // Initialize on page load
+        window.onload = () => {
+            initWebSocket();
+            refreshRobotList();  // Auto-discover bound robots
+            
+            // Refresh status every 10 seconds
+            setInterval(refreshRobotList, 10000);
+        };
+
+        // Disconnect robot on page refresh/close
+        window.addEventListener('beforeunload', (event) => {
+            if (isConnected) {
+                // Send disconnect request (fire-and-forget)
+                fetch('/api/disconnect', { method: 'POST' }).catch(() => {});
+            }
+        });
+    </script>
+</body>
+</html>
