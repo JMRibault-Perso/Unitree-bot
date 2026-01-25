@@ -162,13 +162,22 @@ class Topic:
 
 
 # ============================================================================
-# Speed Modes
+# Speed Modes (RUN mode only)
 # ============================================================================
 class SpeedMode(IntEnum):
-    """Walking/running speed levels"""
-    LOW = 0
-    MEDIUM = 1
-    HIGH = 2
+    """Speed levels for RUN mode (FSM 801)"""
+    LOW = 0      # 1.0 m/s
+    MEDIUM = 1   # 2.0 m/s
+    HIGH = 2     # 2.7 m/s
+    ULTRA = 3    # 3.0 m/s
+
+# Speed mode to max speed mapping (m/s)
+SPEED_MODE_LIMITS = {
+    SpeedMode.LOW: 1.0,
+    SpeedMode.MEDIUM: 2.0,
+    SpeedMode.HIGH: 2.7,
+    SpeedMode.ULTRA: 3.0,
+}
 
 
 # ============================================================================
@@ -181,14 +190,60 @@ class TTSSpeaker(IntEnum):
 
 
 # ============================================================================
-# Velocity Limits (safety)
+# Velocity Limits and Thresholds
 # ============================================================================
 class VelocityLimits:
-    """Safe velocity limits for movement"""
-    MAX_LINEAR = 0.8    # m/s
-    MAX_STRAFE = 0.5    # m/s  
-    MAX_ANGULAR = 1.0   # rad/s
+    """
+    Velocity limits and thresholds for movement control
     
-    DEFAULT_LINEAR = 0.3
-    DEFAULT_STRAFE = 0.2
+    Mode-based maximum speeds:
+    - WALK mode (500/501): 1.0 m/s linear, 1.0 rad/s angular
+    - RUN mode (801): Depends on SpeedMode setting (1.0 - 3.0 m/s)
+    
+    Normalization:
+    - Commands sent as percentage of max speed for current mode
+    - value / get_max_speed(fsm_state, speed_mode)
+    
+    Minimum thresholds (dead zone):
+    - Below MIN, command is set to 0 to prevent unintentional drift
+    - Applied regardless of mode (WALK/RUN)
+    """
+    # WALK mode limits
+    WALK_MAX_LINEAR = 1.0    # m/s
+    WALK_MAX_STRAFE = 1.0    # m/s
+    WALK_MAX_ANGULAR = 1.0   # rad/s
+    
+    # RUN mode limits (varies by SpeedMode setting)
+    # See SPEED_MODE_LIMITS for linear speed
+    RUN_MAX_STRAFE = 1.0     # m/s (strafe limited in RUN)
+    RUN_MAX_ANGULAR = 1.5    # rad/s (faster turns in RUN)
+    
+    # Minimum speed thresholds (dead zone)
+    MIN_LINEAR = 0.05   # m/s - minimum forward/backward before stopping
+    MIN_STRAFE = 0.05   # m/s - minimum strafe before stopping
+    MIN_ANGULAR = 0.05  # rad/s - minimum rotation before stopping
+    
+    @staticmethod
+    def get_max_linear(fsm_state: 'FSMState', speed_mode: SpeedMode = SpeedMode.LOW) -> float:
+        """Get max linear speed based on FSM state and speed mode"""
+        if fsm_state == FSMState.RUN:
+            return SPEED_MODE_LIMITS.get(speed_mode, 1.0)
+        return VelocityLimits.WALK_MAX_LINEAR
+    
+    @staticmethod
+    def get_max_strafe(fsm_state: 'FSMState') -> float:
+        """Get max strafe speed based on FSM state"""
+        if fsm_state == FSMState.RUN:
+            return VelocityLimits.RUN_MAX_STRAFE
+        return VelocityLimits.WALK_MAX_STRAFE
+    
+    @staticmethod
+    def get_max_angular(fsm_state: 'FSMState') -> float:
+        """Get max angular speed based on FSM state"""
+        if fsm_state == FSMState.RUN:
+            return VelocityLimits.RUN_MAX_ANGULAR
+        return VelocityLimits.WALK_MAX_ANGULAR
+
+    DEFAULT_LINEAR = 0.5
+    DEFAULT_STRAFE = 0.5
     DEFAULT_ANGULAR = 0.5

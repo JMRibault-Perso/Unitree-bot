@@ -16,7 +16,7 @@ from unitree_webrtc_connect.constants import WebRTCConnectionMethod
 from ..core.state_machine import StateMachine, FSMState
 from ..core.command_executor import CommandExecutor
 from ..core.event_bus import EventBus, Events
-from ..api.constants import Topic
+from ..api.constants import Topic, SpeedMode, VelocityLimits
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,9 @@ class RobotController:
         
         # Connection state
         self.connected = False
+        
+        # Speed mode tracking (for RUN mode)
+        self.current_speed_mode = SpeedMode.LOW
         
         logger.info(f"Initialized RobotController for {robot_sn} @ {robot_ip}")
     
@@ -153,6 +156,35 @@ class RobotController:
     # ========================================================================
     # Command Methods (delegate to executor)
     # ========================================================================
+    
+    async def set_speed_mode(self, speed_mode: SpeedMode) -> bool:
+        """Set speed mode (RUN mode only)"""
+        if not self.connected or not self.executor:
+            return False
+        
+        # Only valid in RUN mode
+        if self.state_machine.fsm_state != FSMState.RUN:
+            logger.warning(f"Speed mode can only be set in RUN mode (current: {self.state_machine.fsm_state.name})")
+            return False
+        
+        try:
+            await self.executor.set_speed_mode(speed_mode)
+            self.current_speed_mode = speed_mode
+            logger.info(f"Set speed mode to {speed_mode.name} ({speed_mode.value})")
+            return True
+        except Exception as e:
+            logger.error(f"Set speed mode failed: {e}")
+            return False
+    
+    def get_max_speeds(self) -> dict:
+        """Get current max speeds based on FSM state and speed mode"""
+        fsm_state = self.state_machine.fsm_state
+        return {
+            'max_linear': VelocityLimits.get_max_linear(fsm_state, self.current_speed_mode),
+            'max_strafe': VelocityLimits.get_max_strafe(fsm_state),
+            'max_angular': VelocityLimits.get_max_angular(fsm_state),
+            'speed_mode': self.current_speed_mode.value if fsm_state == FSMState.RUN else None
+        }
     
     async def set_fsm_state(self, state: FSMState) -> bool:
         """

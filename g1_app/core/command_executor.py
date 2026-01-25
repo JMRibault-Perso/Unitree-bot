@@ -55,7 +55,10 @@ class CommandExecutor:
         This is how the Android app controls the robot - via rt/wirelesscontroller topic
         NOT via API 7105 (SET_VELOCITY)
         
-        Wireless controller expects NORMALIZED joystick values (-1.0 to 1.0), not m/s!
+        Wireless controller expects NORMALIZED joystick values as percentage of max speed:
+        - WALK mode: 1.0 = ~1 m/s max
+        - RUN mode: 1.0 = ~3 m/s max
+        Values > 1.0 are allowed for experimentation.
         
         Args:
             vx: Forward/backward speed (m/s), positive = forward
@@ -67,16 +70,21 @@ class CommandExecutor:
         Returns:
             Command payload
         """
-        # Apply safety limits (m/s and rad/s)
-        vx = max(-VelocityLimits.MAX_LINEAR, min(VelocityLimits.MAX_LINEAR, vx))
-        vy = max(-VelocityLimits.MAX_STRAFE, min(VelocityLimits.MAX_STRAFE, vy))
-        omega = max(-VelocityLimits.MAX_ANGULAR, min(VelocityLimits.MAX_ANGULAR, omega))
+        # Apply minimum speed threshold (in m/s) - below this, send 0
+        # This prevents slow drift and ensures intentional movement
+        if abs(vx) < VelocityLimits.MIN_LINEAR:
+            vx = 0.0
+        if abs(vy) < VelocityLimits.MIN_STRAFE:
+            vy = 0.0
+        if abs(omega) < VelocityLimits.MIN_ANGULAR:
+            omega = 0.0
         
-        # Normalize to joystick range (-1.0 to 1.0)
-        # Joystick values are stick positions, not actual speeds
-        ly_normalized = vx / VelocityLimits.MAX_LINEAR   # Forward: -1.0 to 1.0
-        lx_normalized = vy / VelocityLimits.MAX_STRAFE   # Strafe: -1.0 to 1.0
-        rx_normalized = omega / VelocityLimits.MAX_ANGULAR  # Rotation: -1.0 to 1.0
+        # Normalize to joystick percentage (values > 1.0 allowed for experimentation)
+        # MAX values represent the base speed for normalization (WALK mode ~1m/s)
+        # Robot interprets these as percentage of current mode's max (WALK vs RUN)
+        ly_normalized = vx / VelocityLimits.MAX_LINEAR
+        lx_normalized = vy / VelocityLimits.MAX_STRAFE
+        rx_normalized = omega / VelocityLimits.MAX_ANGULAR
         
         # Wireless controller uses joystick mapping:
         # ly = forward/back (normalized vx)
@@ -108,6 +116,23 @@ class CommandExecutor:
         """Stop all motion"""
         logger.info("Stopping motion")
         return await self.set_velocity(0, 0, 0)
+    
+    async def set_speed_mode(self, speed_mode: 'SpeedMode') -> dict:
+        \"\"\"
+        Set speed mode (RUN mode only)
+        
+        Args:
+            speed_mode: Speed mode (0=1.0m/s, 1=2.0m/s, 2=2.7m/s, 3=3.0m/s)
+            
+        Returns:
+            Command payload
+        \"\"\"
+        payload = {
+            "api_id": LocoAPI.SET_SPEED_MODE,
+            "parameter": json.dumps({"data": int(speed_mode)})
+        }
+        logger.info(f"Setting speed mode to {speed_mode.name} ({speed_mode.value})  ")
+        return await self._send_command(payload)
     
     async def get_fsm_mode(self) -> Optional[dict]:
         """

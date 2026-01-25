@@ -383,6 +383,55 @@ async def move_robot(data: dict):
         return {"success": False, "error": str(e)}
 
 
+@app.post("/api/set_speed_mode")
+async def set_speed_mode_endpoint(mode: int):
+    """Set speed mode (RUN mode only)"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        from g1_app.api.constants import SpeedMode
+        
+        # Validate mode
+        if mode not in [0, 1, 2, 3]:
+            return {"success": False, "error": f"Invalid speed mode: {mode}"}
+        
+        speed_mode = SpeedMode(mode)
+        success = await robot.set_speed_mode(speed_mode)
+        
+        if success:
+            return {
+                "success": True,
+                "speed_mode": mode,
+                "max_speeds": robot.get_max_speeds()
+            }
+        else:
+            return {"success": False, "error": "Failed to set speed mode"}
+    except Exception as e:
+        logger.error(f"Set speed mode failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/max_speeds")
+async def get_max_speeds_endpoint():
+    """Get current max speeds based on mode"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        return {
+            "success": True,
+            **robot.get_max_speeds()
+        }
+    except Exception as e:
+        logger.error(f"Move command failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.get("/api/debug/transitions")
 async def debug_transitions():
     """Debug endpoint to check transitions"""
