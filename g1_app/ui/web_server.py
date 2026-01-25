@@ -431,6 +431,64 @@ async def get_max_speeds_endpoint():
         logger.error(f"Move command failed: {e}")
         return {"success": False, "error": str(e)}
 
+@app.post("/api/gesture")
+async def execute_gesture_endpoint(gesture_name: str):
+    """Execute arm gesture"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        success = await robot.execute_gesture(gesture_name)
+        
+        if success:
+            return {
+                "success": True,
+                "gesture": gesture_name
+            }
+        else:
+            return {"success": False, "error": "Gesture execution failed"}
+    except Exception as e:
+        logger.error(f"Gesture execution failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/gestures/list")
+async def get_gestures_list():
+    """Get list of available gestures"""
+    from g1_app.api.constants import ArmGesture, ArmTask
+    
+    try:
+        # Return both simple tasks and complex gestures
+        return {
+            "success": True,
+            "simple_tasks": [
+                {"name": "WAVE_HAND", "value": ArmTask.WAVE_HAND.value, "display": "👋 Wave Hand"},
+                {"name": "WAVE_HAND_TURN", "value": ArmTask.WAVE_HAND_TURN.value, "display": "👋 Wave + Turn"},
+                {"name": "SHAKE_HAND_STAGE_1", "value": ArmTask.SHAKE_HAND_STAGE_1.value, "display": "🤝 Shake Hand (1)"},
+                {"name": "SHAKE_HAND_STAGE_2", "value": ArmTask.SHAKE_HAND_STAGE_2.value, "display": "🤝 Shake Hand (2)"},
+            ],
+            "gestures": [
+                {"name": "TWO_HAND_KISS", "value": ArmGesture.TWO_HAND_KISS.value, "display": "😘 Two Hand Kiss"},
+                {"name": "HANDS_UP", "value": ArmGesture.HANDS_UP.value, "display": "🙌 Hands Up"},
+                {"name": "CLAP", "value": ArmGesture.CLAP.value, "display": "👏 Clap"},
+                {"name": "HIGH_FIVE", "value": ArmGesture.HIGH_FIVE.value, "display": "✋ High Five"},
+                {"name": "HUG", "value": ArmGesture.HUG.value, "display": "🤗 Hug"},
+                {"name": "HEART", "value": ArmGesture.HEART.value, "display": "❤️ Heart (2 hands)"},
+                {"name": "RIGHT_HEART", "value": ArmGesture.RIGHT_HEART.value, "display": "💝 Right Heart"},
+                {"name": "REJECT", "value": ArmGesture.REJECT.value, "display": "🚫 Reject"},
+                {"name": "RIGHT_HAND_UP", "value": ArmGesture.RIGHT_HAND_UP.value, "display": "✋ Right Hand Up"},
+                {"name": "X_RAY", "value": ArmGesture.X_RAY.value, "display": "🔍 X-Ray"},
+                {"name": "FACE_WAVE", "value": ArmGesture.FACE_WAVE.value, "display": "👋 Face Wave"},
+                {"name": "HIGH_WAVE", "value": ArmGesture.HIGH_WAVE.value, "display": "👋 High Wave"},
+                {"name": "SHAKE_HAND", "value": ArmGesture.SHAKE_HAND.value, "display": "🤝 Shake Hand"},
+                {"name": "RELEASE_ARM", "value": ArmGesture.RELEASE_ARM.value, "display": "🔓 Release Arms"},
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Get gestures list failed: {e}")
+        return {"success": False, "error": str(e)}
 
 @app.get("/api/debug/transitions")
 async def debug_transitions():

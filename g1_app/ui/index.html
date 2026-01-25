@@ -308,6 +308,35 @@
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
+        /* Gesture Buttons */
+        .gesture-btn {
+            padding: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid #2d3748;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gesture-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .gesture-btn:active {
+            transform: scale(0.95);
+            background: linear-gradient(135deg, #38a169 0%, #48bb78 100%);
+        }
+
         .velocity-btn.stop-btn {
             background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
             border-color: #c53030;
@@ -446,6 +475,86 @@
             </div>
         </div>
 
+        <!-- Arm Gestures Panel -->
+        <div id="gesturesPanel" class="card" style="display: none;">
+            <h2>🤖 Arm Gestures</h2>
+            
+            <div id="gesturesAvailableWarning" style="display: none; padding: 10px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 5px; margin-bottom: 15px; color: #92400e;">
+                ⚠️ <strong>Gestures disabled:</strong> Robot must be in WALK (500/501) or RUN (801) mode.
+            </div>
+            
+            <!-- Simple Tasks (Wave, Shake) -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4a5568; font-size: 16px; margin-bottom: 10px;">Quick Actions</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <button onclick="executeGesture('WAVE_HAND')" class="gesture-btn" title="Wave hand">
+                        👋<br><span style="font-size: 12px;">Wave</span>
+                    </button>
+                    <button onclick="executeGesture('WAVE_HAND_TURN')" class="gesture-btn" title="Wave with turn">
+                        👋<br><span style="font-size: 12px;">Wave + Turn</span>
+                    </button>
+                    <button onclick="executeGesture('SHAKE_HAND_STAGE_1')" class="gesture-btn" title="Shake hand stage 1">
+                        🤝<br><span style="font-size: 12px;">Shake (1)</span>
+                    </button>
+                    <button onclick="executeGesture('SHAKE_HAND_STAGE_2')" class="gesture-btn" title="Shake hand stage 2">
+                        🤝<br><span style="font-size: 12px;">Shake (2)</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Complex Gestures -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4a5568; font-size: 16px; margin-bottom: 10px;">Gestures</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                    <button onclick="executeGesture('TWO_HAND_KISS')" class="gesture-btn" title="Two hand kiss">
+                        😘<br><span style="font-size: 11px;">Kiss</span>
+                    </button>
+                    <button onclick="executeGesture('HANDS_UP')" class="gesture-btn" title="Hands up">
+                        🙌<br><span style="font-size: 11px;">Hands Up</span>
+                    </button>
+                    <button onclick="executeGesture('CLAP')" class="gesture-btn" title="Clap">
+                        👏<br><span style="font-size: 11px;">Clap</span>
+                    </button>
+                    <button onclick="executeGesture('HIGH_FIVE')" class="gesture-btn" title="High five">
+                        ✋<br><span style="font-size: 11px;">High Five</span>
+                    </button>
+                    <button onclick="executeGesture('HUG')" class="gesture-btn" title="Hug">
+                        🤗<br><span style="font-size: 11px;">Hug</span>
+                    </button>
+                    <button onclick="executeGesture('HEART')" class="gesture-btn" title="Heart with both hands">
+                        ❤️<br><span style="font-size: 11px;">Heart</span>
+                    </button>
+                    <button onclick="executeGesture('RIGHT_HEART')" class="gesture-btn" title="Heart with right hand">
+                        💝<br><span style="font-size: 11px;">R-Heart</span>
+                    </button>
+                    <button onclick="executeGesture('REJECT')" class="gesture-btn" title="Reject">
+                        🚫<br><span style="font-size: 11px;">Reject</span>
+                    </button>
+                    <button onclick="executeGesture('RIGHT_HAND_UP')" class="gesture-btn" title="Right hand up">
+                        ✋<br><span style="font-size: 11px;">R-Hand Up</span>
+                    </button>
+                    <button onclick="executeGesture('X_RAY')" class="gesture-btn" title="X-Ray">
+                        🔍<br><span style="font-size: 11px;">X-Ray</span>
+                    </button>
+                    <button onclick="executeGesture('FACE_WAVE')" class="gesture-btn" title="Face wave">
+                        👋<br><span style="font-size: 11px;">Face Wave</span>
+                    </button>
+                    <button onclick="executeGesture('HIGH_WAVE')" class="gesture-btn" title="High wave">
+                        👋<br><span style="font-size: 11px;">High Wave</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Release Arms Button -->
+            <div style="text-align: center;">
+                <button onclick="executeGesture('RELEASE_ARM')" 
+                    style="padding: 12px 30px; background: #ef4444; color: white; border: none; border-radius: 5px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                    title="Release arms from held position">
+                    🔓 Release Arms
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -538,6 +647,7 @@
                 // Update the robot state display
                 updateRobotState(msg.data);
                 updateVelocityPanel(); // Update velocity controls when state changes
+                updateGesturesPanel(); // Update gesture controls when state changes
                 
                 // SAFETY-CRITICAL: Re-enable buttons only when reaching stable endpoint state
                 if (newState && newState !== oldState) {
@@ -759,11 +869,13 @@
                     const statusPanel = document.getElementById('statusPanel');
                     const statePanel = document.getElementById('statePanel');
                     const velocityPanel = document.getElementById('velocityPanel');
+                    const gesturesPanel = document.getElementById('gesturesPanel');
                     const connectionStatus = document.getElementById('connectionStatus');
                     
                     if (statusPanel) statusPanel.style.display = 'block';
                     if (statePanel) statePanel.style.display = 'block';
                     if (velocityPanel) velocityPanel.style.display = 'block';
+                    if (gesturesPanel) gesturesPanel.style.display = 'block';
                     if (connectionStatus) {
                         connectionStatus.textContent = `Connected to ${name}`;
                         connectionStatus.className = 'connection-status status-connected';
@@ -781,6 +893,7 @@
                     setTimeout(async () => {
                         await refreshState();
                         updateVelocityPanel(); // Update velocity controls based on initial state
+                        updateGesturesPanel(); // Update gesture controls based on initial state
                     }, 1000);
                     
                     showMessage(`Connected to ${name}`, 'success');
@@ -1094,6 +1207,58 @@
             await moveRobot(0, 0, 0);
             activeKeys.clear();
             updateButtonStates();
+        }
+
+        // Gesture Control Functions
+        function isGesturesAvailable() {
+            // Gestures work in WALK (500/501) and RUN (801) modes
+            return currentFsmState === 'LOCK_STAND' || 
+                   currentFsmState === 'LOCK_STAND_ADV' ||
+                   currentFsmState === 'RUN';
+        }
+
+        async function executeGesture(gestureName) {
+            if (!isConnected) {
+                showMessage('Robot not connected', 'error');
+                return;
+            }
+            
+            if (!isGesturesAvailable()) {
+                showMessage('Gestures only available in WALK (500/501) or RUN (801) mode', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/gesture?gesture_name=${gestureName}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(`Executing ${gestureName}`, 'success');
+                } else {
+                    showMessage(`Gesture failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Gesture error: ${error.message}`, 'error');
+            }
+        }
+
+        function updateGesturesPanel() {
+            const gesturesPanel = document.getElementById('gesturesPanel');
+            if (!gesturesPanel || gesturesPanel.style.display === 'none') return;
+            
+            const available = isGesturesAvailable();
+            const buttons = gesturesPanel.querySelectorAll('.gesture-btn');
+            const warning = document.getElementById('gesturesAvailableWarning');
+            
+            if (available) {
+                buttons.forEach(btn => btn.disabled = false);
+                warning.style.display = 'none';
+            } else {
+                buttons.forEach(btn => btn.disabled = true);
+                warning.style.display = 'block';
+            }
         }
 
         function updateVelocityDisplay() {
