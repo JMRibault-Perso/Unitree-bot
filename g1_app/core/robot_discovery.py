@@ -6,7 +6,7 @@ import socket
 import json
 import logging
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
@@ -96,6 +96,27 @@ class RobotDiscovery:
         self._timeout_task: Optional[asyncio.Task] = None
         self._load_bound_robots()
         
+    async def _check_robot_port(self, ip: str, mac: str) -> Tuple[bool, str]:
+        """Check if port 8081 is open on given IP and MAC matches"""
+        try:
+            # Fast TCP connection test to port 8081
+            conn = asyncio.open_connection(ip, 8081)
+            reader, writer = await asyncio.wait_for(conn, timeout=0.5)
+            writer.close()
+            await writer.wait_closed()
+            # Port is open, now verify MAC address via ARP
+            proc = await asyncio.create_subprocess_exec(
+                'arp', '-n', ip,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=0.5)
+            if mac.lower() in stdout.decode('utf-8').lower():
+                return (True, ip)
+        except:
+            pass
+        return (False, None)
+    
     def _load_bound_robots(self):
         """Load previously bound robots from storage"""
         if os.path.exists(self.STORAGE_FILE):
@@ -186,15 +207,39 @@ class RobotDiscovery:
         import socket
         import struct
         import select
+        import subprocess
         
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(('', self.MCAST_PORT))
             
-            # Join multicast group
-            mreq = struct.pack("4sl", socket.inet_aton(self.MCAST_GRP), socket.INADDR_ANY)
+            # Auto-detect local IP for multicast interface
+            try:
+                result = subprocess.run(['ip', 'route', 'get', self.MCAST_GRP], 
+                                      capture_output=True, text=True, timeout=1)
+                # Parse: "multicast 231.1.1.2 dev eth1 src 192.168.86.10"
+                for word in result.stdout.split():
+                    if '192.168.' in word or '10.' in word or '172.' in word:
+                        local_ip = word
+                        break
+                else:
+                    local_ip = None
+            except:
+                local_ip = None
+            
+            # Join multicast group on specific interface (or ANY if auto-detect failed)
+            if local_ip:
+                mreq = struct.pack("4s4s", socket.inet_aton(self.MCAST_GRP), socket.inet_aton(local_ip))
+                logger.info(f"Joining multicast group {self.MCAST_GRP} on {local_ip}")
+            else:
+                mreq = struct.pack("4sl", socket.inet_aton(self.MCAST_GRP), socket.INADDR_ANY)
+                logger.info(f"Joining multicast group {self.MCAST_GRP} on ANY interface")
+            
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            
+            # Enable multicast loopback
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
             sock.settimeout(1.0)  # 1 second timeout
             
             logger.info(f"Listening for robot broadcasts on {self.MCAST_GRP}:{self.MCAST_PORT}")
@@ -350,7 +395,7 @@ class RobotDiscovery:
         """Get list of bound robots only"""
         return list(self._bound_robots.values())
 
-    def get_robots(self) -> List[RobotInfo]:
+    async def get_robots(self) -> List[RobotInfo]:
         """Get list of all robots (bound robots with live IP from broadcasts)"""
         all_robots = {}
         
@@ -370,62 +415,122 @@ class RobotDiscovery:
                 # Add newly discovered robot (not bound)
                 all_robots[name] = discovered_robot
                 
-        # Real-time robot reachability check (like mobile app does)
+        # Real-time robot reachability check via network scanning (NO hardcoded IPs)
         for name, robot in all_robots.items():
-            if robot.serial_number == "E21D1000PAHBMB06":
-                # Test actual reachability with known IP or discover new IP
-                import subprocess
+            if robot.mac_address:
+                # Discover robot IP by MAC address scan (fully dynamic)
                 from datetime import datetime
                 
-                current_ip = robot.ip if robot.ip else "192.168.86.2"  # Last known IP
                 is_reachable = False
+                discovered_ip = None
                 
                 try:
-                    # Quick ping test (like mobile app connection check)
-                    result = subprocess.run(['ping', '-c', '1', '-W', '1', current_ip], 
-                                          capture_output=True, timeout=3)
-                    if result.returncode == 0:
-                        # Robot is reachable - update status immediately
-                        robot.ip = current_ip
-                        robot.is_online = True
-                        robot.last_seen = datetime.now()
-                        is_reachable = True
-                        logger.debug(f"✓ Ping: {name} online at {current_ip}")
-                    else:
-                        # Try ARP scan for MAC if ping failed (robot might have changed IP)
-                        arp_result = subprocess.run(['arp-scan', '-I', 'eth1', '--localnet'], 
-                                                  capture_output=True, text=True, timeout=5)
-                        for line in arp_result.stdout.split('\n'):
-                            if 'fc:23:cd:92:60:02' in line.lower():
-                                parts = line.split()
-                                if len(parts) >= 2:
-                                    new_ip = parts[0].strip()
-                                    if new_ip != current_ip:
-                                        # Robot found at different IP - test it
-                                        ping_result = subprocess.run(['ping', '-c', '1', '-W', '1', new_ip], 
-                                                                   capture_output=True, timeout=2)
-                                        if ping_result.returncode == 0:
-                                            robot.ip = new_ip
-                                            robot.is_online = True
-                                            robot.last_seen = datetime.now()
-                                            is_reachable = True
-                                            logger.info(f"✓ Robot moved: {name} now at {new_ip}")
+                    # If we have a stored IP, test it first (quick ping)
+                    if robot.ip:
+                        proc = await asyncio.create_subprocess_exec(
+                            'ping', '-c', '1', '-W', '1', robot.ip,
+                            stdout=asyncio.subprocess.DEVNULL,
+                            stderr=asyncio.subprocess.DEVNULL
+                        )
+                        try:
+                            returncode = await asyncio.wait_for(proc.wait(), timeout=2)
+                            if returncode == 0:
+                                robot.is_online = True
+                                robot.last_seen = datetime.now()
+                                is_reachable = True
+                                logger.debug(f"✓ Ping: {name} online at {robot.ip}")
+                        except asyncio.TimeoutError:
+                            proc.kill()
+                            await proc.wait()
+                    
+                    # If no IP or ping failed, scan for MAC address
+                    if not is_reachable:
+                        # Try fast arp cache lookup first (no network scan needed)
+                        proc = await asyncio.create_subprocess_exec(
+                            'arp', '-n',
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.DEVNULL
+                        )
+                        try:
+                            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=1)
+                            arp_output = stdout.decode('utf-8')
+                            for line in arp_output.split('\n'):
+                                if robot.mac_address.lower() in line.lower():
+                                    parts = line.split()
+                                    if len(parts) >= 1:
+                                        discovered_ip = parts[0].strip().rstrip(')')
+                                        # Verify with quick ping
+                                        ping_proc = await asyncio.create_subprocess_exec(
+                                            'ping', '-c', '1', '-W', '1', discovered_ip,
+                                            stdout=asyncio.subprocess.DEVNULL,
+                                            stderr=asyncio.subprocess.DEVNULL
+                                        )
+                                        try:
+                                            ping_return = await asyncio.wait_for(ping_proc.wait(), timeout=1)
+                                            if ping_return == 0:
+                                                robot.ip = discovered_ip
+                                                robot.is_online = True
+                                                robot.last_seen = datetime.now()
+                                                is_reachable = True
+                                                logger.info(f"✓ Discovered (ARP cache): {name} at {discovered_ip}")
+                                                break
+                                        except asyncio.TimeoutError:
+                                            ping_proc.kill()
+                                            await ping_proc.wait()
+                        except asyncio.TimeoutError:
+                            proc.kill()
+                            await proc.wait()
+                        
+                        # If not in cache, scan subnet for port 8081 (WebRTC signaling server)
+                        if not is_reachable:
+                            # Get subnet from local IP
+                            route_proc = await asyncio.create_subprocess_exec(
+                                'ip', 'route', 'get', '8.8.8.8',
+                                stdout=asyncio.subprocess.PIPE,
+                                stderr=asyncio.subprocess.DEVNULL
+                            )
+                            try:
+                                route_stdout, _ = await asyncio.wait_for(route_proc.communicate(), timeout=1)
+                                route_output = route_stdout.decode('utf-8')
+                                subnet_base = None
+                                for word in route_output.split():
+                                    if '192.168.' in word or '10.' in word or '172.' in word:
+                                        # Extract subnet (e.g., 192.168.86.10 -> 192.168.86)
+                                        parts = word.split('.')
+                                        if len(parts) == 4:
+                                            subnet_base = f"{parts[0]}.{parts[1]}.{parts[2]}"
                                             break
+                                
+                                if subnet_base:
+                                    logger.debug(f"Scanning {subnet_base}.0/24 for port 8081...")
+                                    # Fast parallel port scan
+                                    tasks = [self._check_robot_port(f"{subnet_base}.{i}", robot.mac_address) for i in range(1, 255)]
+                                    try:
+                                        results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5)
+                                        for result in results:
+                                            if isinstance(result, tuple) and result[0]:
+                                                discovered_ip = result[1]
+                                                robot.ip = discovered_ip
+                                                robot.is_online = True
+                                                robot.last_seen = datetime.now()
+                                                is_reachable = True
+                                                logger.info(f"✓ Discovered (port 8081): {name} at {discovered_ip}")
+                                                break
+                                    except asyncio.TimeoutError:
+                                        logger.warning(f"Port scan timed out for {subnet_base}.0/24")
+                            except asyncio.TimeoutError:
+                                route_proc.kill()
+                                await route_proc.wait()
                 except Exception as e:
-                    logger.debug(f"Reachability test failed: {e}")
+                    logger.debug(f"Discovery failed for {name}: {e}")
                 
-                # If robot is not reachable, mark offline immediately
+                # If robot is not reachable, mark offline
                 if not is_reachable:
                     robot.is_online = False
-                    robot.ip = None  # Clear IP when offline
-                    logger.info(f"✗ Robot offline: {name} not reachable")
-                    
-                    # Update bound robot status too
-                    if robot.name in self._bound_robots:
-                        self._bound_robots[robot.name].is_online = False
-                
+                    # Keep last known IP for reference
+                    logger.debug(f"✗ Robot offline: {name} not reachable")
+        
         return list(all_robots.values())
-
 
 # Singleton instance
 _discovery_instance = None

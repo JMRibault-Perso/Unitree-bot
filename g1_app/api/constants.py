@@ -6,6 +6,25 @@ from enum import IntEnum, Enum
 
 
 # ============================================================================
+# DDS Topics
+# ============================================================================
+class Topic:
+    """DDS topic names for subscriptions"""
+    SPORT_MODE_STATE = "rt/sportmodestate"       # High-frequency (~100Hz) state
+    SPORT_MODE_STATE_LF = "rt/lf/sportmodestate"  # Low-frequency (~20Hz) state
+    LOW_STATE = "rt/lowstate"                     # Motor/sensor state
+    LOW_CMD = "rt/lowcmd"                         # Motor commands
+    BMS_STATE = "rt/lf/bms"                       # Battery management system
+    
+    # Multimedia topics  
+    AUDIO_MSG = "rt/audio_msg"                    # ASR (speech recognition) messages
+    
+    # LiDAR topics
+    LIDAR_CLOUD = "rt/utlidar/cloud_livox_mid360"  # Point cloud data (10Hz)
+    LIDAR_IMU = "rt/utlidar/imu_livox_mid360"      # LiDAR IMU data (200Hz)
+
+
+# ============================================================================
 # Service Names
 # ============================================================================
 class Service:
@@ -43,11 +62,18 @@ class ArmAPI(IntEnum):
     EXECUTE_ACTION = 7106           # Execute pre-programmed gesture
     GET_ACTION_LIST = 7107          # Retrieve available gestures
     EXECUTE_CUSTOM_ACTION = 7108    # Play teach mode recording
+    
+    # Undocumented APIs (gaps in numbering - likely recording APIs)
+    START_RECORD_ACTION = 7109      # EXPERIMENTAL: Start recording teach action
+    STOP_RECORD_ACTION = 7110       # EXPERIMENTAL: Stop recording
+    SAVE_RECORDED_ACTION = 7111     # EXPERIMENTAL: Save recording with name
+    DELETE_ACTION = 7112            # EXPERIMENTAL: Delete saved action
+    
     STOP_CUSTOM_ACTION = 7113       # Stop teach playback
 
 
 # ============================================================================
-# FSM States
+# FSM States and Modes
 # ============================================================================
 class FSMState(IntEnum):
     """Finite State Machine states for G1 locomotion"""
@@ -59,15 +85,39 @@ class FSMState(IntEnum):
     
     # Main motion states
     START = 200             # Ready mode (preparatory posture)
-    LOCK_STAND = 500        # Standing with balance (basic)
-    LOCK_STAND_ADV = 501    # Standing with balance + 3DOF waist (motion recording mode)
+    LOCK_STAND = 500        # Standing with balance (basic) - GESTURES ALLOWED
+    LOCK_STAND_ADV = 501    # Standing with balance + 3DOF waist - GESTURES ALLOWED
     
     # Recovery states (available in DAMP and ZERO_TORQUE modes)
     STAND_UP = 702          # Stand up from lying position
     SQUAT_TO_STAND = 706    # Squat/stand toggle (bidirectional)
     
     # Motion modes (with balance control)
-    RUN = 801               # Run mode (faster speeds, supports arm actions)
+    RUN = 801               # Run mode (faster speeds) - GESTURES ALLOWED when fsm_mode ∈ {0, 3}
+
+
+class FSMMode(IntEnum):
+    """
+    FSM sub-modes within FSM states
+    
+    CRITICAL: In RUN mode (FSM state 801), gestures ONLY work when fsm_mode is 0 or 3
+    SDK error code 7404 (UT_ROBOT_ARM_ACTION_ERR_INVALID_FSM_ID) returned if invalid
+    """
+    MODE_0 = 0  # Gesture-compatible mode in RUN
+    MODE_1 = 1  # Gesture-incompatible
+    MODE_2 = 2  # Gesture-incompatible
+    MODE_3 = 3  # Gesture-compatible mode in RUN
+
+
+# Gesture-compatible FSM states
+GESTURE_COMPATIBLE_STATES = {
+    FSMState.LOCK_STAND,      # 500 - Always allows gestures
+    FSMState.LOCK_STAND_ADV,  # 501 - Always allows gestures
+    FSMState.RUN              # 801 - Requires fsm_mode ∈ {0, 3}
+}
+
+# Valid fsm_modes for gestures in RUN mode (801)
+GESTURE_COMPATIBLE_RUN_MODES = {FSMMode.MODE_0, FSMMode.MODE_3}
 
 
 # ============================================================================
@@ -155,6 +205,9 @@ class Topic:
     
     # Audio/VUI
     AUDIO_MSG = "rt/audio_msg"  # ASR results
+    
+    # Battery
+    BMS_STATE = "rt/lf/bms"  # Battery management system
     
     # Low-level (for reference, not used in high-level control)
     LOW_STATE = "rt/lowstate"

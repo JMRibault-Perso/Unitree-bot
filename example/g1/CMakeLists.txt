@@ -39,3 +39,6 @@ endif()
 
 add_executable(g1_agv_client_example agv/g1_agv_client_example.cpp)
 target_link_libraries(g1_agv_client_example unitree_sdk2)
+
+add_executable(test_arm_apis test_arm_apis.cpp)
+target_link_libraries(test_arm_apis unitree_sdk2)

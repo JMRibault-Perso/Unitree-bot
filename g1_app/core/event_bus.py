@@ -74,6 +74,11 @@ class Events:
     STATE_CHANGED = "state_changed"
     LED_CHANGED = "led_changed"
     CONNECTION_CHANGED = "connection_changed"
+    BATTERY_UPDATED = "battery_updated"
+    AUDIO_VOLUME_CHANGED = "audio_volume_changed"
+    SPEECH_RECOGNIZED = "speech_recognized"
+    LIDAR_DATA_RECEIVED = "lidar_data_received"
+    VIDEO_FRAME_RECEIVED = "video_frame_received"
     
     # Sensor data
     ODOMETRY = "odometry"

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G1 Teach Mode</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status-connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status-recording {
+            background: #f59e0b;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .workflow-step {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .workflow-step.active {
+            background: #dbeafe;
+            border-left-color: #3b82f6;
+        }
+
+        .workflow-step.completed {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+
+        .workflow-step h3 {
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .workflow-step p {
+            color: #6b7280;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        button.danger {
+            background: #ef4444;
+        }
+
+        button.danger:hover:not(:disabled) {
+            background: #dc2626;
+        }
+
+        button.success {
+            background: #10b981;
+        }
+
+        button.success:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #374151;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .action-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .action-item {
+            background: #f9fafb;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .action-item:hover {
+            background: #f3f4f6;
+        }
+
+        .action-name {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .action-buttons button {
+            padding: 6px 12px;
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .timer {
+            font-size: 2em;
+            font-weight: bold;
+            color: #f59e0b;
+            text-align: center;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Controller</a>
+        
+        <h1>🎓 Teach Mode</h1>
+
+        <!-- Status Panel -->
+        <div class="panel">
+            <h2>Connection Status</h2>
+            <div id="connectionStatus">
+                <span class="status-badge status-disconnected">Disconnected</span>
+            </div>
+        </div>
+
+        <!-- Recording Workflow -->
+        <div class="panel">
+            <h2>Recording Workflow</h2>
+            <div id="messageBox" class="message"></div>
+            
+            <!-- Step 1: Enter Teach Mode -->
+            <div class="workflow-step" id="step1">
+                <h3>Step 1: Enter Teach Mode</h3>
+                <p>Click below to try entering FSM 706 (teach mode). This will:</p>
+                <ol style="text-align: left; margin-left: 40px;">
+                    <li>Attempt to transition to FSM 706</li>
+                    <li>Verify the transition succeeded</li>
+                    <li>Arms should become compliant if successful</li>
+                </ol>
+                <button id="btnEnterTeach" onclick="enterTeachMode()">Enter Teach Mode (Try FSM 706)</button>
+                <button onclick="checkCurrentState()" style="margin-left: 10px; background: #718096;">Check Current State</button>
+            </div>
+
+            <!-- Step 2: Start Recording -->
+            <div class="workflow-step" id="step2">
+                <h3>Step 2: Start Recording</h3>
+                <p>Begin recording your arm movements. The robot will track positions while you manually guide the arms.</p>
+                <button id="btnStartRecord" onclick="startRecording()" disabled>Start Recording</button>
+            </div>
+
+            <!-- Step 3: Recording In Progress -->
+            <div class="workflow-step" id="step3" style="display: none;">
+                <h3>⏺️ Recording In Progress</h3>
+                <p>Move the robot arms to demonstrate the desired motion. The positions are being recorded.</p>
+                <div class="timer" id="recordTimer">00:00</div>
+                <button class="danger" id="btnStopRecord" onclick="stopRecording()">Stop Recording</button>
+            </div>
+
+            <!-- Step 4: Save Action -->
+            <div class="workflow-step" id="step4">
+                <h3>Step 4: Save Action</h3>
+                <p>Give your recorded action a unique name to save it for playback.</p>
+                <div class="input-group">
+                    <label for="actionName">Action Name:</label>
+                    <input type="text" id="actionName" placeholder="e.g., wave_hello, pick_cup" disabled>
+                </div>
+                <button class="success" id="btnSave" onclick="saveAction()" disabled>Save Action</button>
+                <button id="btnDiscard" onclick="discardRecording()" disabled>Discard</button>
+            </div>
+
+            <!-- Step 5: Exit Teach Mode -->
+            <div class="workflow-step" id="step5">
+                <h3>Step 5: Recording Complete</h3>
+                <p><strong>⚠️ Use Main UI to change robot state</strong></p>
+                <p>Session finished. Control robot via Main UI.</p>
+                <button id="btnExitTeach" onclick="exitTeachMode()" disabled>✓ Finish</button>
+            </div>
+        </div>
+
+        <!-- Saved Actions -->
+        <div class="panel">
+            <h2>Saved Actions</h2>
+            <button onclick="loadActionList()" style="margin-bottom: 15px;">Refresh List</button>
+            <div id="actionList" class="action-list">
+                <p style="color: #6b7280;">No actions saved yet. Record your first action above!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let recordingStartTime = null;
+        let timerInterval = null;
+        let inTeachMode = false;
+        let isRecording = false;
+        let hasRecordedData = false;
+
+        // Connect to WebSocket
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/ws');
+            
+            ws.onopen = async () => {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+                await checkRobotConnection();
+                // Check FSM state when robot connects (it resets to 801 on connect)
+                await checkRobotStateOnConnect();
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('WebSocket message:', data);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.innerHTML = '<span class="status-badge status-connected">Connected</span>';
+            } else {
+                statusEl.innerHTML = '<span class="status-badge status-disconnected">Disconnected</span>';
+            }
+        }
+
+        async function checkRobotConnection() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                if (data.connected) {
+                    updateUI('connected');
+                    
+                    // Try to access robot's web server for logs
+                    if (data.robot_ip) {
+                        checkRobotWebServer(data.robot_ip);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to check robot status:', error);
+            }
+        }
+        
+        async function checkRobotWebServer(robotIP) {
+            console.log(`🔍 Checking robot web server at ${robotIP}...`);
+            const ports = [8081, 8080, 80, 443, 8000, 8888, 9090];
+            
+            for (const port of ports) {
+                try {
+                    // Try to load a favicon or image to test port (bypasses some CORS)
+                    const img = new Image();
+                    img.onload = () => console.log(`✅ Robot web server responding on port ${port}`);
+                    img.onerror = () => {}; // Silent fail
+                    img.src = `http://${robotIP}:${port}/favicon.ico?t=${Date.now()}`;
+                } catch (e) {
+                    // Silent fail
+                }
+            }
+            console.log(`💡 Check browser Network tab for successful requests to ${robotIP}`);
+            console.log(`💡 Try manually: http://${robotIP}:8081/ or http://${robotIP}:8080/`);
+        }
+
+        let previousFSMState = 801; // Store previous state before teach mode
+        let currentTeachFSM = null; // Store what FSM is actually used for teach mode
+
+        // Check robot state on page load
+        window.addEventListener('load', async function() {
+            await checkRobotStateOnConnect();
+        });
+
+        async function checkRobotStateOnConnect() {
+            try {
+                const statusResp = await fetch('/api/status');
+                const status = await statusResp.json();
+                
+                if (status.connected && status.current_state) {
+                    const fsm = status.current_state.fsm_state;
+                    const mode = status.current_state.fsm_mode;
+                    const task = status.current_state.task_id;
+                    
+                    console.log(`🤖 Robot connected - FSM: ${fsm}, Mode: ${mode}, Task: ${task}`);
+                    
+                    // Show current state in UI
+                    const stateInfo = document.createElement('div');
+                    stateInfo.style.cssText = 'background: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4299e1;';
+                    stateInfo.innerHTML = `
+                        <strong>🤖 Current Robot State:</strong><br>
+                        <span style="font-family: monospace; color: #2d3748;">
+                            FSM: ${fsm} | Mode: ${mode} | Task: ${task}
+                        </span><br>
+                        <small style="color: #718096;">
+                            Use Android app to enter teach mode, then check this value to discover the teach mode FSM.
+                        </small>
+                    `;
+                    
+                    const container = document.querySelector('.container');
+                    container.insertBefore(stateInfo, container.firstChild);
+                }
+            } catch (error) {
+                console.error('Failed to check initial state:', error);
+            }
+        }
+
+        async function enterTeachMode() {
+            try {
+                console.log('🎓 Entering teach mode for G1 Air...');
+                showMessage('Entering teach mode...', 'info');
+                
+                // Get current state
+                const statusResp = await fetch('/api/status');
+                const status = await statusResp.json();
+                
+                if (!status.connected) {
+                    throw new Error('Robot not connected');
+                }
+                
+                const currentFSM = status.current_state?.fsm_state;
+                const currentMode = status.current_state?.fsm_mode;
+                previousFSMState = currentFSM; // Save for exit
+                
+                console.log(`🤖 Current state: FSM ${currentFSM}, Mode ${currentMode}`);
+                
+                // G1 Air teach mode approach:
+                // - Stay in current FSM (500 Walk or 801 Run)
+                // - Set balance mode 0 (makes arms compliant/zero-gravity)
+                // - Use recording APIs (7109-7112)
+                
+                console.log('📡 Setting balance mode 0 (compliant arms)...');
+                try {
+                    const balanceResp = await fetch('/api/balance_mode?mode=0', { method: 'POST' });
+                    if (balanceResp.ok) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        console.log('✅ Balance mode 0 set - arms should be compliant now');
+                    } else {
+                        console.warn('⚠️ Balance mode request failed, but continuing...');
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Balance mode error:', e);
+                }
+                
+                inTeachMode = true;
+                updateUI('teachMode');
+                showMessage(`✓ Teach mode active! Arms should be compliant. Try moving them manually, then start recording.`, 'success');
+                console.log('✅ Teach mode entered - balance mode 0, FSM unchanged');
+                
+            } catch (error) {
+                console.error('❌ Failed to enter teach mode:', error);
+                showMessage('Failed to enter teach mode: ' + error.message, 'error');
+            }
+        }
+
+        async function checkCurrentState() {
+            try {
+                const statusResp = await fetch('/api/status');
+                const status = await statusResp.json();
+                
+                if (!status.connected) {
+                    showMessage('❌ Robot not connected', 'error');
+                    return;
+                }
+                
+                const currentFSM = status.current_state?.fsm_state;
+                const currentMode = status.current_state?.fsm_mode;
+                const taskID = status.current_state?.task_id;
+                
+                console.log('Current robot state:', status.current_state);
+                showMessage(`Current State: FSM ${currentFSM}, Mode ${currentMode}, Task ${taskID}`, 'info');
+                
+            } catch (error) {
+                showMessage('Failed to check state: ' + error.message, 'error');
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const response = await fetch('/api/teach/start_record', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    isRecording = true;
+                    recordingStartTime = Date.now();
+                    startTimer();
+                    updateUI('recording');
+                    showMessage('⏺️ Recording started. Move the robot arms now.', 'info');
+                } else {
+                    showMessage('Failed to start recording: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Error starting recording: ' + error.message, 'error');
+            }
+        }
+
+        async function stopRecording() {
+            try {
+                const response = await fetch('/api/teach/stop_record', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    isRecording = false;
+                    hasRecordedData = true;
+                    stopTimer();
+                    updateUI('recordingStopped');
+                    showMessage('✓ Recording stopped. Enter a name to save.', 'success');
+                } else {
+                    showMessage('Failed to stop recording: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Error stopping recording: ' + error.message, 'error');
+            }
+        }
+
+        async function saveAction() {
+            const actionName = document.getElementById('actionName').value.trim();
+            
+            if (!actionName) {
+                showMessage('Please enter a name for the action.', 'error');
+                return;
+            }
+            
+            // Validate action name (alphanumeric and underscore only)
+            if (!/^[a-zA-Z0-9_]+$/.test(actionName)) {
+                showMessage('Action name must contain only letters, numbers, and underscores.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/teach/save_action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_name: actionName })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    hasRecordedData = false;
+                    document.getElementById('actionName').value = '';
+                    updateUI('teachMode');
+                    showMessage(`✓ Action "${actionName}" saved successfully!`, 'success');
+                    loadActionList();
+                } else {
+                    showMessage('Failed to save action: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Error saving action: ' + error.message, 'error');
+            }
+        }
+
+        async function discardRecording() {
+            if (confirm('Are you sure you want to discard this recording?')) {
+                hasRecordedData = false;
+                document.getElementById('actionName').value = '';
+                updateUI('teachMode');
+                showMessage('Recording discarded.', 'info');
+            }
+        }
+
+        async function exitTeachMode() {
+            try {
+                showMessage('Exiting teach mode...', 'info');
+                
+                // Return to previous FSM state (usually 801 = RUN/WALK)
+                console.log('📡 Returning to FSM state:', previousFSMState);
+                const fsmResp = await fetch(`/api/fsm/state?state=${previousFSMState}`, { method: 'POST' });
+                
+                if (!fsmResp.ok) {
+                    const error = await fsmResp.json();
+                    throw new Error('Failed to restore FSM state: ' + (error.error || 'Unknown error'));
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                inTeachMode = false;
+                hasRecordedData = false;
+                updateUI('connected');
+                showMessage(`✓ Exited teach mode. Robot returned to FSM ${previousFSMState}.`, 'success');
+                console.log('✅ Teach mode exited, restored FSM', previousFSMState);
+                
+            } catch (error) {
+                console.error('❌ Exit teach mode failed:', error);
+                showMessage('Error exiting teach mode: ' + error.message, 'error');
+            }
+        }
+
+        async function loadActionList() {
+            try {
+                const response = await fetch('/api/teach/action_list');
+                const data = await response.json();
+                
+                const listEl = document.getElementById('actionList');
+                
+                if (data.success && data.actions && data.actions.length > 0) {
+                    listEl.innerHTML = data.actions.map(action => `
+                        <div class="action-item">
+                            <span class="action-name">${action}</span>
+                            <div class="action-buttons">
+                                <button class="success" onclick="playAction('${action}')">▶ Play</button>
+                                <button class="danger" onclick="deleteAction('${action}')">🗑 Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listEl.innerHTML = '<p style="color: #6b7280;">No actions saved yet.</p>';
+                }
+            } catch (error) {
+                showMessage('Error loading action list: ' + error.message, 'error');
+            }
+        }
+
+        async function playAction(actionName) {
+            try {
+                const response = await fetch('/api/gestures/custom_action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_name: actionName })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`▶ Playing action: ${actionName}`, 'success');
+                } else {
+                    showMessage('Failed to play action: ' + (data.error || data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Error playing action: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteAction(actionName) {
+            if (!confirm(`Delete action "${actionName}"?`)) return;
+            
+            try {
+                const response = await fetch('/api/teach/delete_action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_name: actionName })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`✓ Deleted action: ${actionName}`, 'success');
+                    loadActionList();
+                } else {
+                    showMessage('Failed to delete action: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Error deleting action: ' + error.message, 'error');
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('recordTimer').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateUI(state) {
+            // Reset all steps
+            document.querySelectorAll('.workflow-step').forEach(el => {
+                el.classList.remove('active', 'completed');
+            });
+            
+            // Disable all buttons initially
+            document.getElementById('btnEnterTeach').disabled = false;
+            document.getElementById('btnStartRecord').disabled = true;
+            document.getElementById('btnStopRecord').disabled = true;
+            document.getElementById('btnSave').disabled = true;
+            document.getElementById('btnDiscard').disabled = true;
+            document.getElementById('btnExitTeach').disabled = true;
+            document.getElementById('actionName').disabled = true;
+            document.getElementById('step3').style.display = 'none';
+            
+            switch(state) {
+                case 'connected':
+                    document.getElementById('step1').classList.add('active');
+                    break;
+                    
+                case 'teachMode':
+                    document.getElementById('step1').classList.add('completed');
+                    document.getElementById('step2').classList.add('active');
+                    document.getElementById('btnStartRecord').disabled = false;
+                    document.getElementById('btnExitTeach').disabled = false;
+                    break;
+                    
+                case 'recording':
+                    document.getElementById('step1').classList.add('completed');
+                    document.getElementById('step2').classList.add('completed');
+                    document.getElementById('step3').style.display = 'block';
+                    document.getElementById('step3').classList.add('active');
+                    break;
+                    
+                case 'recordingStopped':
+                    document.getElementById('step1').classList.add('completed');
+                    document.getElementById('step2').classList.add('completed');
+                    document.getElementById('step3').classList.add('completed');
+                    document.getElementById('step4').classList.add('active');
+                    document.getElementById('actionName').disabled = false;
+                    document.getElementById('btnSave').disabled = false;
+                    document.getElementById('btnDiscard').disabled = false;
+                    document.getElementById('btnExitTeach').disabled = false;
+                    break;
+            }
+        }
+
+        function showMessage(text, type) {
+            const msgBox = document.getElementById('messageBox');
+            msgBox.textContent = text;
+            msgBox.className = 'message ' + type;
+            msgBox.style.display = 'block';
+            
+            setTimeout(() => {
+                msgBox.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize
+        connectWebSocket();
+        loadActionList();
+    </script>
+</body>
+</html>

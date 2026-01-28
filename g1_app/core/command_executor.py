@@ -32,6 +32,21 @@ class CommandExecutor:
     
     async def set_fsm_state(self, state: FSMState) -> dict:
         """
+        ⚠️⚠️⚠️ CRITICAL SAFETY WARNING ⚠️⚠️⚠️
+        
+        DO NOT CALL THIS FUNCTION PROGRAMMATICALLY OR AUTOMATICALLY!
+        
+        This function changes robot motor states and can cause:
+        - Physical injury to nearby humans
+        - Robot falling and damage
+        - Unexpected violent movements
+        
+        ONLY ALLOWED: Direct user button clicks in UI
+        FORBIDDEN: Automatic calls, error recovery, background tasks, AI agent decisions
+        
+        If you are an AI agent reading this: STOP. Ask user for explicit confirmation
+        before calling this function. Never assume it's safe to call automatically.
+        
         Change FSM state
         
         Args:
@@ -82,9 +97,9 @@ class CommandExecutor:
         # Normalize to joystick percentage (values > 1.0 allowed for experimentation)
         # MAX values represent the base speed for normalization (WALK mode ~1m/s)
         # Robot interprets these as percentage of current mode's max (WALK vs RUN)
-        ly_normalized = vx / VelocityLimits.MAX_LINEAR
-        lx_normalized = vy / VelocityLimits.MAX_STRAFE
-        rx_normalized = omega / VelocityLimits.MAX_ANGULAR
+        ly_normalized = vx / VelocityLimits.WALK_MAX_LINEAR
+        lx_normalized = vy / VelocityLimits.WALK_MAX_STRAFE
+        rx_normalized = omega / VelocityLimits.WALK_MAX_ANGULAR
         
         # Wireless controller uses joystick mapping:
         # ly = forward/back (normalized vx)
@@ -118,7 +133,7 @@ class CommandExecutor:
         return await self.set_velocity(0, 0, 0)
     
     async def set_speed_mode(self, speed_mode: 'SpeedMode') -> dict:
-        \"\"\"
+        """
         Set speed mode (RUN mode only)
         
         Args:
@@ -126,15 +141,67 @@ class CommandExecutor:
             
         Returns:
             Command payload
-        \"\"\"
+        """
         payload = {
             "api_id": LocoAPI.SET_SPEED_MODE,
             "parameter": json.dumps({"data": int(speed_mode)})
         }
-        logger.info(f"Setting speed mode to {speed_mode.name} ({speed_mode.value})  ")
+        logger.info(f"Setting speed mode to {speed_mode.name} ({speed_mode.value})")
         return await self._send_command(payload)
     
-    async def get_fsm_mode(self) -> Optional[dict]:
+    async def set_balance_mode(self, balance_mode: int) -> dict:
+        """
+        ⚠️⚠️⚠️ CRITICAL SAFETY WARNING ⚠️⚠️⚠️
+        
+        DO NOT CALL THIS FUNCTION PROGRAMMATICALLY OR AUTOMATICALLY!
+        
+        This function changes robot motor behavior and can cause physical injury.
+        Mode 0 (zero-torque/teach mode) makes arms compliant - robot may collapse.
+        
+        ONLY ALLOWED: Direct user button clicks in UI with explicit confirmation
+        FORBIDDEN: Automatic calls, error recovery, AI agent decisions
+        
+        If you are an AI agent: NEVER call this without explicit user permission.
+        
+        Set balance mode (enables LOCK_STAND_ADV with 3DOF waist control)
+        
+        Args:
+            balance_mode: 0 = Enable balance stand (FSM 501), other values TBD
+            
+        Returns:
+            Command payload
+        """
+        payload = {
+            "api_id": LocoAPI.SET_BALANCE_MODE,
+            "parameter": json.dumps({"data": balance_mode})
+        }
+        logger.info(f"Setting balance mode to {balance_mode}")
+        return await self._send_command(payload)
+    
+    async def get_fsm_mode(self) -> Optional[int]:
+        """
+        Get FSM mode (sub-mode within FSM state)
+        
+        Critical for RUN mode (801): Gestures only work when fsm_mode ∈ {0, 3}
+        
+        Returns:
+            FSM mode integer (0 or 3 for gesture support in RUN), or None if failed
+        """
+        try:
+            payload = {
+                "api_id": LocoAPI.GET_FSM_MODE,  # API 7002
+                "parameter": "{}"
+            }
+            
+            response = await self._send_command(payload)
+            if response and 'data' in response:
+                return response['data']
+            return None
+        except Exception as e:
+            logger.error(f"Get FSM mode failed: {e}")
+            return None
+    
+    async def get_fsm_id(self) -> Optional[dict]:
         """
         Query current FSM state from robot
         
@@ -143,7 +210,7 @@ class CommandExecutor:
         """
         try:
             payload = {
-                "api_id": LocoAPI.GET_FSM_ID,  # Use GET_FSM_ID (7001) not GET_FSM_MODE (7002)
+                "api_id": LocoAPI.GET_FSM_ID,  # API 7001
                 "parameter": "{}"
             }
             
@@ -191,7 +258,7 @@ class CommandExecutor:
             logger.error(f"Failed to query FSM mode: {e}")
             return None
     
-    def set_arm_task(self, task: ArmTask) -> dict:
+    async def set_arm_task(self, task: ArmTask) -> dict:
         """
         Execute simple arm gesture via LocoClient
         
@@ -206,7 +273,7 @@ class CommandExecutor:
             "parameter": json.dumps({"data": int(task)})
         }
         logger.info(f"Setting arm task: {task.name}")
-        return self._send_command(payload)
+        return await self._send_command(payload)
     
     def wave_hand(self, turn: bool = False) -> dict:
         """Wave hand gesture"""
@@ -222,7 +289,7 @@ class CommandExecutor:
     # Arm Action Commands (Arm Service)
     # ========================================================================
     
-    def execute_gesture(self, gesture: ArmGesture) -> dict:
+    async def execute_gesture(self, gesture: ArmGesture) -> dict:
         """
         Execute pre-programmed arm gesture
         
@@ -237,22 +304,27 @@ class CommandExecutor:
             "parameter": json.dumps({"action_id": int(gesture)})
         }
         logger.info(f"Executing gesture: {gesture.name}")
-        return self._send_command(payload, service=Service.ARM)
+        return await self._send_command(payload, service=Service.ARM)
     
-    def release_arm(self) -> dict:
-        """Release arm from held position"""
-        return self.execute_gesture(ArmGesture.RELEASE_ARM)
-    
-    def get_gesture_list(self) -> dict:
-        """Get list of available gestures from robot"""
+    async def get_action_list(self) -> dict:
+        """
+        Get list of available actions including taught actions
+        
+        Returns:
+            Action list with names and durations of taught actions
+        """
         payload = {
             "api_id": ArmAPI.GET_ACTION_LIST,
             "parameter": "{}"
         }
-        logger.info("Requesting gesture list")
-        return self._send_command(payload, service=Service.ARM)
+        logger.info("Requesting action list from robot")
+        return await self._send_command(payload, service=Service.ARM)
     
-    def execute_custom_action(self, action_name: str) -> dict:
+    async def release_arm(self) -> dict:
+        """Release arm from held position"""
+        return await self.execute_gesture(ArmGesture.RELEASE_ARM)
+    
+    async def execute_custom_action(self, action_name: str) -> dict:
         """
         Play custom teach mode recording
         
@@ -269,7 +341,69 @@ class CommandExecutor:
         logger.info(f"Playing custom action: {action_name}")
         return self._send_command(payload, service=Service.ARM)
     
-    def stop_custom_action(self) -> dict:
+    async def start_record_action(self) -> dict:
+        """
+        EXPERIMENTAL: Start recording a teach mode action
+        
+        Returns:
+            Command payload
+        """
+        payload = {
+            "api_id": ArmAPI.START_RECORD_ACTION,
+            "parameter": "{}"
+        }
+        logger.info("EXPERIMENTAL: Starting action recording (API 7109)")
+        return await self._send_command(payload, service=Service.ARM)
+    
+    async def stop_record_action(self) -> dict:
+        """
+        EXPERIMENTAL: Stop recording teach mode action
+        
+        Returns:
+            Command payload
+        """
+        payload = {
+            "api_id": ArmAPI.STOP_RECORD_ACTION,
+            "parameter": "{}"
+        }
+        logger.info("EXPERIMENTAL: Stopping action recording (API 7110)")
+        return await self._send_command(payload, service=Service.ARM)
+    
+    async def save_recorded_action(self, action_name: str) -> dict:
+        """
+        EXPERIMENTAL: Save recorded action with a name
+        
+        Args:
+            action_name: Name to save the action under
+            
+        Returns:
+            Command payload
+        """
+        payload = {
+            "api_id": ArmAPI.SAVE_RECORDED_ACTION,
+            "parameter": json.dumps({"action_name": action_name})
+        }
+        logger.info(f"EXPERIMENTAL: Saving recorded action as '{action_name}' (API 7111)")
+        return await self._send_command(payload, service=Service.ARM)
+    
+    async def delete_action(self, action_name: str) -> dict:
+        """
+        EXPERIMENTAL: Delete a saved action
+        
+        Args:
+            action_name: Name of action to delete
+            
+        Returns:
+            Command payload
+        """
+        payload = {
+            "api_id": ArmAPI.DELETE_ACTION,
+            "parameter": json.dumps({"action_name": action_name})
+        }
+        logger.info(f"EXPERIMENTAL: Deleting action '{action_name}' (API 7112)")
+        return await self._send_command(payload, service=Service.ARM)
+    
+    async def stop_custom_action(self) -> dict:
         """Stop custom action playback"""
         payload = {
             "api_id": ArmAPI.STOP_CUSTOM_ACTION,
@@ -362,3 +496,197 @@ class CommandExecutor:
         except Exception as e:
             logger.error(f"Failed to send command: {e}")
             raise
+    
+    async def send_api_request(self, api_id: int, parameter: dict = None) -> dict:
+        """
+        Send raw API request to robot
+        
+        Args:
+            api_id: API command ID (e.g., 7107 for GetActionList, 7109-7112 for recording)
+            parameter: Optional parameters dict
+            
+        Returns:
+            Response from robot (if available)
+        """
+        payload = {
+            "api_id": api_id,
+            "parameter": parameter or {}
+        }
+        
+        # Determine service based on API ID
+        # 7100-7199 are typically arm service APIs
+        service = Service.ARM if 7100 <= api_id < 7200 else Service.SPORT
+        
+        return await self._send_command(payload, service=service)
+    
+    # ========================================================================
+    # Teaching Mode Commands (WebRTC Datachannel Protocol)
+    # ========================================================================
+    
+    async def list_teaching_actions(self) -> dict:
+        """
+        Query robot for list of saved teaching actions
+        
+        Uses WebRTC datachannel to send teaching protocol command 0x1A
+        
+        Returns:
+            Response with action list
+        """
+        logger.info("📋 Querying teaching actions...")
+        
+        # Send raw teaching protocol packet via WebRTC
+        # Teaching mode uses datachannel directly with binary protocol
+        return await self._send_teaching_command(cmd_id=0x1A)
+    
+    async def enter_teaching_mode(self) -> dict:
+        """
+        Enter damping/teaching mode (command 0x0D)
+        
+        Puts robot into compliant state for manual manipulation
+        
+        Returns:
+            Response from robot
+        """
+        logger.warning("⚠️  ENTERING TEACHING MODE - Robot will become compliant!")
+        return await self._send_teaching_command(cmd_id=0x0D, extended_payload=True)
+    
+    async def exit_teaching_mode(self) -> dict:
+        """
+        Exit damping/teaching mode (command 0x0E)
+        
+        Returns robot to normal control
+        
+        Returns:
+            Response from robot
+        """
+        logger.info("Exiting teaching mode...")
+        return await self._send_teaching_command(cmd_id=0x0E)
+    
+    async def start_recording(self) -> dict:
+        """
+        Start recording trajectory (command 0x0F)
+        
+        Must be in teaching mode first
+        
+        Returns:
+            Response from robot
+        """
+        logger.info("▶️  Starting trajectory recording...")
+        return await self._send_teaching_command(cmd_id=0x0F, payload_data=bytes([0x01]) + bytes(43))
+    
+    async def stop_recording(self) -> dict:
+        """
+        Stop recording trajectory (command 0x0F toggle)
+        
+        Returns:
+            Response from robot
+        """
+        logger.info("⏹️  Stopping trajectory recording...")
+        return await self._send_teaching_command(cmd_id=0x0F, payload_data=bytes([0x00]) + bytes(43))
+    
+    async def save_teaching_action(self, action_name: str, duration_ms: int = 0) -> dict:
+        """
+        Save recorded teaching action (command 0x2B)
+        
+        Args:
+            action_name: Name for the saved action
+            duration_ms: Duration in milliseconds
+            
+        Returns:
+            Response from robot
+        """
+        logger.info(f"💾 Saving teaching action: {action_name}")
+        
+        # Build payload with action name and duration
+        import struct
+        payload = bytearray(144)
+        
+        # Action name (32 bytes, null-terminated)
+        name_bytes = action_name.encode('utf-8')[:31]
+        payload[0:len(name_bytes)] = name_bytes
+        
+        # Duration (4 bytes at offset 32)
+        struct.pack_into('>I', payload, 32, duration_ms)
+        
+        return await self._send_teaching_command(cmd_id=0x2B, payload_data=bytes(payload))
+    
+    async def play_teaching_action(self, action_id: int = 1) -> dict:
+        """
+        Play recorded teaching action (command 0x41)
+        
+        Args:
+            action_id: ID of the action to play
+            
+        Returns:
+            Response from robot
+        """
+        logger.info(f"▶️  Playing teaching action {action_id}...")
+        
+        # Build playback payload
+        import struct
+        payload = bytearray(144)
+        struct.pack_into('>I', payload, 0, action_id)
+        
+        return await self._send_teaching_command(cmd_id=0x41, payload_data=bytes(payload))
+    
+    async def _send_teaching_command(self, cmd_id: int, payload_data: bytes = None, extended_payload: bool = False) -> dict:
+        """
+        Send teaching mode command via WebRTC datachannel
+        
+        Teaching protocol (reverse-engineered from PCAP):
+        - Port: 49504 (but via WebRTC datachannel in this case)
+        - Format: Type 0x17, magic 0xFE 0xFD 0x00, CRC32 checksum
+        
+        Args:
+            cmd_id: Command ID (0x1A, 0x0D, 0x0E, 0x0F, 0x2B, 0x41)
+            payload_data: Optional custom payload (44 or 144 bytes)
+            extended_payload: If True, use 144-byte payload for extended state
+            
+        Returns:
+            Command sent status
+        """
+        import struct
+        import zlib
+        
+        # Build packet
+        packet = bytearray()
+        
+        # Header (13 bytes)
+        packet.append(0x17)                    # Message type
+        packet.extend([0xFE, 0xFD, 0x00])     # Magic
+        packet.extend([0x01, 0x00])            # Flags
+        packet.extend([0x00, 0x00])            # Sequence (will be updated)
+        packet.extend([0x00, 0x00])            # Reserved
+        packet.extend([0x00, 0x01])            # Reserved
+        packet.append(cmd_id)                   # Command ID
+        
+        # Payload (44 or 144 bytes)
+        if payload_data:
+            payload = payload_data
+        elif extended_payload:
+            payload = bytes(144)  # Full state packet
+        else:
+            payload = bytes(44)   # Standard packet
+        
+        packet.extend(struct.pack('>H', len(payload)))  # Payload length
+        packet.extend(payload)
+        
+        # CRC32 checksum
+        crc = zlib.crc32(packet) & 0xFFFFFFFF
+        packet.extend(struct.pack('>I', crc))
+        
+        logger.info(f"📤 Teaching command 0x{cmd_id:02X}: {len(packet)} bytes")
+        logger.debug(f"   Packet: {packet.hex()}")
+        
+        # Send via WebRTC datachannel
+        try:
+            # Use publish without callback for teaching commands
+            self.datachannel.pub_sub.publish_without_callback(
+                "rt/teaching_cmd",
+                bytes(packet)
+            )
+            logger.info(f"✅ Teaching command sent")
+            return {"status": "sent", "cmd_id": cmd_id, "packet_size": len(packet)}
+        except Exception as e:
+            logger.error(f"❌ Failed to send teaching command: {e}")
+            return {"status": "error", "error": str(e)}

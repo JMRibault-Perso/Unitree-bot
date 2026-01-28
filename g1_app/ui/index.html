@@ -308,6 +308,75 @@
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
+        /* Battery Display Styling */
+        .battery-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .battery-icon {
+            position: relative;
+            width: 32px;
+            height: 16px;
+            border: 2px solid #4a5568;
+            border-radius: 3px;
+            padding: 2px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .battery-icon::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 8px;
+            background: #4a5568;
+            border-radius: 0 2px 2px 0;
+        }
+
+        .battery-fill {
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            bottom: 2px;
+            border-radius: 1px;
+            transition: all 0.5s ease;
+            background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .battery-fill.medium {
+            background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .battery-fill.low {
+            background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%);
+            animation: battery-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes battery-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .battery-text {
+            font-weight: bold;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .battery-voltage {
+            font-size: 11px;
+            color: #718096;
+            font-family: 'Courier New', monospace;
+            background: #f7fafc;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
         /* Gesture Buttons */
         .gesture-btn {
             padding: 15px;
@@ -385,6 +454,23 @@
                 <div class="status-item">
                     <div class="status-label">FSM State</div>
                     <div class="status-value" id="currentState">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">FSM Mode</div>
+                    <div class="status-value" id="currentFsmMode" title="Sub-mode within FSM state">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Battery</div>
+                    <div class="status-value">
+                        <div class="battery-container">
+                            <div class="battery-icon" title="Battery Status">
+                                <div id="batteryFill" class="battery-fill" style="width: 0%;"></div>
+                            </div>
+                            <span id="batteryLevel" class="battery-text">--%</span>
+                            <span id="batteryVoltage" class="battery-voltage">--V</span>
+                            <span id="batteryTemp" class="battery-voltage" style="margin-left: 5px;">--°C</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="status-item">
                     <div class="status-label">LED Color</div>
@@ -481,23 +567,27 @@
             
             <div id="gesturesAvailableWarning" style="display: none; padding: 10px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 5px; margin-bottom: 15px; color: #92400e;">
                 ⚠️ <strong>Gestures disabled:</strong> Robot must be in WALK (500/501) or RUN (801) mode.
+                <br><small style="margin-top: 5px; display: block;">
+                    Note: In RUN mode (801), gestures require FSM sub-mode 0 or 3. 
+                    The robot will validate this automatically when you attempt a gesture.
+                </small>
             </div>
             
             <!-- Simple Tasks (Wave, Shake) -->
             <div style="margin-bottom: 20px;">
                 <h3 style="color: #4a5568; font-size: 16px; margin-bottom: 10px;">Quick Actions</h3>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                    <button onclick="executeGesture('WAVE_HAND')" class="gesture-btn" title="Wave hand">
+                    <button onclick="executeGesture('FACE_WAVE')" class="gesture-btn" title="Wave hand at face level">
                         👋<br><span style="font-size: 12px;">Wave</span>
                     </button>
-                    <button onclick="executeGesture('WAVE_HAND_TURN')" class="gesture-btn" title="Wave with turn">
-                        👋<br><span style="font-size: 12px;">Wave + Turn</span>
+                    <button onclick="executeGesture('HIGH_WAVE')" class="gesture-btn" title="Wave hand high">
+                        👋<br><span style="font-size: 12px;">High Wave</span>
                     </button>
-                    <button onclick="executeGesture('SHAKE_HAND_STAGE_1')" class="gesture-btn" title="Shake hand stage 1">
-                        🤝<br><span style="font-size: 12px;">Shake (1)</span>
+                    <button onclick="executeGesture('SHAKE_HAND')" class="gesture-btn" title="Shake hand">
+                        🤝<br><span style="font-size: 12px;">Shake</span>
                     </button>
-                    <button onclick="executeGesture('SHAKE_HAND_STAGE_2')" class="gesture-btn" title="Shake hand stage 2">
-                        🤝<br><span style="font-size: 12px;">Shake (2)</span>
+                    <button onclick="executeGesture('HIGH_FIVE')" class="gesture-btn" title="High five">
+                        🖐️<br><span style="font-size: 12px;">High Five</span>
                     </button>
                 </div>
             </div>
@@ -555,6 +645,110 @@
             </div>
         </div>
 
+        <!-- Teach Mode / Custom Actions Panel (Collapsible) -->
+        <div id="teachModePanel" class="card" style="display: none;">
+            <div onclick="toggleTeachMode()" style="cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0;">🎬 Custom Actions (Teach Mode)</h2>
+                <span id="teachModeToggle" style="font-size: 24px; transition: transform 0.3s;">▼</span>
+            </div>
+            
+            <div id="teachModeContent" style="display: none; margin-top: 20px;">
+                <!-- Link to Full Teach Mode Interface -->
+                <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
+                    <a href="/teach" target="_blank" style="text-decoration: none;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span style="font-size: 32px;">🎓</span>
+                            <div style="text-align: left;">
+                                <div style="color: white; font-size: 18px; font-weight: bold;">Open Full Teach Mode Interface</div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 13px;">Complete workflow: Record → Save → Playback custom actions</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                
+                <!-- Teach Mode Controls -->
+                <div style="background: #ebf8ff; border-left: 4px solid #4299e1; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
+                    <div style="font-size: 14px; color: #2c5282;">
+                        <strong>🎭 Quick Teach Mode (Legacy):</strong><br>
+                        <ol style="margin: 8px 0 0 0; padding-left: 20px; font-size: 13px;">
+                            <li>Click "Enter Teach Mode" (calls SetBalanceMode(0) → FSM 501)</li>
+                            <li>Robot maintains balance while arms become compliant</li>
+                            <li>Manually pose the robot's arms in desired positions</li>
+                            <li><strong>For recording/saving, use the full interface above</strong></li>
+                            <li>Play back taught actions created in Android app below</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Teach Mode Button -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button id="teachModeBtn" onclick="toggleTeachModeState()" 
+                        style="padding: 12px 30px; background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(237, 137, 54, 0.3);">
+                        🎭 Enter Teach Mode
+                    </button>
+                    <div id="teachModeStatus" style="margin-top: 10px; font-size: 13px; color: #4a5568; font-style: italic;">
+                        Not in teach mode
+                    </div>
+                </div>
+
+                <!-- Recording Controls (EXPERIMENTAL) -->
+                <div id="recordingControls" style="display: none; margin-bottom: 20px; padding: 15px; background: #fef5e7; border: 2px dashed #f39c12; border-radius: 8px;">
+                    <h3 style="color: #e67e22; font-size: 14px; margin: 0 0 10px 0;">⚠️ EXPERIMENTAL: Record Action</h3>
+                    <p style="font-size: 12px; color: #856404; margin: 0 0 10px 0;">
+                        Using undocumented APIs 7109-7112. These may or may not work!
+                    </p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="recordActionName" placeholder="Action name" 
+                            style="flex: 1; padding: 8px 12px; border: 1px solid #f39c12; border-radius: 5px; font-size: 14px;">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="startRecordBtn" onclick="startRecording()" 
+                            style="flex: 1; padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                            🔴 Start Recording
+                        </button>
+                        <button id="stopRecordBtn" onclick="stopRecording()" disabled
+                            style="flex: 1; padding: 10px; background: #95a5a6; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: not-allowed;">
+                            ⏹️ Stop & Save
+                        </button>
+                    </div>
+                    <div id="recordStatus" style="margin-top: 10px; font-size: 12px; color: #856404; font-style: italic;">
+                        Ready to record
+                    </div>
+                </div>
+                
+                <!-- Add New Custom Action -->
+                <div style="margin-bottom: 20px; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                    <h3 style="color: #4a5568; font-size: 14px; margin: 0 0 10px 0;">Add Custom Action</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newActionName" placeholder="Action name (from teach mode)" 
+                            style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 5px; font-size: 14px;">
+                        <button onclick="addCustomAction()" 
+                            style="padding: 8px 20px; background: #48bb78; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                            ➕ Add
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Custom Actions List -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #4a5568; font-size: 14px; margin: 0 0 10px 0;">Saved Custom Actions</h3>
+                    <div id="customActionsList" style="display: grid; gap: 8px;">
+                        <div style="text-align: center; padding: 30px; color: #a0aec0; font-size: 14px;">
+                            No custom actions added yet
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Playback Controls -->
+                <div style="text-align: center; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                    <button onclick="stopCustomAction()" 
+                        style="padding: 10px 25px; background: #f56565; color: white; border: none; border-radius: 5px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        ⏹️ Stop Playback
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -590,9 +784,12 @@
 
         let currentFsmState = null;
         let allowedTransitions = [];
-        let buttonsDisabled = false; // Simple flag to disable buttons during transitions
-        let targetState = null; // Track what state we're transitioning to
-        let actionOriginState = null; // Track origin state for action buttons (702/706) - only re-enable when reaching different stable state
+        let buttonsDisabled = false; // Only used to prevent double-clicks during HTTP request
+        let transitionStartState = null; // Track the state we started transitioning from
+        let disconnectTimeout = null; // For debouncing connection lost events
+
+        // Transitional states - robot doesn't stay in these for long, they transition to stable states
+        const TRANSITIONAL_STATES = ['SQUAT_TO_STAND', 'STAND_UP', 'LOCK_STANDING'];
 
         // Initialize WebSocket
         function initWebSocket() {
@@ -644,60 +841,182 @@
                 const newState = msg.data.fsm_state;
                 const oldState = currentFsmState;
                 
-                // Update the robot state display
-                updateRobotState(msg.data);
-                updateVelocityPanel(); // Update velocity controls when state changes
-                updateGesturesPanel(); // Update gesture controls when state changes
+                // Update state variables
+                currentFsmState = newState;
+                allowedTransitions = msg.data.allowed_transitions || [];
                 
-                // SAFETY-CRITICAL: Re-enable buttons only when reaching stable endpoint state
-                if (newState && newState !== oldState) {
-                    // Check if we reached target state - if so, clear it and re-enable
-                    if (buttonsDisabled && targetState && newState === targetState) {
-                        console.log(`✓ Reached target state: ${newState} - RE-ENABLING BUTTONS`);
-                        showMessage(`Robot action complete: ${newState}`, 'success');
-                        buttonsDisabled = false;
-                        targetState = null;
-                        actionOriginState = null;
-                        refreshState();
-                    } else if (buttonsDisabled && targetState) {
-                        console.log(`→ Transitioning through ${newState}, target: ${targetState}`);
-                        showMessage(`Transitioning through ${newState}...`, 'info');
-                    } else if (buttonsDisabled && !targetState) {
-                        // No target (was an action state like 702/706) - check if we reached stable state
-                        const stableStates = ['ZERO_TORQUE', 'DAMP', 'START', 'LOCK_STAND', 'LOCK_STANDING', 'RUN'];
-                        const isStableState = stableStates.includes(newState);
-                        const isActionComplete = actionOriginState ? (newState !== actionOriginState) : true;
-                        
-                        if (isStableState && isActionComplete) {
-                            console.log(`✓ Action complete: ${newState} - RE-ENABLING BUTTONS`);
-                            showMessage(`Robot action complete: ${newState}`, 'success');
-                            buttonsDisabled = false;
-                            actionOriginState = null;
-                            refreshState();
-                        } else {
-                            console.log(`⏳ ${newState} - waiting for stable state (origin: ${actionOriginState})`);
-                        }
-                    } else if (!buttonsDisabled && !targetState) {
-                        refreshState();
+                // Update UI displays
+                document.getElementById('currentState').textContent = newState;
+                
+                // Update FSM mode display
+                const fsmModeElem = document.getElementById('currentFsmMode');
+                if (msg.data.fsm_mode !== null && msg.data.fsm_mode !== undefined) {
+                    let modeDesc = msg.data.fsm_mode.toString();
+                    const stateValue = msg.data.fsm_state_value;
+                    if (stateValue === 801) { // RUN
+                        if (msg.data.fsm_mode === 0) modeDesc += ' (standing, gestures ✓)';
+                        else if (msg.data.fsm_mode === 3) modeDesc += ' (moving, gestures ✓)';
+                        else if (msg.data.fsm_mode === 1) modeDesc += ' (moving, no gestures)';
+                    } else if (stateValue === 500 || stateValue === 501) { // WALK
+                        if (msg.data.fsm_mode === 0) modeDesc += ' (standing)';
+                        else if (msg.data.fsm_mode === 1) modeDesc += ' (moving)';
                     }
+                    fsmModeElem.textContent = modeDesc;
+                } else {
+                    fsmModeElem.textContent = '-';
                 }
+                
+                // Update LED color
+                document.getElementById('ledColor').textContent = msg.data.led_color;
+                const ledIndicator = document.getElementById('ledIndicator');
+                const color = LED_COLORS[msg.data.led_color.toLowerCase()] || '#718096';
+                ledIndicator.style.backgroundColor = color;
+                ledIndicator.style.borderColor = color;
+                
+                // Log state change
+                if (newState && newState !== oldState) {
+                    console.log(`State changed: ${oldState} → ${newState}, allowed: [${allowedTransitions.join(', ')}]`);
+                    
+                    // Check if new state is transitional (robot will auto-transition to another state)
+                    const isTransitional = TRANSITIONAL_STATES.includes(newState);
+                    
+                    if (isTransitional) {
+                        // Transitional state - don't update UI, just keep buttons disabled
+                        console.log(`⏳ Transitional state ${newState} - NOT updating UI, keeping buttons disabled`);
+                        // Don't call updateStateButtons() - don't show transitional state visually
+                    } else if (buttonsDisabled && transitionStartState !== null) {
+                        // Stable state reached - update UI and check if we moved from original state
+                        updateStateButtons(); // Update visual to show new stable state
+                        
+                        if (newState !== transitionStartState) {
+                            // Successfully transitioned to a different state
+                            console.log(`✅ Transition complete: ${transitionStartState} → ${newState}`);
+                            // Re-enable buttons after short delay
+                            setTimeout(() => {
+                                buttonsDisabled = false;
+                                transitionStartState = null;
+                                updateStateButtons();
+                            }, 500);
+                        } else {
+                            // Ended up back at the original state (e.g., RUN → SQUAT_TO_STAND → RUN)
+                            console.log(`⚠️ Transition failed: back to original state ${transitionStartState}`);
+                            buttonsDisabled = false;
+                            transitionStartState = null;
+                            updateStateButtons();
+                        }
+                    } else {
+                        // State changed but no active transition tracking - just update UI
+                        updateStateButtons();
+                    }
+                } else if (newState === oldState && buttonsDisabled) {
+                    // State didn't change (transition failed or same state) - re-enable immediately
+                    console.log(`State unchanged: ${oldState}, re-enabling buttons`);
+                    buttonsDisabled = false;
+                    transitionStartState = null;
+                    updateStateButtons();
+                }
+                
+                updateVelocityPanel();
+                updateGesturesPanel();
             } else if (msg.type === 'connection_changed') {
                 if (msg.data.connected) {
-                    showMessage('Connected to robot', 'success');
+                    // Connection established/restored - cancel any pending disconnect timeout
+                    if (disconnectTimeout) {
+                        clearTimeout(disconnectTimeout);
+                        disconnectTimeout = null;
+                    }
+                    
+                    // Remove warning banner if present
+                    const warningBanner = document.getElementById('connectionWarning');
+                    if (warningBanner) {
+                        warningBanner.remove();
+                    }
+                    
+                    // Reset button lock on connection
+                    buttonsDisabled = false;
+                    
+                    // Update status
+                    const connectionStatus = document.getElementById('connectionStatus');
+                    if (connectionStatus && currentRobotName) {
+                        connectionStatus.textContent = `Connected to ${currentRobotName}`;
+                        connectionStatus.className = 'connection-status status-connected';
+                    }
                 } else {
-                    // Robot connection lost - reset UI state
-                    showMessage(msg.data.error || 'Robot connection lost', 'error');
-                    isConnected = false;
-                    currentRobotName = null;
+                    // Connection lost - show warning but KEEP CONTROLS VISIBLE for safety
+                    // User must be able to access DAMP mode (emergency stop)!
+                    if (disconnectTimeout) {
+                        clearTimeout(disconnectTimeout);
+                    }
                     
-                    document.getElementById('statusPanel').style.display = 'none';
-                    document.getElementById('statePanel').style.display = 'none';
-                    document.getElementById('connectionStatus').textContent = 'Disconnected';
-                    document.getElementById('connectionStatus').className = 'connection-status status-disconnected';
-                    
-                    // Refresh robot list to show connect buttons again
-                    refreshRobotList();
+                    disconnectTimeout = setTimeout(() => {
+                        console.log('Connection unstable - showing warning but keeping controls');
+                        
+                        // Show warning banner at top of page
+                        let warningBanner = document.getElementById('connectionWarning');
+                        if (!warningBanner) {
+                            warningBanner = document.createElement('div');
+                            warningBanner.id = 'connectionWarning';
+                            warningBanner.style.cssText = `
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                background: #f56565;
+                                color: white;
+                                padding: 10px;
+                                text-align: center;
+                                font-weight: bold;
+                                z-index: 10000;
+                                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                            `;
+                            warningBanner.innerHTML = `
+                                ⚠️ CONNECTION UNSTABLE - Controls remain active for safety. Use DAMP for emergency stop.
+                                <button onclick="this.parentElement.remove()" style="margin-left: 20px; padding: 5px 10px; background: white; color: #f56565; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Dismiss</button>
+                            `;
+                            document.body.insertBefore(warningBanner, document.body.firstChild);
+                        }
+                        
+                        // Update connection status text but KEEP PANELS VISIBLE
+                        const connectionStatus = document.getElementById('connectionStatus');
+                        if (connectionStatus) {
+                            connectionStatus.textContent = 'Connection Unstable';
+                            connectionStatus.className = 'connection-status status-disconnected';
+                        }
+                        
+                        disconnectTimeout = null;
+                    }, 3000); // 3 second debounce
                 }
+            } else if (msg.type === 'battery_updated') {
+                // Update battery display
+                updateBatteryDisplay(msg.data);
+                
+                // Also update in bound robots list if visible
+                updateBoundRobotBattery(msg.data);
+            }
+        }
+
+        // Update battery info in bound robots section
+        function updateBoundRobotBattery(battery) {
+            if (!currentRobotName) return;
+            
+            const batteryElemId = `battery_${currentRobotName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const batteryElem = document.getElementById(batteryElemId);
+            
+            if (batteryElem) {
+                const soc = battery.soc || 0;
+                const voltage = battery.voltage || 0;
+                const temp = battery.temperature || 0;
+                
+                // Color based on battery level
+                let color = '#48bb78'; // Green
+                if (soc <= 20) {
+                    color = '#f56565'; // Red
+                } else if (soc <= 50) {
+                    color = '#ed8936'; // Orange
+                }
+                
+                batteryElem.innerHTML = `<strong style="color: ${color};">Battery:</strong> ${soc}% | ${voltage.toFixed(1)}V | ${temp}\u00b0C`;
+                batteryElem.style.display = '';
             }
         }
 
@@ -805,6 +1124,7 @@
                                 <div><strong>Model:</strong> ${robotModel}</div>
                                 <div><strong>Serial:</strong> ${robot.serial_number}</div>
                                 ${hasIP ? `<div><strong>IP:</strong> ${robot.ip}</div>` : ''}
+                                <div id="battery_${robot.name.replace(/[^a-zA-Z0-9]/g, '_')}" style="${isOnline ? '' : 'display: none;'}"></div>
                                 <div style="font-size: 12px; color: #a0aec0; margin-top: 4px;">Last seen: ${lastSeen}</div>
                             </div>
                         </div>
@@ -870,12 +1190,14 @@
                     const statePanel = document.getElementById('statePanel');
                     const velocityPanel = document.getElementById('velocityPanel');
                     const gesturesPanel = document.getElementById('gesturesPanel');
+                    const teachModePanel = document.getElementById('teachModePanel');
                     const connectionStatus = document.getElementById('connectionStatus');
                     
                     if (statusPanel) statusPanel.style.display = 'block';
                     if (statePanel) statePanel.style.display = 'block';
                     if (velocityPanel) velocityPanel.style.display = 'block';
                     if (gesturesPanel) gesturesPanel.style.display = 'block';
+                    if (teachModePanel) teachModePanel.style.display = 'block';
                     if (connectionStatus) {
                         connectionStatus.textContent = `Connected to ${name}`;
                         connectionStatus.className = 'connection-status status-connected';
@@ -884,17 +1206,10 @@
                     // Refresh robot list to update button states
                     refreshRobotList();
                     
-                    // Update robot state if provided
+                    // Initialize state display
                     if (data.state) {
-                        updateRobotState(data.state);
+                        initializeRobotState(data.state);
                     }
-                    
-                    // Refresh state after connection
-                    setTimeout(async () => {
-                        await refreshState();
-                        updateVelocityPanel(); // Update velocity controls based on initial state
-                        updateGesturesPanel(); // Update gesture controls based on initial state
-                    }, 1000);
                     
                     showMessage(`Connected to ${name}`, 'success');
                 } else {
@@ -940,10 +1255,24 @@
                     isConnected = false;
                     currentRobotName = null;
                     
+                    // Remove warning banner if present
+                    const warningBanner = document.getElementById('connectionWarning');
+                    if (warningBanner) {
+                        warningBanner.remove();
+                    }
+                    
+                    // Cancel any pending disconnect timeout
+                    if (disconnectTimeout) {
+                        clearTimeout(disconnectTimeout);
+                        disconnectTimeout = null;
+                    }
+                    
                     // Hide all robot control panels
                     document.getElementById('statusPanel').style.display = 'none';
                     document.getElementById('statePanel').style.display = 'none';
                     document.getElementById('velocityPanel').style.display = 'none';
+                    document.getElementById('gesturesPanel').style.display = 'none';
+                    document.getElementById('teachModePanel').style.display = 'none';
                     document.getElementById('connectionStatus').textContent = 'Disconnected';
                     document.getElementById('connectionStatus').className = 'connection-status status-disconnected';
                     
@@ -966,32 +1295,24 @@
 
         // Set FSM state
         async function setState(stateName) {
-            if (!isConnected) {
+            // SAFETY: Allow DAMP and ZERO_TORQUE even if connection appears lost
+            const isSafetyCommand = (stateName === 'DAMP' || stateName === 'ZERO_TORQUE');
+            
+            if (!isConnected && !isSafetyCommand) {
                 showMessage('Not connected to robot', 'error');
                 return;
             }
             
+            // Prevent double-clicks
             if (buttonsDisabled) {
-                console.log('Buttons disabled, ignoring click');
                 return;
             }
             
-            // Disable all buttons during transition - only re-enable based on LED stability
+            console.log(`Requesting state transition: ${currentFsmState} → ${stateName}`);
+            
+            // Record the state we're transitioning FROM
+            transitionStartState = currentFsmState;
             buttonsDisabled = true;
-            
-            // CRITICAL: States 702 (STAND_UP) and 706 (SQUAT_TO_STAND) are ACTIONS, not final states
-            // Robot passes through them to reach final state (DAMP or RUN)
-            // Don't track them as targets - just wait for LED to stabilize on final state
-            const isActionState = stateName === 'STAND_UP' || stateName === 'SQUAT_TO_STAND';
-            
-            if (isActionState) {
-                targetState = null; // Don't track action states as targets
-                actionOriginState = currentFsmState; // Record where we started from
-            } else {
-                targetState = stateName; // Track as target for non-action states
-                actionOriginState = null; // Clear origin for regular transitions
-            }
-            showMessage(`Transitioning to ${stateName}...`, 'info');
             updateStateButtons();
             
             try {
@@ -1003,15 +1324,12 @@
                 
                 if (!data.success) {
                     showMessage('Transition failed: ' + data.error, 'error');
-                    // Re-enable buttons for current state on error
                     buttonsDisabled = false;
-                    targetState = null; // Clear target state
-                    actionOriginState = null; // Clear origin state
                     updateStateButtons();
                 }
+                // On success, WebSocket state_changed event will update UI
             } catch (error) {
                 showMessage('State change error: ' + error.message, 'error');
-                // Re-enable immediately on error  
                 buttonsDisabled = false;
                 updateStateButtons();
             }
@@ -1033,6 +1351,7 @@
                 if (data.success && data.state) {
                     currentFsmState = data.state.fsm_state;
                     allowedTransitions = data.state.allowed_transitions || [];
+                    // Always update buttons when state is refreshed
                     updateStateButtons();
                 }
             } catch (error) {
@@ -1040,66 +1359,105 @@
             }
         }
 
-        // Update robot state display
-        function updateRobotState(state) {
-            const oldState = currentFsmState;
-            currentFsmState = state.fsm_state;
+        // Update battery display
+        function updateBatteryDisplay(battery) {
+            const socElem = document.getElementById('batteryLevel');
+            const voltageElem = document.getElementById('batteryVoltage');
+            const tempElem = document.getElementById('batteryTemp');
+            const fillElem = document.getElementById('batteryFill');
             
-            // Only update allowed transitions if provided (from API calls, not WebSocket)
-            if (state.allowed_transitions && Array.isArray(state.allowed_transitions)) {
-                allowedTransitions = state.allowed_transitions;
+            if (battery.soc !== null && battery.soc !== undefined) {
+                const soc = battery.soc;
+                socElem.textContent = soc + '%';
+                
+                // Animate battery fill width
+                if (fillElem) {
+                    fillElem.style.width = soc + '%';
+                    
+                    // Update fill color based on level
+                    fillElem.className = 'battery-fill';
+                    if (soc <= 20) {
+                        fillElem.classList.add('low');
+                    } else if (soc <= 50) {
+                        fillElem.classList.add('medium');
+                    }
+                }
+                
+                // Color code text based on battery level
+                if (soc > 50) {
+                    socElem.style.color = '#48bb78';  // Green
+                } else if (soc > 20) {
+                    socElem.style.color = '#ed8936';  // Orange
+                } else {
+                    socElem.style.color = '#f56565';  // Red
+                }
+            } else {
+                socElem.textContent = '--%';
+                socElem.style.color = '';
+                if (fillElem) {
+                    fillElem.style.width = '0%';
+                }
             }
+            
+            if (battery.voltage !== null && battery.voltage !== undefined) {
+                voltageElem.textContent = battery.voltage.toFixed(1) + 'V';
+            } else {
+                voltageElem.textContent = '--V';
+            }
+            
+            if (battery.temperature !== null && battery.temperature !== undefined) {
+                tempElem.textContent = battery.temperature + '°C';
+            } else {
+                tempElem.textContent = '--°C';
+            }
+        }
+        
+        // Initialize state on connection (called from connectToSelectedRobot)
+        function initializeRobotState(state) {
+            currentFsmState = state.fsm_state;
+            allowedTransitions = state.allowed_transitions || [];
             
             document.getElementById('currentState').textContent = state.fsm_state;
             document.getElementById('ledColor').textContent = state.led_color;
+            document.getElementById('currentFsmMode').textContent = '-';
             
-            // Update LED indicator color
             const ledIndicator = document.getElementById('ledIndicator');
             const color = LED_COLORS[state.led_color.toLowerCase()] || '#718096';
             ledIndicator.style.backgroundColor = color;
             ledIndicator.style.borderColor = color;
             
             updateStateButtons();
+            updateVelocityPanel();
+            updateGesturesPanel();
         }
 
-        // Update state buttons
+        // Update state buttons based on allowed transitions
         function updateStateButtons() {
-            if (!isConnected) return;
-            
             const grid = document.getElementById('stateGrid');
             if (!grid) return;
             
             grid.innerHTML = '';
             
-            // Ensure allowedTransitions is an array
-            const transitions = Array.isArray(allowedTransitions) ? allowedTransitions : [];
-            
-            FSM_STATES.forEach((state, index) => {
+            FSM_STATES.forEach((state) => {
                 const button = document.createElement('button');
                 button.className = 'state-button';
                 
-                // Check if this is the current state  
                 const isCurrent = state.name === currentFsmState;
+                const isAllowed = allowedTransitions.includes(state.name);
+                const isSafety = (state.name === 'DAMP' || state.name === 'ZERO_TORQUE');
+                
                 if (isCurrent) {
                     button.classList.add('current');
                 }
                 
-                // Check if transition is allowed
-                const isAllowed = transitions.includes(state.name);
+                // Enable button if: safety command OR (connected AND (allowed OR current)) AND not disabled
+                const shouldEnable = (isSafety || (isConnected && (isAllowed || isCurrent))) && !buttonsDisabled;
                 
-                // SAFETY-FIRST: During transition (buttonsDisabled), disable ALL buttons except current for visual reference
-                if (buttonsDisabled) {
-                    button.disabled = true;
+                button.disabled = !shouldEnable;
+                button.style.opacity = shouldEnable ? '1' : '0.5';
+                
+                if (!isAllowed && !isCurrent) {
                     button.classList.add('invalid');
-                    button.style.opacity = isCurrent ? '0.8' : '0.3';
-                } else if (!isAllowed && !isCurrent) {
-                    // Not transitioning, but this state is not allowed from current state
-                    button.classList.add('invalid');
-                    button.disabled = true;
-                    button.style.opacity = '0.5';
-                } else {
-                    // Either current state or valid transition - enable
-                    button.style.opacity = '1';
                 }
                 
                 // User-friendly display names
@@ -1174,11 +1532,6 @@
         }
 
         async function moveRobot(vx, vy, omega) {
-            if (!isConnected) {
-                showMessage('Robot not connected', 'error');
-                return;
-            }
-            
             if (!isVelocityControlAvailable()) {
                 showMessage('Velocity control only available in WALK (500), WALK-3DOF (501), or RUN (801) mode', 'error');
                 return;
@@ -1192,6 +1545,7 @@
                 });
 
                 const result = await response.json();
+                
                 if (result.success) {
                     currentVelocity = { vx, vy, omega };
                     updateVelocityDisplay();
@@ -1218,11 +1572,6 @@
         }
 
         async function executeGesture(gestureName) {
-            if (!isConnected) {
-                showMessage('Robot not connected', 'error');
-                return;
-            }
-            
             if (!isGesturesAvailable()) {
                 showMessage('Gestures only available in WALK (500/501) or RUN (801) mode', 'error');
                 return;
@@ -1235,9 +1584,10 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    showMessage(`Executing ${gestureName}`, 'success');
+                    showMessage(result.message || `Executing ${gestureName}`, 'success');
                 } else {
-                    showMessage(`Gesture failed: ${result.error}`, 'error');
+                    // Display detailed error message from FSM validation
+                    showMessage(result.error, 'error');
                 }
             } catch (error) {
                 showMessage(`Gesture error: ${error.message}`, 'error');
@@ -1248,7 +1598,9 @@
             const gesturesPanel = document.getElementById('gesturesPanel');
             if (!gesturesPanel || gesturesPanel.style.display === 'none') return;
             
-            const available = isGesturesAvailable();
+            // Gestures are available in LOCK_STAND (500) and RUN (801) modes
+            // Note: RUN mode may have additional fsm_mode restrictions, but we allow UI to try
+            const available = isConnected && (currentFsmState === 'LOCK_STAND' || currentFsmState === 'RUN');
             const buttons = gesturesPanel.querySelectorAll('.gesture-btn');
             const warning = document.getElementById('gesturesAvailableWarning');
             
@@ -1258,6 +1610,333 @@
             } else {
                 buttons.forEach(btn => btn.disabled = true);
                 warning.style.display = 'block';
+            }
+        }
+
+        // Teach Mode / Custom Actions Functions
+        function toggleTeachMode() {
+            const content = document.getElementById('teachModeContent');
+            const toggle = document.getElementById('teachModeToggle');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.style.transform = 'rotate(180deg)';
+                loadCustomActionsList(); // Load when opening
+            } else {
+                content.style.display = 'none';
+                toggle.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        async function loadCustomActionsList() {
+            try {
+                // First, try to load taught actions from robot
+                const robotResponse = await fetch('/api/custom_action/robot_list');
+                const robotData = await robotResponse.json();
+                
+                // Also load favorites list
+                const favResponse = await fetch('/api/custom_action/list');
+                const favData = await favResponse.json();
+                
+                const listContainer = document.getElementById('customActionsList');
+                let allActions = [];
+                
+                // Parse robot actions (format TBD - will see what robot returns)
+                if (robotData.success && robotData.data) {
+                    console.log('Robot action list:', robotData.data);
+                    // TODO: Parse robot response format when we see it
+                }
+                
+                // For now, show favorites list
+                if (favData.success && favData.actions && favData.actions.length > 0) {
+                    allActions = favData.actions;
+                }
+                
+                if (allActions.length > 0) {
+                    listContainer.innerHTML = allActions.map(action => `
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            <button onclick="playCustomAction('${action}')" 
+                                style="flex: 1; padding: 10px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; text-align: left; transition: all 0.2s;"
+                                onmouseover="this.style.transform='scale(1.02)'" 
+                                onmouseout="this.style.transform='scale(1)'">
+                                ▶️ ${action}
+                            </button>
+                            <button onclick="renameCustomAction('${action}')" 
+                                title="Rename" 
+                                style="padding: 8px 12px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                ✏️
+                            </button>
+                            <button onclick="removeCustomAction('${action}')" 
+                                title="Remove" 
+                                style="padding: 8px 12px; background: #f56565; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                🗑️
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; padding: 30px; color: #a0aec0; font-size: 14px;">
+                            No custom actions added yet
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                showMessage(`Failed to load custom actions: ${error.message}`, 'error');
+            }
+        }
+
+        async function addCustomAction() {
+            const input = document.getElementById('newActionName');
+            const actionName = input.value.trim();
+            
+            if (!actionName) {
+                showMessage('Please enter an action name', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/custom_action/add?action_name=${encodeURIComponent(actionName)}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    input.value = ''; // Clear input
+                    loadCustomActionsList(); // Refresh list
+                } else {
+                    showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showMessage(`Failed to add custom action: ${error.message}`, 'error');
+            }
+        }
+
+        async function playCustomAction(actionName) {
+            if (!isGesturesAvailable()) {
+                showMessage('Custom actions only available in WALK (500/501) or RUN (801) mode', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/custom_action/execute?action_name=${encodeURIComponent(actionName)}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                } else {
+                    showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showMessage(`Failed to play custom action: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopCustomAction() {
+            try {
+                const response = await fetch('/api/custom_action/stop', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('Stopped custom action', 'success');
+                } else {
+                    showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showMessage(`Failed to stop custom action: ${error.message}`, 'error');
+            }
+        }
+
+        async function removeCustomAction(actionName) {
+            if (!confirm(`Remove "${actionName}" from favorites?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/custom_action/remove?action_name=${encodeURIComponent(actionName)}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    loadCustomActionsList(); // Refresh list
+                } else {
+                    showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showMessage(`Failed to remove custom action: ${error.message}`, 'error');
+            }
+        }
+
+        let isInTeachMode = false;
+        let isRecording = false;
+
+        async function toggleTeachModeState() {
+            const btn = document.getElementById('teachModeBtn');
+            const status = document.getElementById('teachModeStatus');
+            const recordingControls = document.getElementById('recordingControls');
+            
+            if (isInTeachMode) {
+                // Exit teach mode - return to LOCK_STAND
+                showMessage('Exiting teach mode...', 'info');
+                await setFSMState('LOCK_STAND');
+                isInTeachMode = false;
+                btn.textContent = '🎭 Enter Teach Mode';
+                btn.style.background = 'linear-gradient(135deg, #ed8936 0%, #dd6b20 100%)';
+                status.textContent = 'Not in teach mode';
+                status.style.color = '#4a5568';
+                recordingControls.style.display = 'none';
+            } else {
+                // Enter teach mode - SDK pattern: SetBalanceMode(0) → triggers FSM 501
+                showMessage('Entering teach mode (balance stand + releasing arms)...', 'info');
+                
+                try {
+                    // Step 1: Call SetBalanceMode(0) to enter LOCK_STAND_ADV (501)
+                    const balanceResponse = await fetch('/api/balance_mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode: 0 })
+                    });
+                    
+                    const balanceResult = await balanceResponse.json();
+                    if (!balanceResult.success) {
+                        showMessage('Failed to enter balance stand mode', 'error');
+                        return;
+                    }
+                    
+                    // Wait for FSM state transition to 501
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Step 2: Release arms (makes them compliant while balance is maintained)
+                    const armResponse = await fetch('/api/gesture', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ gesture: 'RELEASE_ARM' })
+                    });
+                    
+                    const armResult = await armResponse.json();
+                    if (armResult.success) {
+                        isInTeachMode = true;
+                        btn.textContent = '✅ Exit Teach Mode';
+                        btn.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+                        status.textContent = '✓ Arms released - you can now manually pose them';
+                        status.style.color = '#38a169';
+                        recordingControls.style.display = 'block';  // Show recording controls
+                        showMessage('Teach mode active! Manually pose the arms.', 'success');
+                    } else {
+                        showMessage('Failed to release arms: ' + armResult.message, 'error');
+                        await setFSMState('LOCK_STAND'); // Revert
+                    }
+                } catch (error) {
+                    showMessage('Error entering teach mode: ' + error.message, 'error');
+                    await setFSMState('LOCK_STAND'); // Revert
+                }
+            }
+        }
+
+        async function renameCustomAction(oldName) {
+            const newName = prompt(`Rename "${oldName}" to:`, oldName);
+            if (!newName || newName === oldName) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/custom_action/rename?old_name=${encodeURIComponent(oldName)}&new_name=${encodeURIComponent(newName)}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    loadCustomActionsList(); // Refresh list
+                } else {
+                    showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showMessage(`Failed to rename custom action: ${error.message}`, 'error');
+            }
+        }
+
+        // Experimental Recording Functions (APIs 7109-7112)
+        async function startRecording() {
+            if (!isTeachMode) {
+                showMessage('Must be in teach mode to record', 'error');
+                return;
+            }
+
+            const actionName = document.getElementById('recordActionName').value.trim();
+            if (!actionName) {
+                showMessage('Please enter an action name', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/teach/start_recording', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    isRecording = true;
+                    document.getElementById('startRecordBtn').disabled = true;
+                    document.getElementById('stopRecordBtn').disabled = false;
+                    document.getElementById('recordActionName').disabled = true;
+                    document.getElementById('recordStatus').textContent = `🔴 Recording: ${actionName}...`;
+                    showMessage(`Started recording action: ${actionName}`, 'success');
+                } else {
+                    showMessage(`Failed to start recording: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Recording error: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopRecording() {
+            if (!isRecording) {
+                return;
+            }
+
+            const actionName = document.getElementById('recordActionName').value.trim();
+            
+            try {
+                // Stop recording first
+                const stopResponse = await fetch('/api/teach/stop_recording', {
+                    method: 'POST'
+                });
+                
+                const stopResult = await stopResponse.json();
+                if (!stopResult.success) {
+                    showMessage(`Failed to stop recording: ${stopResult.error}`, 'error');
+                    return;
+                }
+
+                // Then save with the action name
+                const saveResponse = await fetch(`/api/teach/save_recording?action_name=${encodeURIComponent(actionName)}`, {
+                    method: 'POST'
+                });
+                
+                const saveResult = await saveResponse.json();
+                if (saveResult.success) {
+                    isRecording = false;
+                    document.getElementById('startRecordBtn').disabled = false;
+                    document.getElementById('stopRecordBtn').disabled = true;
+                    document.getElementById('recordActionName').disabled = false;
+                    document.getElementById('recordActionName').value = '';
+                    document.getElementById('recordStatus').textContent = '';
+                    showMessage(`Saved action: ${actionName}`, 'success');
+                    loadCustomActionsList(); // Refresh the list to show new action
+                } else {
+                    showMessage(`Failed to save recording: ${saveResult.error}`, 'error');
+                    isRecording = false;
+                }
+            } catch (error) {
+                showMessage(`Save error: ${error.message}`, 'error');
+                isRecording = false;
             }
         }
 
@@ -1386,6 +2065,7 @@
         window.onload = () => {
             initWebSocket();
             refreshRobotList();  // Auto-discover bound robots
+            updateStateButtons(); // Create initial buttons (will be disabled until connection)
             
             // Refresh status every 10 seconds
             setInterval(refreshRobotList, 10000);

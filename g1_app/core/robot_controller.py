@@ -34,6 +34,7 @@ class RobotController:
         """
         self.robot_ip = robot_ip
         self.robot_sn = robot_sn
+        self.serial_number = robot_sn  # Alias for compatibility
         
         # Core components
         self.state_machine = StateMachine()
@@ -45,6 +46,9 @@ class RobotController:
         
         # Speed mode tracking (for RUN mode)
         self.current_speed_mode = SpeedMode.LOW
+        
+        # Track first FSM state received after connection
+        self._first_state_logged = False
         
         logger.info(f"Initialized RobotController for {robot_sn} @ {robot_ip}")
     
@@ -64,13 +68,20 @@ class RobotController:
                 serialNumber=self.robot_sn
             )
             
-            await self.conn.connect()
+            try:
+                await self.conn.connect()
+            except SystemExit:
+                # WebRTC driver calls sys.exit(1) on failure - catch it
+                raise ConnectionError(f"Failed to establish WebRTC connection to {self.robot_ip}. Check if robot is powered on and ports 8081/9991 are accessible.")
             
             # Create command executor
             self.executor = CommandExecutor(self.conn.datachannel)
             
             # Subscribe to robot state topic
             self._subscribe_to_state()
+            
+            # Subscribe to battery updates
+            self._subscribe_to_battery()
             
             # NOTE: GET_FSM_ID and GET_FSM_MODE APIs don't return reliable state
             # API 7001 returns unknown values (e.g., 801)
@@ -117,8 +128,18 @@ class RobotController:
                     fsm_mode = state_data.get('fsm_mode')
                     task_id = state_data.get('task_id')
                     
+                    # 🎯 SPECIAL: Log first FSM state after connection
+                    if not self._first_state_logged:
+                        logger.warning("=" * 80)
+                        logger.warning(f"🎯🎯🎯 FIRST FSM STATE ON CONNECTION 🎯🎯🎯")
+                        logger.warning(f"FSM ID: {fsm_id}")
+                        logger.warning(f"FSM MODE: {fsm_mode}")
+                        logger.warning(f"TASK ID: {task_id}")
+                        logger.warning("=" * 80)
+                        self._first_state_logged = True
+                    
                     # Debug logging (disabled - too verbose)
-                    # logger.debug(f"🤖 Robot state: fsm_id={fsm_id}, fsm_mode={fsm_mode}, task_id={task_id}")
+                    logger.info(f"🤖 Robot state update: fsm_id={fsm_id}, fsm_mode={fsm_mode}, task_id={task_id}")
                     
                     # Update state machine with actual FSM state
                     if fsm_id is not None:
@@ -152,6 +173,66 @@ class RobotController:
             logger.info(f"✅ Subscribed to {Topic.SPORT_MODE_STATE_LF}")
         except Exception as e:
             logger.warning(f"Could not subscribe to state topic: {e}")
+    
+    def _subscribe_to_battery(self) -> None:
+        """Subscribe to battery state updates
+        
+        G1 has BmsState_ message type with soc_, current_, temperature_, bmsvoltage_ fields.
+        Trying rt/lf/bmsstate and other common patterns.
+        """
+        def on_bms_update(data: dict):
+            """Handle BMS state updates"""
+            logger.info(f"🔋 BMS CALLBACK! Topic: {data.get('topic', 'unknown')}")
+            try:
+                if isinstance(data, dict) and 'data' in data:
+                    bms_data = data['data']
+                    logger.info(f"🔋 BMS Keys: {list(bms_data.keys())[:30]}")
+                    
+                    # BmsState_ fields from SDK: soc_, current_, temperature_, bmsvoltage_
+                    soc = bms_data.get('soc', bms_data.get('soc_', bms_data.get('battery_percentage', 0)))
+                    current = bms_data.get('current', bms_data.get('current_', 0))
+                    temperature = bms_data.get('temperature', bms_data.get('temperature_', [0]))
+                    voltage = bms_data.get('bmsvoltage', bms_data.get('bmsvoltage_', [0]))
+                    
+                    # Temperature is array, take first one
+                    temp_value = temperature[0] if isinstance(temperature, (list, tuple)) and len(temperature) > 0 else temperature
+                    # Voltage is array, sum or take first
+                    voltage_value = sum(voltage) / 1000.0 if isinstance(voltage, (list, tuple)) else voltage / 1000.0
+                    
+                    logger.info(f"🔋 Battery: {soc}% | {voltage_value}V | {current}mA | {temp_value}°C")
+                    
+                    EventBus.emit(Events.BATTERY_UPDATED, {
+                        "soc": soc,
+                        "voltage": voltage_value,
+                        "current": current / 1000.0,  # mA to A
+                        "temperature": temp_value
+                    })
+            except Exception as e:
+                logger.error(f"Error processing BMS update: {e}", exc_info=True)
+        
+        try:
+            # Try all possible BMS topic patterns
+            potential_topics = [
+                "rt/lf/bmsstate",     # Most likely based on lowstate pattern
+                "rt/bmsstate",
+                "rt/lf/agvbmsstate",
+                "rt/agvbmsstate", 
+                "rt/lf/bms",
+                "rt/bms",
+                "rt/battery",
+                "rt/lf/battery",
+                "rt/sensor/bms"       # Sensor data pattern
+            ]
+            
+            for topic in potential_topics:
+                try:
+                    self.conn.datachannel.pub_sub.subscribe(topic, on_bms_update)
+                    logger.info(f"✅ Subscribed to {topic} for BMS data")
+                except Exception as sub_err:
+                    logger.debug(f"Could not subscribe to {topic}: {sub_err}")
+            
+        except Exception as e:
+            logger.warning(f"Could not subscribe to lowstate topic: {e}")
     
     # ========================================================================
     # Command Methods (delegate to executor)
@@ -241,26 +322,33 @@ class RobotController:
             logger.error(f"Velocity command failed: {e}")
             return False
     
-    async def execute_gesture(self, gesture_name: str) -> bool:
+    async def execute_gesture(self, gesture_name: str) -> dict:
         """Execute pre-programmed gesture by name"""
         if not self.connected or not self.executor:
-            return False
+            return {"success": False, "message": "Not connected"}
         
         try:
-            from ..api.constants import ArmGesture
+            from ..api.constants import ArmGesture, ArmTask
             
-            # Convert name to enum
+            # Try ArmGesture first
             gesture = getattr(ArmGesture, gesture_name.upper(), None)
-            if gesture is None:
-                logger.error(f"Unknown gesture: {gesture_name}")
-                return False
+            if gesture is not None:
+                await self.executor.execute_gesture(gesture)
+                return {"success": True, "message": f"Executing {gesture_name}"}
             
-            self.executor.execute_gesture(gesture)
-            return True
+            # Try ArmTask second
+            task = getattr(ArmTask, gesture_name.upper(), None)
+            if task is not None:
+                await self.executor.set_arm_task(task)
+                return {"success": True, "message": f"Executing task {gesture_name}"}
+            
+            # Not found in either enum
+            logger.error(f"Unknown gesture or task: {gesture_name}")
+            return {"success": False, "message": f"Unknown gesture or task: {gesture_name}"}
             
         except Exception as e:
             logger.error(f"Gesture failed: {e}")
-            return False
+            return {"success": False, "message": str(e)}
     
     async def emergency_stop(self) -> bool:
         """Emergency stop - go to damp mode"""
@@ -272,6 +360,8 @@ class RobotController:
         return False
     
     # Convenience methods
+    # ⚠️⚠️⚠️ SAFETY: damp() disables motors - robot may fall. NEVER call programmatically! ⚠️⚠️⚠️
+    # AI AGENTS: ONLY call when user explicitly clicks "Damp" button. Can cause injury.
     async def damp(self): return await self.set_fsm_state(FSMState.DAMP)
     async def ready(self): return await self.set_fsm_state(FSMState.START)
     async def sit(self): return await self.set_fsm_state(FSMState.SIT)
@@ -284,6 +374,38 @@ class RobotController:
     async def right(self, speed=0.2): return await self.set_velocity(vy=-speed)
     async def turn_left(self, speed=0.5): return await self.set_velocity(omega=speed)
     async def turn_right(self, speed=0.5): return await self.set_velocity(omega=-speed)
+    
+    async def get_custom_action_list(self) -> dict:
+        """Get list of custom taught actions via API 7107"""
+        if not self.connected or not self.executor:
+            return {"success": False, "error": "Not connected"}
+        
+        try:
+            result = await self.executor.send_api_request(7107, {})
+            return {"success": True, "data": result}
+        except Exception as e:
+            logger.error(f"GetActionList failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def send_api_command(self, api_id: int, parameter: dict = None) -> dict:
+        """Send raw API command to robot
+        
+        Args:
+            api_id: API command ID (e.g., 7109, 7110, etc.)
+            parameter: Command parameters as dict
+        
+        Returns:
+            dict with success status and response data
+        """
+        if not self.connected or not self.executor:
+            return {"success": False, "error": "Not connected"}
+        
+        try:
+            result = await self.executor.send_api_request(api_id, parameter or {})
+            return {"success": True, "data": result}
+        except Exception as e:
+            logger.error(f"API {api_id} failed: {e}")
+            return {"success": False, "error": str(e)}
     
     # Properties
     @property

@@ -20,6 +20,12 @@ class RobotState:
     led_color: LEDColor
     fsm_mode: Optional[int] = None  # Additional mode info from robot
     task_id: Optional[int] = None   # Current arm task
+    battery_soc: Optional[int] = None  # Battery State of Charge (0-100%)
+    battery_voltage: Optional[float] = None  # Battery voltage in V
+    battery_current: Optional[float] = None  # Battery current in A
+    audio_volume: Optional[int] = None  # System volume (0-100)
+    last_speech_text: Optional[str] = None  # Last recognized speech
+    lidar_active: bool = False  # LiDAR data receiving status
     error: Optional[str] = None
 
 
@@ -156,7 +162,10 @@ class StateMachine:
         return to_state in valid_targets
     
     def update_state(self, fsm_state: FSMState, fsm_mode: Optional[int] = None, 
-                     task_id: Optional[int] = None) -> RobotState:
+                     task_id: Optional[int] = None, battery_soc: Optional[int] = None,
+                     battery_voltage: Optional[float] = None, battery_current: Optional[float] = None,
+                     audio_volume: Optional[int] = None, last_speech_text: Optional[str] = None,
+                     lidar_active: Optional[bool] = None) -> RobotState:
         """
         Update robot state
         
@@ -164,6 +173,12 @@ class StateMachine:
             fsm_state: New FSM state
             fsm_mode: FSM mode from robot
             task_id: Current task ID
+            battery_soc: Battery charge percentage (0-100)
+            battery_voltage: Battery voltage in V
+            battery_current: Battery current in A
+            audio_volume: System volume (0-100)
+            last_speech_text: Last recognized speech
+            lidar_active: LiDAR data receiving status
             
         Returns:
             Updated state
@@ -173,11 +188,33 @@ class StateMachine:
         # Get LED color for this state
         led_color = FSM_TO_LED.get(fsm_state, LEDColor.BLUE)
         
+        # Preserve existing battery values if not provided
+        if battery_soc is None:
+            battery_soc = self._current_state.battery_soc
+        if battery_voltage is None:
+            battery_voltage = self._current_state.battery_voltage
+        if battery_current is None:
+            battery_current = self._current_state.battery_current
+        
+        # Preserve existing audio/lidar values if not provided
+        if audio_volume is None:
+            audio_volume = self._current_state.audio_volume
+        if last_speech_text is None:
+            last_speech_text = self._current_state.last_speech_text
+        if lidar_active is None:
+            lidar_active = self._current_state.lidar_active
+        
         # Update state
         self._current_state = RobotState(
             fsm_state=fsm_state,
             led_color=led_color,
             fsm_mode=fsm_mode,
+            battery_soc=battery_soc,
+            battery_voltage=battery_voltage,
+            battery_current=battery_current,
+            audio_volume=audio_volume,
+            last_speech_text=last_speech_text,
+            lidar_active=lidar_active,
             task_id=task_id
         )
         
