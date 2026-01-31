@@ -1,0 +1,120 @@
+DEBUG:g1_app.core.event_bus:Subscribed to 'state_changed' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'connection_changed' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'battery_updated' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'speech_recognized' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'lidar_data_received' (total subscribers: 1)
+C:\Unitree\G1\Unitree-bot\g1_app\ui\web_server.py:196: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+C:\Unitree\G1\Unitree-bot\g1_app\ui\web_server.py:204: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+INFO:     Started server process [33808]
+INFO:     Waiting for application startup.
+INFO:g1_app.core.robot_discovery:[*] RobotDiscovery initialized (ARP cache scanning, no multicast)
+INFO:g1_app.core.robot_discovery:[*] Starting robot discovery (ARP scan every 5 seconds)
+INFO:g1_app.core.robot_discovery:[+] Discovered robot: Robot_192.168.86.3 at 192.168.86.3 (MAC: fc:23:cd:92:60:02)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59515 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52421 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-34' coro=<RTCPeerConnection.__connect() done, defined at C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py:1057> exception=AttributeError("'NoneType' object has no attribute 'media'")>
+Traceback (most recent call last):
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1073, in __connect
+    self.__remoteRtp(transceiver)
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1222, in __remoteRtp
+    media = self.__remoteDescription().media[transceiver._get_mline_index()]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'media'
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+ERROR:root:An error occurred: 504 Server Error: Gateway Timeout for url: http://192.168.86.3:8081/offer
+ERROR:root:An error occurred with the old method: Failed to receive SDP Answer: No response
+ERROR:root:An error occurred: HTTPConnectionPool(host='192.168.86.3', port=9991): Max retries exceeded with url: /con_notify (Caused by NewConnectionError("HTTPConnection(host='192.168.86.3', port=9991): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it"))
+ERROR:root:An error occurred with the new method: Failed to receive initial public key response.
+ERROR:g1_app.core.robot_controller:Connection failed: Failed to establish WebRTC connection to 192.168.86.3. Check if robot is powered on and ports 8081/9991 are accessible.
+DEBUG:g1_app.core.event_bus:Emitting 'connection_changed' to 1 subscribers
+ERROR:__main__:Connection failed: Failed to establish WebRTC connection to 192.168.86.3. Check if robot is powered on and ports 8081/9991 are accessible.
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-57' coro=<RTCPeerConnection.__connect() done, defined at C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py:1057> exception=AttributeError("'NoneType' object has no attribute 'media'")>
+Traceback (most recent call last):
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1073, in __connect
+    self.__remoteRtp(transceiver)
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1222, in __remoteRtp
+    media = self.__remoteDescription().media[transceiver._get_mline_index()]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'media'
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-86' coro=<RTCPeerConnection.__connect() done, defined at C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py:1057> exception=AttributeError("'NoneType' object has no attribute 'media'")>
+Traceback (most recent call last):
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1073, in __connect
+    self.__remoteRtp(transceiver)
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1222, in __remoteRtp
+    media = self.__remoteDescription().media[transceiver._get_mline_index()]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'media'
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-123' coro=<RTCPeerConnection.__connect() done, defined at C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py:1057> exception=AttributeError("'NoneType' object has no attribute 'media'")>
+Traceback (most recent call last):
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1073, in __connect
+    self.__remoteRtp(transceiver)
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1222, in __remoteRtp
+    media = self.__remoteDescription().media[transceiver._get_mline_index()]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'media'
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-128' coro=<RTCPeerConnection.__connect() done, defined at C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py:1057> exception=AttributeError("'NoneType' object has no attribute 'media'")>
+Traceback (most recent call last):
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1073, in __connect
+    self.__remoteRtp(transceiver)
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1222, in __remoteRtp
+    media = self.__remoteDescription().media[transceiver._get_mline_index()]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'media'
+INFO:     connection closed
+INFO:     127.0.0.1:64419 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-179' coro=<RTCPeerConnection.__connect() done, defined at C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py:1057> exception=AttributeError("'NoneType' object has no attribute 'media'")>
+Traceback (most recent call last):
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1073, in __connect
+    self.__remoteRtp(transceiver)
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1222, in __remoteRtp
+    media = self.__remoteDescription().media[transceiver._get_mline_index()]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'media'
+INFO:g1_app.core.robot_controller:Initialized RobotController for Robot_192.168.86.3 @ 192.168.86.3
+INFO:g1_app.core.robot_controller:Connecting to G1 at 192.168.86.3...
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-221' coro=<RTCPeerConnection.__connect() done, defined at C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py:1057> exception=AttributeError("'NoneType' object has no attribute 'media'")>
+Traceback (most recent call last):
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1073, in __connect
+    self.__remoteRtp(transceiver)
+  File "C:\Unitree\G1\Unitree-bot\.venv\Lib\site-packages\aiortc\rtcpeerconnection.py", line 1222, in __remoteRtp
+    media = self.__remoteDescription().media[transceiver._get_mline_index()]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'media'

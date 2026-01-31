@@ -147,6 +147,14 @@
             background: #059669;
         }
 
+        button.info {
+            background: #3b82f6;
+        }
+
+        button.info:hover:not(:disabled) {
+            background: #2563eb;
+        }
+
         .input-group {
             margin-bottom: 15px;
         }
@@ -639,6 +647,7 @@
                             <span class="action-name">${action}</span>
                             <div class="action-buttons">
                                 <button class="success" onclick="playAction('${action}')">▶ Play</button>
+                                <button class="info" onclick="renameAction('${action}')">✎ Rename</button>
                                 <button class="danger" onclick="deleteAction('${action}')">🗑 Delete</button>
                             </div>
                         </div>
@@ -689,6 +698,33 @@
                 }
             } catch (error) {
                 showMessage('Error deleting action: ' + error.message, 'error');
+            }
+        }
+
+        async function renameAction(oldName) {
+            const newName = prompt(`Rename action "${oldName}" to:`, oldName);
+            if (!newName || newName === oldName) return;
+            if (newName.trim().length === 0) {
+                showMessage('Action name cannot be empty', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/teach/rename_action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: oldName, new_name: newName })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`✓ Renamed action: ${oldName} → ${newName}`, 'success');
+                    loadActionList();
+                } else {
+                    showMessage('Failed to rename action: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Error renaming action: ' + error.message, 'error');
             }
         }
 

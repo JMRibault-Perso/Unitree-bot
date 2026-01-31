@@ -654,6 +654,33 @@ async def delete_action_endpoint(action_name: str):
         return {"success": False, "error": str(e)}
 
 
+@app.post("/api/teach/rename_action")
+async def rename_action_endpoint(old_name: str, new_name: str):
+    """EXPERIMENTAL: Rename saved action (API 7113)"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    if not robot.executor:
+        return {"success": False, "error": "Executor not initialized"}
+    
+    if not old_name or not new_name:
+        return {"success": False, "error": "Action names cannot be empty"}
+    
+    try:
+        result = await robot.executor.rename_action(old_name, new_name)
+        logger.info(f"Rename action result: {result}")
+        return {
+            "success": True,
+            "message": f"Action '{old_name}' renamed to '{new_name}' (experimental API)",
+            "data": result
+        }
+    except Exception as e:
+        logger.error(f"Rename action failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.get("/api/max_speeds")
 async def get_max_speeds_endpoint():
     """Get current max speeds based on mode"""
