@@ -66,10 +66,15 @@ Action 2: "spin_disks"
   - Keyframes: [stored on robot]
   - Size: 32 bytes (name field) in response
 
-Action 3-5: [Additional actions stored]
-  - Names partially visible in hex data
-  - Full names require complete hex dump parsing
-  - Estimated max: 15 actions supported
+Action 3: "test" → renamed to "AAAAAAAAA"
+  - Rename action verified in capture
+  - Old name appears in rename request
+
+Action 4: [Additional saved action]
+  - Name present in 0x1A payload (needs decode)
+
+Action 5 (last): "handshake"
+  - Listed as the final action in the response
 ```
 
 **0x1A Response Format (233 bytes)**:
@@ -262,11 +267,11 @@ Estimated Session Duration: ~90 seconds
 ✅ Confirmed (100% certain):
   1. "waist_drum_dance"  (16 chars)
   2. "spin_disks"        (10 chars)
+  3. "test" → renamed to "AAAAAAAAA"
+  4. "handshake" (last action in list)
 
 ⚠️ Partially Visible (in hex, needs decoding):
-  3. [Action 3 name - 32 bytes at offset 90-121]
-  4. [Action 4 name - 32 bytes at offset 130-161]
-  5. [Action 5 name - 32 bytes at offset 170-201]
+  5. [Action 4 name - 32 bytes at offset 130-161]
 
 How to Extract:
   Use 0x1A response packet (233 bytes)

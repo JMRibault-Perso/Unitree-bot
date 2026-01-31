@@ -662,7 +662,7 @@
 
         async function playAction(actionName) {
             try {
-                const response = await fetch('/api/gestures/custom_action', {
+                const response = await fetch('/api/custom_action/execute', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action_name: actionName })

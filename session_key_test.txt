@@ -1,0 +1,221 @@
+================================================================================
+TESTING SESSION KEY ON ALL PACKETS
+================================================================================
+
+Session key (8 bytes): 4641404661604141
+Session key ASCII: 'FA@Fa`AA'
+Target plaintext: 'AAAAAAAAAA'
+
+Found 17 rename packets
+
+================================================================================
+PACKET #1 (packet 1042, timestamp 1769831917.163195)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 8
+  Key: f3b5d641cf1373207a73
+  ASCII: '├│┬╡├ûA├Ås zs'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #2 (packet 1505, timestamp 1769831921.507829)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 9
+  Key: 66bd3107fafe6c37b34f
+  ASCII: 'f┬╜1├║├╛l7┬│O'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #3 (packet 1592, timestamp 1769831922.248684)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 18
+  Key: 270158600dea7f45de3c
+  ASCII: ''X`
+├¬E├₧<'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #4 (packet 1703, timestamp 1769831923.334144)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 0
+  Key: 6772f5fc623b773e363d
+  ASCII: 'gr├╡├╝b;w>6='
+  Printable: 8/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #5 (packet 1797, timestamp 1769831924.174569)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 5
+  Key: 28520ef5e2de27f53d67
+  ASCII: '(R├╡├ó├₧'├╡=g'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #6 (packet 2233, timestamp 1769831928.374827)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 29
+  Key: ec4a094a122f66d4124f
+  ASCII: '├¼J	J/f├öO'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #7 (packet 2327, timestamp 1769831929.261047)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 5
+  Key: c60ce16968c065f67330
+  ASCII: '├å├íih├Çe├╢s0'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #8 (packet 2662, timestamp 1769831932.572915)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 26
+  Key: 68e789252ace93ac513f
+  ASCII: 'h├º┬ë%*├Ä┬ô┬¼Q?'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #9 (packet 2843, timestamp 1769831934.254722)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 22
+  Key: 41136ec8f11358f66250
+  ASCII: 'An├ê├▒X├╢bP'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #10 (packet 2990, timestamp 1769831935.656091)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 0
+  Key: 2aff22a55059a45be88f
+  ASCII: '*├┐"┬ÑPY┬ñ[├¿┬Å'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #11 (packet 3587, timestamp 1769831941.412283)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 3
+  Key: 2410625518cea7b53266
+  ASCII: '$bU├Ä┬º┬╡2f'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #12 (packet 4085, timestamp 1769831946.20454)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 24
+  Key: 7ca9fd583ffd12a32342
+  ASCII: '|┬⌐├╜X?├╜┬ú#B'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #13 (packet 4563, timestamp 1769831950.800378)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 12
+  Key: 36e4a5e17ee7752c0b63
+  ASCII: '6├ñ┬Ñ├í~├ºu,c'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #14 (packet 4642, timestamp 1769831951.568171)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 0
+  Key: d504ab3656596fec1956
+  ASCII: '├ò┬½6VYo├¼V'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #15 (packet 4764, timestamp 1769831952.725727)
+================================================================================
+Γ£ô SUCCESS with known prefix 0x1bfd
+  Offset: 40
+  Full key: 1bfd4641404661604141
+  Context (offset 20-70):
+    b'7{RA\xefo\x1c\xb9\x95\x1c\x0c\xdb\x87\x99j\xba\xe97\xff\xa3AAAAAAAAAA(\xd5Unitree Explore\x00\x00\x00'
+
+================================================================================
+PACKET #16 (packet 6244, timestamp 1769831966.761379)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 0
+  Key: 153a5d1420b5b6553822
+  ASCII: ':] ┬╡┬╢U8"'
+  Printable: 6/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+PACKET #17 (packet 6342, timestamp 1769831967.693236)
+================================================================================
+Known prefix failed. Searching for any valid XOR key...
+Session key mismatch. Searching for ANY valid XOR key...
+Γ£ù DIFFERENT KEY FOUND (not matching session key)
+  Offset: 0
+  Key: 399afac35a26335a1dae
+  ASCII: '9┬Ü├║├âZ&3Z┬«'
+  Printable: 5/10
+  ΓåÆ This suggests a DIFFERENT SESSION or encryption method
+
+================================================================================
+SUMMARY
+================================================================================
+Total packets: 17
+Successfully decrypted: 1
+Success rate: 5.9%
+
+ΓÜá∩╕Å  16 packets could not be decrypted
+   This suggests multiple sessions or different encryption methods

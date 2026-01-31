@@ -767,20 +767,18 @@ async def execute_custom_action_endpoint(action_name: str):
     if not robot or not robot.connected:
         return {"success": False, "error": "Not connected"}
     
+    if not robot.executor:
+        return {"success": False, "error": "Command executor not initialized"}
+    
     try:
-        result = await robot.execute_custom_action(action_name)
-        
-        if result["success"]:
-            return {
-                "success": True,
-                "action": action_name,
-                "message": result["message"]
-            }
-        else:
-            return {
-                "success": False,
-                "error": result["message"]
-            }
+        result = await robot.executor.execute_custom_action(action_name)
+        logger.info(f"Execute action result: {result}")
+        return {
+            "success": True,
+            "action": action_name,
+            "message": f"Playing action: {action_name}",
+            "data": result
+        }
     except Exception as e:
         logger.error(f"Custom action execution failed: {e}")
         return {"success": False, "error": str(e)}

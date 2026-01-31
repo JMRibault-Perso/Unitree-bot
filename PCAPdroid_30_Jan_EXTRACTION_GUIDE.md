@@ -165,9 +165,19 @@ Length: 10 characters
 Metadata (bytes 86-89): Timestamp/duration info
 ```
 
+**Action 3: "test" → renamed to "AAAAAAAAA"**
+```
+Status: ✅ Rename action captured (old name "test" → new name "AAAAAAAAA")
+```
+
+**Action 5 (last): "handshake"**
+```
+Status: ✅ Listed as the final action in the response
+```
+
 ### Partially Visible Names (Hex Present But Not Decoded)
 
-**Action 3**
+**Action 4**
 ```
 Location: Bytes 90-121 in 0x1A response
 Status: ⚠️ Hex visible in PCAP but needs extraction
@@ -179,15 +189,8 @@ To decode:
   5. Result: Action name string
 ```
 
-**Action 4**
 ```
 Location: Bytes 130-161 in 0x1A response
-Status: ⚠️ Hex visible in PCAP but needs extraction
-```
-
-**Action 5**
-```
-Location: Bytes 170-201 in 0x1A response
 Status: ⚠️ Hex visible in PCAP but needs extraction
 ```
 
