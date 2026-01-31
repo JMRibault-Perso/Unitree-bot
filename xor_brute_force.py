@@ -108,8 +108,11 @@ def brute_force_repeating_keys(packets):
         b'\xFF\xFF\xFF\xFF',
         b'\x00\xFF\x00\xFF',
         b'\xDE\xAD\xBE\xEF',
-        bytes([i]) * 32 for i in range(256)  # All repeating bytes
     ]
+    
+    # Add all repeating bytes
+    for i in range(256):
+        test_keys.append(bytes([i]) * 32)
     
     # Also try from known strings
     for known_str in ['test', 'demo', 'action', 'teach']:
