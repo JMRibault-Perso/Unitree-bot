@@ -13,16 +13,21 @@ import subprocess
 from typing import Optional, List, Dict
 from pathlib import Path
 from datetime import datetime
+import sys
+
+# Add project root to path for Windows compatibility
+project_root = str(Path(__file__).parent.parent.parent)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+sys.path.insert(0, '/root/G1/unitree_sdk2')
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import re
-
-import sys
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
-sys.path.insert(0, '/root/G1/unitree_sdk2')
 
 from g1_app import RobotController, EventBus, Events, FSMState, LEDColor
 from g1_app.utils import setup_app_logging
@@ -37,6 +42,7 @@ app = FastAPI(title="G1 Robot Controller")
 
 # Global robot controller
 robot: Optional[RobotController] = None
+connect_lock = asyncio.Lock()
 connected_clients = []
 
 
@@ -318,6 +324,10 @@ async def connect_robot(ip: str, serial_number: str):
     global robot
     
     try:
+        # Prevent concurrent connection attempts
+        if connect_lock.locked():
+            return {"success": False, "error": "Connection already in progress. Try again."}
+
         # If already connected to the same robot, return current state
         if robot and robot.connected and robot.serial_number == serial_number:
             logger.info(f"Already connected to {serial_number}, returning current state")
@@ -334,27 +344,32 @@ async def connect_robot(ip: str, serial_number: str):
                 }
             }
         
-        # If connected to different robot, disconnect first
+        # Enforce single-app connection: if connected to another robot, refuse
         if robot and robot.connected:
-            logger.info("Disconnecting from previous robot before new connection")
+            return {"success": False, "error": "Robot already connected. Disconnect first."}
+        
+        async with connect_lock:
+            logger.info(f"Connecting to robot at {ip} (SN: {serial_number})")
+            
+            # First check if robot is reachable
+            import subprocess
+            import platform
+            param = '-n' if platform.system().lower() == "windows" else '-c'
+            result = subprocess.run(['ping', param, '1', ip], 
+                                  capture_output=True, text=True, timeout=3)
+            if result.returncode != 0:
+                logger.error(f"Robot at {ip} is not reachable on network")
+                return {"success": False, "error": f"Robot at {ip} is not reachable. Check if robot is powered on and on same network."}
+            
             try:
-                await robot.disconnect()
+                robot = RobotController(ip, serial_number)
+                await robot.connect()
             except Exception as e:
-                logger.warning(f"Error disconnecting previous robot: {e}")
-            robot = None
-        
-        logger.info(f"Connecting to robot at {ip} (SN: {serial_number})")
-        
-        # First check if robot is reachable
-        import subprocess
-        result = subprocess.run(['ping', '-c', '1', '-W', '3', ip], 
-                              capture_output=True, text=True)
-        if result.returncode != 0:
-            logger.error(f"Robot at {ip} is not reachable on network")
-            return {"success": False, "error": f"Robot at {ip} is not reachable. Check if robot is powered on and on same network."}
-        
-        robot = RobotController(ip, serial_number)
-        await robot.connect()
+                logger.error(f"Failed to connect to robot: {e}")
+                import traceback
+                traceback.print_exc()
+                robot = None
+                return {"success": False, "error": f"Failed to connect: {str(e)}"}
         
         # Get initial state
         state = robot.current_state
@@ -1536,12 +1551,12 @@ async def websocket_endpoint(websocket: WebSocket):
 def main():
     """Run the web server"""
     logger.info("Starting G1 Web UI Server")
-    logger.info("Open http://localhost:8000 in your browser")
+    logger.info("Open http://localhost:9000 in your browser")
     
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
+        port=9000,
         log_level="info"
     )
 

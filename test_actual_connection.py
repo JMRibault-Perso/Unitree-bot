@@ -3,7 +3,7 @@
 import requests
 import time
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:9000"
 
 print("=" * 60)
 print("Testing ACTUAL Connection Flow")
