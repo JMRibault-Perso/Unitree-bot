@@ -58,19 +58,6 @@ Based on the SDK analysis and experimental code, we need to discover the **actua
 - Does it automatically stop recording first?
 - What if no recording is in progress?
 
-### 4. **API 7112: DELETE_ACTION** (Experimental)
-**Purpose:** Delete a saved taught action
-
-**Expected Request:**
-```json
-{
-  "api_id": 7112,
-  "parameter": {
-    "action_name": "action_to_delete"
-  }
-}
-```
-
 ## Documented APIs (From SDK)
 
 ### API 7107: GET_ACTION_LIST ✅
@@ -161,7 +148,7 @@ wireshark teach_mode.pcap
 
 ## Alternative: Test Experimental APIs Directly
 
-Since we've implemented the experimental APIs 7109-7112 in the web controller, we can test them directly:
+Since we've implemented the experimental APIs 7109-7111 in the web controller, we can test them directly:
 
 1. Restart web server with new endpoints
 2. Enter teach mode via web UI (SetBalanceMode(0) + RELEASE_ARM)

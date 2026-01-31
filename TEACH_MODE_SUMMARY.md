@@ -43,7 +43,6 @@ Your G1 web controller has a **fully implemented teach mode system** with:
 │  │   ├── start_record_action() → API 7109                  │
 │  │   ├── stop_record_action() → API 7110                   │
 │  │   ├── save_recorded_action() → API 7111                 │
-│  │   ├── delete_action() → API 7112                        │
 │  │   └── stop_custom_action() → API 7113 ✅ FIXED         │
 │  ├── Teaching protocol:                                     │
 │  │   ├── enter_teaching_mode() → command 0x0D             │
@@ -444,7 +443,6 @@ User Action                          System Response
 ✅ API 7109 (RecordCustomAction): Implemented
 ✅ API 7110 (StopRecord): Implemented
 ✅ API 7111 (SaveCustomAction): Implemented
-✅ API 7112 (DeleteCustomAction): Implemented
 ✅ API 7113 (StopCustomAction): Implemented + FIXED
 ✅ Teaching Commands (0x0D-0x41): Implemented
 ```

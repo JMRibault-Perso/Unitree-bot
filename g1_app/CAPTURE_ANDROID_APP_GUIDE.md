@@ -215,10 +215,6 @@ Based on our hypothesis, during a teach mode session you should see:
 {"api_id": 7108, "parameter": {"action_name": "wave_hello"}}
 ```
 
-### 7. Delete Action (HYPOTHETICAL API 7112)
-```json
-{"api_id": 7112, "parameter": {"action_name": "wave_hello"}}
-```
 
 ## Alternative: Reverse Engineer the APK
 
@@ -236,7 +232,7 @@ cd jadx && ./gradlew dist
 ./build/jadx/bin/jadx-gui base.apk
 
 # 3. Search for:
-#    - "7109", "7110", "7111", "7112" (API IDs)
+#    - "7109", "7110", "7111" (API IDs)
 #    - "record", "teach", "save_action"
 #    - Classes related to arm control
 #    - WebRTC datachannel message formatting
@@ -273,6 +269,6 @@ tail -f /tmp/web_server.log
 3. Runs during the complete teach mode sequence
 
 **Or use the experimental API approach:**
-- Test APIs 7109-7112 directly on robot via web controller
+- Test APIs 7109-7111 directly on robot via web controller
 - Check robot's response to determine if they exist
 - Document actual request/response format if they work

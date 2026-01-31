@@ -32,7 +32,7 @@ Command Executor (command_executor.py)
     ↓
 Robot Executor (unitree_webrtc_connect library)
     ↓
-WebRTC Connection → G1 Robot (ASSUMED APIs: 7108, 7109, 7110, 7111, 7112, 7113)
+WebRTC Connection → G1 Robot (ASSUMED APIs: 7108, 7109, 7110, 7111, 7113)
                                               ⚠️  NOT VERIFIED
 ```
 
@@ -51,7 +51,6 @@ All teach mode methods are implemented in [`g1_app/core/command_executor.py`](g1
 ⚠️  start_record_action()           # API 7109 - Documented, NOT verified
 ⚠️  stop_record_action()            # API 7110 - Documented, NOT verified
 ⚠️  save_recorded_action(name)      # API 7111 - Documented, NOT verified
-⚠️  delete_action(name)             # API 7112 - Documented, NOT verified
 ⚠️  stop_custom_action()            # API 7113 - Documented, NOT verified
 
 STATUS: These APIs are from SDK documentation but HAVE NOT BEEN TESTED with actual robot.
@@ -85,7 +84,6 @@ GET  /api/custom_action/list              → Get saved custom action names
 GET  /api/custom_action/robot_list        → Get ALL actions from robot
 POST /api/custom_action/add?action_name=X → Add to favorites
 POST /api/custom_action/remove?action_name=X → Remove from favorites
-POST /api/custom_action/rename?old_name=X&new_name=Y → Rename action
 POST /api/custom_action/execute?action_name=X → Execute custom action ⭐
 ```
 
@@ -110,7 +108,6 @@ GET /api/gestures/list                     → Get preset gestures
 POST /api/teach/start_recording            → Legacy: Start recording
 POST /api/teach/stop_recording             → Legacy: Stop recording
 POST /api/teach/save_recording?action_name=X → Legacy: Save recording
-POST /api/teach/delete_action?action_name=X  → Legacy: Delete action
 ```
 
 ### 3. **User Interface** (✅ Complete)
@@ -267,9 +264,8 @@ await fetch('/api/teaching/exit_damping', { method: 'POST' });
 | 7107 | GetActionList | Get preset + custom actions | Query |
 | 7108 | ExecuteCustomAction | Play custom recording | Execute |
 | 7109 | RecordCustomAction | Start recording mode | Control |
-| 7110 | DeleteCustomAction | Stop recording | Control |
+| 7110 | StopRecordAction | Stop recording | Control |
 | 7111 | SaveCustomAction | Save recording with name | Control |
-| 7112 | ClearCustomActions | Delete saved action | Delete |
 | 7113 | StopCustomAction | Emergency stop playback | Emergency |
 
 ### Teaching Mode Commands (Used Internally)

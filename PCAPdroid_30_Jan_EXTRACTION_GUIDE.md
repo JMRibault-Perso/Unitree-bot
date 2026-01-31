@@ -397,7 +397,7 @@ T=~90s   Session ends
 **PCAPdroid_30_Jan_18_26_35.pcap contains:**
 
 ✅ **Everything needed** to understand the teaching protocol  
-✅ **All 6 core commands** (plus predicted 2 more)  
+✅ **All confirmed core commands captured**  
 ✅ **2 fully confirmed action names**  
 ✅ **3 additional actions** (hex present, names decodable)  
 ✅ **Complete workflow** from init to action execution  

@@ -226,8 +226,6 @@ async def stop_recording():
 - [ ] Add UI workflow (enter teach mode → record → stop)
 
 ### Phase 4: Advanced (Priority 3)
-- [ ] Delete custom action (API 7110)
-- [ ] Clear all actions (API 7112)
 - [ ] Get only custom actions (API 7111)
 - [ ] Action library management UI
 
@@ -275,9 +273,7 @@ Add to `sdk2_python/unitree_sdk2py/g1/arm/g1_arm_action_api.py`:
 ```python
 ROBOT_API_ID_ARM_ACTION_EXECUTE_CUSTOM_ACTION = 7108
 ROBOT_API_ID_ARM_ACTION_RECORD_ACTION = 7109
-ROBOT_API_ID_ARM_ACTION_DELETE_ACTION = 7110
 ROBOT_API_ID_ARM_ACTION_GET_ACTION_LIST_CUSTOM = 7111
-ROBOT_API_ID_ARM_ACTION_CLEAR_ACTIONS = 7112
 ROBOT_API_ID_ARM_ACTION_STOP_CUSTOM_ACTION = 7113
 ```
 

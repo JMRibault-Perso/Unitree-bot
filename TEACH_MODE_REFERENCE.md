@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document consolidates all teach mode information from the codebase, SDKs, and decompiled Android app to provide a complete implementation guide.
+This document is aligned to the latest PCAP (PCAPdroid_30_Jan_18_26_35.pcap). Use the confirmed UDP command set (0x09–0x0C, 0x1A, 0x0D, 0x0E, 0x0F, 0x2B, 0x41). Unknown/predicted APIs are intentionally excluded.
 
 ## API Reference
 
@@ -15,9 +15,7 @@ Located in SDK but **not fully exposed in Python wrapper**:
 | 7107 | arm | GetActionList | None | Array of {id, name} | ✅ Python SDK |
 | 7108 | arm | ExecuteCustomAction | action_name (string) | error_code | ⚠️ C++ only |
 | 7109 | arm | RecordCustomAction | action_name (string) | error_code | ⚠️ C++ only |
-| 7110 | arm | DeleteCustomAction | action_name (string) | error_code | ⚠️ C++ only |
 | 7111 | arm | GetCustomActionList | None | Array of action_name | ⚠️ C++ only |
-| 7112 | arm | ClearCustomActions | None | error_code | ⚠️ C++ only |
 | 7113 | arm | StopCustomAction | None | error_code | ⚠️ C++ only |
 
 ### Preset Action IDs (Always Available)
@@ -94,8 +92,6 @@ ROBOT_API_ID_ARM_ACTION_EXECUTE_CUSTOM_ACTION = 7108
 ROBOT_API_ID_ARM_ACTION_STOP_CUSTOM_ACTION = 7113
 ROBOT_API_ID_ARM_ACTION_GET_ACTION_LIST_CUSTOM = 7111
 ROBOT_API_ID_ARM_ACTION_RECORD_ACTION = 7109
-ROBOT_API_ID_ARM_ACTION_DELETE_ACTION = 7110
-ROBOT_API_ID_ARM_ACTION_CLEAR_ACTIONS = 7112
 ```
 
 ### 2. Add Methods to `sdk2_python/unitree_sdk2py/g1/arm/g1_arm_action_client.py`
@@ -156,31 +152,6 @@ def RecordCustomAction(self, action_name: str):
     code, data = self._Call(ROBOT_API_ID_ARM_ACTION_RECORD_ACTION, parameter)
     return code
 
-def DeleteCustomAction(self, action_name: str):
-    """Delete a custom taught action
-    
-    Args:
-        action_name (str): Name of action to delete
-        
-    Returns:
-        int: Error code (0 = success)
-    """
-    p = {}
-    p["data"] = action_name
-    parameter = json.dumps(p)
-    code, data = self._Call(ROBOT_API_ID_ARM_ACTION_DELETE_ACTION, parameter)
-    return code
-
-def ClearCustomActions(self):
-    """Clear all custom taught actions
-    
-    Returns:
-        int: Error code (0 = success)
-    """
-    p = {}
-    parameter = json.dumps(p)
-    code, data = self._Call(ROBOT_API_ID_ARM_ACTION_CLEAR_ACTIONS, parameter)
-    return code
 ```
 
 ## Web Controller Integration
@@ -334,11 +305,6 @@ ERROR_CODES = {
    ```python
    code = client.ExecuteCustomAction("my_wave")
    # Robot performs recorded motion
-   ```
-
-5. **Delete Action**
-   ```python
-   code = client.DeleteCustomAction("my_wave")
    ```
 
 ## References

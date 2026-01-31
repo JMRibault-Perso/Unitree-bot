@@ -15,8 +15,7 @@
 - ✅ Record trajectory toggle (0x0F)
 - ✅ Save actions (0x2B)
 - ✅ Play/execute actions (0x41)
-- ✅ Delete actions (0x42 - predicted)
-- ✅ Rename actions (0x43 - predicted)
+
 
 ---
 
@@ -149,53 +148,7 @@ STEP 9: Exit Teaching Mode (0x0E)
 
 ---
 
-### 4. Action Deletion (Inferred)
-
-**Predicted Protocol** (0x42 command):
-```
-Purpose: Delete a saved action from robot memory
-
-Packet Structure (57 bytes):
-  Offset 0-12:   Standard header
-  Offset 13:     0x42 (Delete command ID)
-  Offset 14-15:  0x002C (44 bytes payload)
-  Offset 16-19:  [Action ID - which action to delete]
-  Offset 20-59:  Reserved/padding
-  Offset 60-63:  CRC32 checksum
-
-Usage Example:
-  - Delete action 1: Send action_id = 0x00000001
-  - Delete action 2: Send action_id = 0x00000002
-  - etc.
-```
-
-**Evidence**: Robot supports up to 15 actions max, so delete likely needed for management
-
-
-### 5. Action Renaming (Inferred)
-
-**Predicted Protocol** (0x43 command):
-```
-Purpose: Rename a saved action
-
-Packet Structure (57+ bytes):
-  Offset 0-12:   Standard header
-  Offset 13:     0x43 (Rename command ID)
-  Offset 14-15:  0x00?? (variable payload length)
-  Offset 16-19:  [Action ID to rename]
-  Offset 20-51:  [Old action name - 32 bytes] (optional)
-  Offset 52-83:  [New action name - 32 bytes]
-  Offset 84+:    Reserved/padding
-  Offset -4:-0:  CRC32 checksum
-
-Usage Example:
-  - Rename action 1 from "waist_drum_dance" to "waist_drum_dance_v2"
-```
-
-**Evidence**: Android app likely has rename feature, robot needs this command
-
-
-### 6. Complete Protocol Specification
+### 4. Complete Protocol Specification
 
 **Universal Packet Header (13 bytes)**:
 ```
@@ -205,7 +158,7 @@ Bytes 4-5:   0x01 0x00        Flags (always constant)
 Bytes 6-7:   [Sequence Number] Big-endian uint16 (starts at 0x0000, increments)
 Bytes 8-9:   0x00 0x00        Reserved
 Bytes 10-11: 0x00 0x01        Reserved (always 0x0001)
-Byte 12:     [Command ID]      0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x1A, 0x2B, 0x41, 0x42, 0x43
+Byte 12:     [Command ID]      0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x1A, 0x2B, 0x41
 ```
 
 **Payload Length Field (2 bytes at offset 13-14)**:
@@ -241,9 +194,6 @@ Always at: [packet_length - 4 : packet_length]
 | **Save Action** | **0x2B** | **57→233** | **Save trajectory** | **Request** | **✅ Verified** |
 | **Play Action** | **0x41** | **57→197** | **Execute action** | **Request** | **✅ Verified** |
 
-**Not Yet Verified in PCAP** (but predicted from app functionality):
-- Delete Action (0x42)
-- Rename Action (0x43)
 
 ---
 

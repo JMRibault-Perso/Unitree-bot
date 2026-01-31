@@ -8,7 +8,7 @@
 - ❌ NO automatic FSM state transitions
 - ❌ NO automatic balance mode changes
 - ❌ NO automatic zero-torque commands
-- ✅ ONLY allow recording API calls (7109-7112)
+- ✅ ONLY allow recording API calls (7109-7111)
 - ✅ REQUIRE user confirmation dialog before ANY state change
 - ✅ USER controls all robot state via main UI buttons
 

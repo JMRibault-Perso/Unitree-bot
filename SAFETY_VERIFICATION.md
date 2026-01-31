@@ -50,7 +50,7 @@ Example: User clicks "Damp" button
 **Current Implementation (Safe):**
 - `enterTeachMode()` - Sets local variable only, NO network calls
 - `exitTeachMode()` - Sets local variable only, NO network calls
-- Recording controls (7109-7112) - ONLY send recording commands
+- Recording controls (0x0F start/stop, 0x2B save) - ONLY send recording commands
 
 **Removed Code:**
 ```javascript
@@ -110,7 +110,7 @@ balance mode, torque commands) without explicit user confirmation.
 - ❌ NO automatic FSM state transitions
 - ❌ NO automatic balance mode changes
 - ❌ NO automatic zero-torque commands
-- ✅ ONLY allow recording API calls (7109-7112)
+- ✅ ONLY allow recording commands (0x0F, 0x2B)
 - ✅ REQUIRE user confirmation dialog before ANY state change
 - ✅ USER controls all robot state via main UI buttons
 

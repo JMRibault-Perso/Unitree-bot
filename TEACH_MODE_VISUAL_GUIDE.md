@@ -181,7 +181,6 @@ requests.post(
 | Execute custom action | API 7108 + endpoint | ✅ Ready + Fixed |
 | Record action | API 7109 + endpoint | ✅ Ready |
 | Save recording | API 7111 + endpoint | ✅ Ready |
-| Delete action | API 7112 + endpoint | ✅ Ready |
 | Stop action | API 7113 + endpoint | ✅ Ready + Fixed |
 | Teaching mode | Commands 0x0D-0x41 | ✅ Ready |
 | Web UI | teach_mode.html (776 lines) | ✅ Ready |
@@ -199,7 +198,6 @@ API 7108 ← Execute custom action ✅ FIXED
 API 7109 ← Start recording
 API 7110 ← Stop recording
 API 7111 ← Save recording
-API 7112 ← Delete action
 API 7113 ← Stop custom action ✅ FIXED
 ```
 

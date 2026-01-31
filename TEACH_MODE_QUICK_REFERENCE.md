@@ -56,9 +56,6 @@ POST /api/custom_action/add?action_name=wave
 
 # Remove from favorites
 POST /api/custom_action/remove?action_name=wave
-
-# Rename action
-POST /api/custom_action/rename?old_name=wave&new_name=wave2
 ```
 
 ---
