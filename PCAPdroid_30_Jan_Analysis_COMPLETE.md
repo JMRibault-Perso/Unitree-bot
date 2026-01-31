@@ -13,6 +13,8 @@
 - ✅ Enter teaching mode (0x0D)
 - ✅ Exit teaching mode (0x0E)
 - ✅ Record trajectory toggle (0x0F)
+- ✅ Delete actions (0x42) - 96 packets VERIFIED
+- ✅ Rename actions (0x43) - 103 packets VERIFIED
 - ✅ Save actions (0x2B)
 - ✅ Play/execute actions (0x41)
 
@@ -190,6 +192,8 @@ Always at: [packet_length - 4 : packet_length]
 | Enter Teach | 0x0D | 57-161 | Activate zero-gravity | Request/Keep-alive | ✅ Verified |
 | Exit Teach | 0x0E | 57 | Deactivate zero-gravity | Request | ✅ Verified |
 | Record Toggle | 0x0F | 57 | Start/stop recording | Request | ✅ Verified |
+| **Delete Action** | **0x42** | **57→233** | **Delete saved action** | **Request** | **✅ Verified** |
+| **Rename Action** | **0x43** | **57→233** | **Rename saved action** | **Request** | **✅ Verified** |
 | **List Actions** | **0x1A** | **57→233** | **Query saved actions** | **Request/Response** | **✅ Verified** |
 | **Save Action** | **0x2B** | **57→233** | **Save trajectory** | **Request** | **✅ Verified** |
 | **Play Action** | **0x41** | **57→197** | **Execute action** | **Request** | **✅ Verified** |
@@ -240,6 +244,8 @@ Teaching Commands Captured:
   0x0E (Exit):     ~50 packets
   0x0F (Record):   ~20 packets
   0x1A (List):     ~50 packets
+  0x42 (Delete):   96 packets ✅ VERIFIED
+  0x43 (Rename):   103 packets ✅ VERIFIED
   0x2B (Save):     ~100 packets
   0x41 (Play):     ~150 packets
 
