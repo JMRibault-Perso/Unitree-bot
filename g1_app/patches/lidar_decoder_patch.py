@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Patch the WebRTC LiDAR decoder to handle G1 SLAM format.
-G1 uses LibVoxel compression but with different metadata (xmin/xmax instead of origin/resolution).
+Patch the WebRTC decoder to handle G1 SLAM PointCloud2 format.
+
+G1 uses ROS2 sensor_msgs::PointCloud2 format (NOT LibVoxel compression like GO2).
+Binary format:
+- 8-byte header: [4 bytes json_len][4 bytes binary_len]
+- JSON metadata with bounding box
+- Binary PointCloud2 data
 """
 
 import sys
@@ -12,6 +17,9 @@ sys.path.insert(0, '/root/G1/go2_webrtc_connect')
 
 from unitree_webrtc_connect.webrtc_datachannel import WebRTCDataChannel
 
+# Import PointCloud2 decoder instead of LibVoxel
+from .pointcloud2_decoder import PointCloud2Decoder
+
 logger = logging.getLogger(__name__)
 
 # Store original method
@@ -19,92 +27,78 @@ _original_deal_array_buffer_for_lidar = WebRTCDataChannel.deal_array_buffer_for_
 
 def patched_deal_array_buffer_for_lidar(self, buffer):
     """
-    G1 SLAM format:
+    G1 SLAM PointCloud2 format handler.
+    
+    Format:
     - Header: [json_len (4 bytes), binary_len (4 bytes)]
     - JSON metadata: {"type": "msg", "data": {"xmin", "xmax", "ymin", "ymax", "zmin", "zmax", ...}}
-    - Binary data: LibVoxel compressed voxel grid
+    - Binary data: PointCloud2 point data
     
-    We need to convert G1 bounding box format to GO2 origin/resolution format for LibVoxel decoder.
+    Returns decoded point cloud with XYZ coordinates.
     """
     try:
         # Parse header
         json_len = struct.unpack('<I', buffer[0:4])[0]
         binary_len = struct.unpack('<I', buffer[4:8])[0]
         
-        # Extract JSON metadata
+        # Parse JSON metadata
         json_start = 8
         json_end = json_start + json_len
         json_str = buffer[json_start:json_end].decode('utf-8')
         message = json.loads(json_str)
         
-        # Extract binary compressed data
+        # Extract binary point cloud data
         binary_data = buffer[json_end:]
         
-        # Convert G1 metadata format to GO2 format
+        # Get metadata
         data = message.get('data', {})
         
-        # Calculate origin and resolution from bounding box
-        # Origin is the minimum corner
-        origin_x = data.get('xmin', 0.0)
-        origin_y = data.get('ymin', 0.0)
-        origin_z = data.get('zmin', 0.0)
+        logger.debug(f"📦 G1 SLAM PointCloud2: {len(binary_data)} bytes")
+        logger.debug(f"   Bounds: X[{data.get('xmin', 0):.2f}, {data.get('xmax', 0):.2f}] "
+                    f"Y[{data.get('ymin', 0):.2f}, {data.get('ymax', 0):.2f}] "
+                    f"Z[{data.get('zmin', 0):.2f}, {data.get('zmax', 0):.2f}]")
         
-        # Calculate range
-        range_x = data.get('xmax', 0.0) - origin_x
-        range_y = data.get('ymax', 0.0) - origin_y
-        range_z = data.get('zmax', 0.0) - origin_z
+        # Decode using PointCloud2 decoder (NOT LibVoxel!)
+        if not hasattr(self, '_pointcloud2_decoder'):
+            self._pointcloud2_decoder = PointCloud2Decoder()
         
-        # Estimate resolution (assume typical voxel grid size)
-        # LibVoxel typically uses 128x128x128 or similar
-        resolution = max(range_x, range_y, range_z) / 128.0  # Reasonable estimate
-        
-        # Build GO2-style metadata
-        go2_metadata = {
-            'origin': [origin_x, origin_y, origin_z],
-            'resolution': resolution,
-            'frame_id': data.get('header', {}).get('frame_id', 'map'),
-            # Pass through original metadata for reference
-            'g1_bounds': {
-                'xmin': data.get('xmin'),
-                'xmax': data.get('xmax'),
-                'ymin': data.get('ymin'),
-                'ymax': data.get('ymax'),
-                'zmin': data.get('zmin'),
-                'zmax': data.get('zmax')
-            }
-        }
-        
-        logger.debug(f"📦 G1 SLAM Point Cloud: {len(binary_data)} bytes compressed data")
-        logger.debug(f"   Bounds: X[{origin_x:.2f}, {data.get('xmax'):.2f}] "
-                    f"Y[{origin_y:.2f}, {data.get('ymax'):.2f}] "
-                    f"Z[{origin_z:.2f}, {data.get('zmax'):.2f}]")
-        
-        # Decode using LibVoxel
         try:
-            decoded_data = self.decoder.decode(binary_data, go2_metadata)
-            logger.debug(f"✅ Successfully decoded {len(decoded_data.get('points', []))} points")
+            decoded_data = self._pointcloud2_decoder.decode(binary_data, data)
+            point_count = decoded_data.get('point_count', 0)
+            
+            logger.info(f"🎯 PointCloud2 RESULT: {point_count} points")
+            
+            if point_count > 0:
+                logger.info(f"   ✅ SUCCESS! Decoded {point_count} points from PointCloud2")
+                # Add original metadata for reference
+                decoded_data['metadata'] = data
+            else:
+                logger.warning(f"   ⚠️  PointCloud2 decoder returned 0 points")
+            
             return decoded_data
+            
         except Exception as decode_error:
-            logger.error(f"LibVoxel decode error: {decode_error}")
-            # Fall back to returning raw data
+            logger.error(f"PointCloud2 decode error: {decode_error}")
+            # Return raw data as fallback
             return {
                 'type': 'lidar_pointcloud',
                 'binary_data': binary_data,
-                'metadata': go2_metadata,
-                'size': len(binary_data)
+                'metadata': data,
+                'size': len(binary_data),
+                'point_count': 0
             }
         
     except Exception as e:
-        logger.error(f"Error in patched lidar handler: {e}", exc_info=True)
+        logger.error(f"Error in patched PointCloud2 handler: {e}", exc_info=True)
         # Return empty data rather than crashing
         return {
-            'type': 'lidar_pointcloud',
-            'binary_data': b'',
-            'metadata': {},
-            'size': 0
+            'point_count': 0,
+            'points': [],
+            'error': str(e)
         }
+
 
 # Apply the patch
 WebRTCDataChannel.deal_array_buffer_for_lidar = patched_deal_array_buffer_for_lidar
 
-logger.info("✅ Applied LiDAR decoder patch for G1 SLAM point clouds")
+logger.info("✅ G1 PointCloud2 decoder patch applied")
