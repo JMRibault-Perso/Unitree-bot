@@ -5,11 +5,16 @@ import asyncio
 import logging
 import platform
 import subprocess
+import json
+from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# Path to robot bindings file
+BINDINGS_FILE = Path.home() / ".unitree_robot_bindings.json"
 
 @dataclass
 class RobotInfo:
@@ -38,16 +43,39 @@ class RobotInfo:
 class RobotDiscovery:
     """Discovers Unitree robots via ARP table scanning"""
     
-    # Known Unitree G1 MAC prefix
-    UNITREE_MAC_PREFIX = "fc:23:cd"
-    
     def __init__(self):
         self._robots: Dict[str, RobotInfo] = {}
         self._running = False
         self._scan_task: Optional[asyncio.Task] = None
+        self._load_bindings()  # Load saved bindings on startup
+        
+    def _load_bindings(self):
+        """Load robot bindings from file"""
+        if not BINDINGS_FILE.exists():
+            logger.info("No bindings file found")
+            return
+            
+        try:
+            with open(BINDINGS_FILE, 'r') as f:
+                bindings = json.load(f)
+                
+            for mac, data in bindings.items():
+                robot = RobotInfo(
+                    serial_number=data.get("serial_number", ""),
+                    name=data.get("name", ""),
+                    ip=None,  # IP will be discovered via ARP
+                    mac_address=mac.lower(),
+                    last_seen=None,
+                    is_online=False  # Will be updated by ARP scan
+                )
+                self._robots[robot.name] = robot
+                logger.info(f"Loaded bound robot: {robot.name} (MAC: {mac})")
+                
+        except Exception as e:
+            logger.error(f"Failed to load bindings: {e}")
         
     def _get_arp_table(self) -> List[Tuple[str, str]]:
-        """Get ARP table - returns list of (IP, MAC) tuples"""
+        """Get ARP table - returns list of (IP, MAC) tuples for ALL entries"""
         arp_entries = []
         
         try:
@@ -60,8 +88,8 @@ class RobotDiscovery:
                     if len(parts) >= 2:
                         ip = parts[0].strip()
                         mac = parts[1].strip().replace('-', ':')
-                        if mac.lower().startswith(self.UNITREE_MAC_PREFIX):
-                            arp_entries.append((ip, mac))
+                        # Get all entries, will match against bound MACs
+                        arp_entries.append((ip, mac))
             else:
                 # Linux/Mac
                 result = subprocess.run(['arp', '-n'], capture_output=True, text=True, timeout=2)
@@ -70,8 +98,8 @@ class RobotDiscovery:
                     if len(parts) >= 3:
                         ip = parts[0]
                         mac = parts[2]
-                        if mac.lower().startswith(self.UNITREE_MAC_PREFIX):
-                            arp_entries.append((ip, mac))
+                        # Get all entries, will match against bound MACs
+                        arp_entries.append((ip, mac))
                             
         except Exception as e:
             logger.error(f"Failed to read ARP table: {e}")
@@ -85,9 +113,9 @@ class RobotDiscovery:
         
         try:
             result = subprocess.run(
-                ['ping', param, '1', '-w', '500' if system == "windows" else '0.5', ip],
+                ['ping', param, '1', '-W', '2', ip],
                 capture_output=True,
-                timeout=1
+                timeout=3
             )
             return result.returncode == 0
         except:
@@ -98,24 +126,26 @@ class RobotDiscovery:
         while self._running:
             try:
                 entries = self._get_arp_table()
-                current_robots = {}
+                logger.debug(f"ARP scan found {len(entries)} entries")
                 
+                # Update bound robots with discovered IPs
                 for ip, mac in entries:
-                    if self._ping_ok(ip):
-                        robot_name = f"Robot_{ip.replace('.', '_')}"
-                        robot = RobotInfo(
-                            serial_number="E21D1000PAHBMB06",
-                            name=robot_name,
-                            ip=ip,
-                            mac_address=mac,
-                            last_seen=datetime.now(),
-                            is_online=True
-                        )
-                        current_robots[robot_name] = robot
-                        if robot_name not in self._robots:
-                            logger.info(f"ARP: Found new robot {robot_name} at {ip} (MAC: {mac})")
-                
-                self._robots = current_robots
+                    mac = mac.lower()
+                    logger.debug(f"Checking ARP entry: {ip} -> {mac}")
+                    
+                    # Find if this MAC matches a bound robot
+                    for robot_name, robot in self._robots.items():
+                        if robot.mac_address and robot.mac_address.lower() == mac:
+                            logger.info(f"MAC match! Robot {robot_name} found at {ip}, testing ping...")
+                            # Update IP and online status
+                            if self._ping_ok(ip):
+                                robot.ip = ip
+                                robot.is_online = True
+                                robot.last_seen = datetime.now()
+                                logger.info(f"ARP: Robot {robot_name} is ONLINE at {ip}")
+                            else:
+                                logger.warning(f"ARP: Robot {robot_name} at {ip} failed ping test")
+                            break
                 
             except Exception as e:
                 logger.error(f"ARP scan error: {e}")

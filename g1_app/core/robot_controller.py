@@ -5,6 +5,7 @@ Robot Controller - Main orchestrator for G1 robot control
 import asyncio
 import sys
 import logging
+import struct
 from typing import Optional
 
 # Add WebRTC library to path
@@ -17,6 +18,7 @@ from ..core.state_machine import StateMachine, FSMState
 from ..core.command_executor import CommandExecutor
 from ..core.event_bus import EventBus, Events
 from ..api.constants import Topic, SpeedMode, VelocityLimits
+from ..core.lidar_handler import LiDARPointCloudHandler
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,31 @@ class RobotController:
         # Track first FSM state received after connection
         self._first_state_logged = False
         
+        # Video frame storage
+        self.latest_frame = None
+        
+        # LiDAR point cloud storage and handler
+        self.latest_lidar_points = []
+        self.lidar_handler = LiDARPointCloudHandler()
+        
+        # Register callback to update latest_lidar_points when new data arrives
+        def on_point_cloud_update(binary_data: bytes, metadata: dict):
+            try:
+                # Parse binary data to XYZ points
+                points = self._parse_slam_point_cloud(binary_data)
+                
+                # Downsample for web display (every 10th point)
+                self.latest_lidar_points = points[::10]
+                
+                logger.debug(f"📊 Point cloud updated: {len(points)} points -> {len(self.latest_lidar_points)} downsampled")
+                
+                # Emit event for real-time UI updates
+                event_bus.emit(Events.LIDAR_CLOUD, {'points': self.latest_lidar_points})
+            except Exception as e:
+                logger.error(f"Error updating point cloud display: {e}")
+        
+        self.lidar_handler.subscribe(on_point_cloud_update)
+        
         logger.info(f"Initialized RobotController for {robot_sn} @ {robot_ip}")
     
     async def connect(self) -> None:
@@ -82,6 +109,24 @@ class RobotController:
             
             # Subscribe to battery updates
             self._subscribe_to_battery()
+            
+            # Subscribe to video frames
+            self._subscribe_to_video()
+            
+            # Subscribe to SLAM feedback topics
+            self._subscribe_to_slam_feedback()
+            
+            # DEBUG: Subscribe to ALL topics to see what's available
+            self._debug_all_topics()
+            
+            # COMPREHENSIVE MESSAGE LOGGING - catch EVERYTHING
+            self._log_all_datachannel_messages()
+            
+            # Subscribe to LiDAR point cloud
+            self._subscribe_to_lidar()
+            
+            # Enable LiDAR driver service (required for LiDAR data to publish)
+            await self._enable_lidar_service()
             
             # NOTE: GET_FSM_ID and GET_FSM_MODE APIs don't return reliable state
             # API 7001 returns unknown values (e.g., 801)
@@ -233,6 +278,279 @@ class RobotController:
             
         except Exception as e:
             logger.warning(f"Could not subscribe to lowstate topic: {e}")
+    
+    def _subscribe_to_video(self) -> None:
+        """Capture video frames from WebRTC video track"""
+        try:
+            import cv2
+            import asyncio
+            from aiortc import MediaStreamTrack
+            
+            # Check if WebRTC connection has video support
+            if not hasattr(self.conn, 'video'):
+                logger.warning("No video channel available from WebRTC connection")
+                return
+            
+            # Enable video channel
+            self.conn.video.switchVideoChannel(True)
+            logger.info("✅ Video channel enabled")
+            
+            async def recv_video_frames(track: MediaStreamTrack):
+                """Async callback to receive video frames"""
+                logger.info("📹 Starting video frame reception")
+                while True:
+                    try:
+                        # Receive frame from WebRTC track
+                        frame = await track.recv()
+                        
+                        # Convert to numpy array
+                        img = frame.to_ndarray(format="bgr24")
+                        
+                        # Encode to JPEG for streaming
+                        _, buffer = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                        self.latest_frame = buffer.tobytes()
+                        
+                    except Exception as e:
+                        logger.error(f"Error receiving video frame: {e}")
+                        break
+            
+            # Register video track callback
+            self.conn.video.add_track_callback(recv_video_frames)
+            logger.info("✅ Subscribed to video stream")
+            
+        except Exception as e:
+            logger.warning(f"Could not subscribe to video: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _subscribe_to_lidar(self) -> None:
+        """Subscribe to SLAM mapping point clouds during active mapping
+        
+        Point clouds ONLY available during active SLAM mapping:
+        1. Start mapping: API 1801 (START_MAPPING)
+        2. Subscribe to rt/unitree/slam_mapping/points for real-time point clouds
+        3. Subscribe to rt/unitree/slam_mapping/odom for odometry
+        4. End mapping: API 1802 (END_MAPPING) to save map
+        """
+        try:
+            # Enable LibVoxel decoder (patched to bypass for G1 SLAM)
+            self.conn.datachannel.set_decoder(decoder_type='libvoxel')
+            logger.info("✅ LibVoxel decoder enabled (with G1 SLAM bypass patch)")
+            
+            def on_slam_point_cloud(data: dict):
+                """Handle SLAM mapping point cloud messages
+                
+                Patched decoder returns:
+                {
+                    'type': 'lidar_pointcloud',
+                    'binary_data': bytes,  # Raw point cloud
+                    'metadata': dict,      # JSON metadata
+                    'size': int            # Binary data size
+                }
+                """
+                try:
+                    if isinstance(data, dict) and data.get('type') == 'lidar_pointcloud':
+                        binary_data = data.get('binary_data')
+                        metadata = data.get('metadata', {})
+                        
+                        if binary_data:
+                            # Pass to LiDAR handler (triggers callbacks)
+                            self.lidar_handler.set_raw_point_cloud(binary_data, metadata)
+                            
+                            logger.debug(f"📦 SLAM point cloud: {len(binary_data)} bytes, metadata: {list(metadata.keys())}")
+                    else:
+                        logger.warning(f"Unexpected point cloud data format: {type(data)}")
+                        
+                except Exception as e:
+                    logger.error(f"Error processing SLAM point cloud: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            def on_slam_odometry(data: dict):
+                """Handle SLAM odometry updates"""
+                try:
+                    logger.debug(f"🧭 SLAM odometry update: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+                except Exception as e:
+                    logger.error(f"Error processing odometry: {e}")
+            
+            # Subscribe to SLAM mapping topics
+            # NOTE: These topics only publish data during ACTIVE SLAM mapping (API 1801)
+            self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_mapping/points", on_slam_point_cloud)
+            self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_mapping/odom", on_slam_odometry)
+            
+            logger.info("📡 Subscribed to SLAM mapping topics (rt/unitree/slam_mapping/*)")
+            logger.info("ℹ️  Point clouds will only flow during active SLAM mapping (use /api/slam/start)")
+            
+        except Exception as e:
+            logger.warning(f"Could not subscribe to SLAM mapping topics: {e}")
+            import traceback
+            traceback.print_exc()
+
+    
+    def _subscribe_to_slam_feedback(self) -> None:
+        """Subscribe to SLAM feedback topics to monitor SLAM status"""
+        try:
+            # Initialize trajectory storage
+            self.slam_trajectory = []  # List of {x, y, z, timestamp} pose points
+            self.slam_active = False
+            self.slam_last_pose = None  # Track last position for deduplication
+            
+            # rt/slam_info - Real-time broadcast info (robot data, pos info, ctrl info)
+            def slam_info_callback(data: dict):
+                try:
+                    if isinstance(data, dict) and 'data' in data:
+                        import json
+                        import math
+                        slam_data = json.loads(data['data']) if isinstance(data['data'], str) else data['data']
+                        
+                        # Collect trajectory points during mapping (with deduplication)
+                        if slam_data.get('type') in ['mapping_info', 'pos_info']:
+                            pose = slam_data.get('data', {}).get('currentPose')
+                            if pose and self.slam_active:
+                                # Only add point if robot moved > 5cm from last position
+                                should_add = True
+                                if self.slam_last_pose:
+                                    dx = pose['x'] - self.slam_last_pose['x']
+                                    dy = pose['y'] - self.slam_last_pose['y']
+                                    dz = pose['z'] - self.slam_last_pose['z']
+                                    distance = math.sqrt(dx*dx + dy*dy + dz*dz)
+                                    should_add = distance > 0.05  # 5cm threshold
+                                
+                                if should_add:
+                                    self.slam_trajectory.append({
+                                        'x': pose['x'],
+                                        'y': pose['y'],
+                                        'z': pose['z'],
+                                        'timestamp': slam_data.get('sec', 0)
+                                    })
+                                    self.slam_last_pose = pose
+                                    
+                                    # Limit to last 1000 points
+                                    if len(self.slam_trajectory) > 1000:
+                                        self.slam_trajectory = self.slam_trajectory[-1000:]
+                                    
+                                    logger.debug(f"📍 Trajectory point {len(self.slam_trajectory)}: ({pose['x']:.2f}, {pose['y']:.2f}, {pose['z']:.2f})")
+                        
+                except Exception as e:
+                    logger.error(f"Error processing SLAM info: {e}")
+            
+            # rt/slam_key_info - Execution status feedback (task results)
+            def slam_key_info_callback(data: dict):
+                import json
+                logger.info(f"🗺️  SLAM KEY INFO FULL: {json.dumps(data, indent=2)[:5000]}")
+            
+            # rt/api/slam_operate/response - API responses
+            def slam_api_response_callback(data: dict):
+                try:
+                    if isinstance(data, dict) and 'data' in data:
+                        response_data = data['data']
+                        api_id = response_data.get('header', {}).get('identity', {}).get('api_id')
+                        
+                        # Track SLAM state
+                        if api_id == 1801:  # START_MAPPING
+                            self.slam_active = True
+                            self.slam_trajectory = []  # Reset trajectory
+                            logger.info("🗺️  SLAM mapping STARTED - trajectory collection enabled")
+                        elif api_id in [1802, 1901]:  # END_MAPPING or CLOSE_SLAM
+                            self.slam_active = False
+                            logger.info(f"🗺️  SLAM mapping STOPPED - collected {len(self.slam_trajectory)} points")
+                        
+                        logger.info(f"🗺️  SLAM API RESPONSE: api_id={api_id}")
+                except Exception as e:
+                    logger.error(f"Error processing SLAM response: {e}")
+            
+            self.conn.datachannel.pub_sub.subscribe("rt/slam_info", slam_info_callback)
+            self.conn.datachannel.pub_sub.subscribe("rt/slam_key_info", slam_key_info_callback)
+            self.conn.datachannel.pub_sub.subscribe("rt/api/slam_operate/response", slam_api_response_callback)
+            
+            logger.info("📡 Subscribed to SLAM feedback topics")
+            
+        except Exception as e:
+            logger.warning(f"Could not subscribe to SLAM feedback: {e}")
+    
+    def _debug_all_topics(self) -> None:
+        """Subscribe to common topics to see what's available"""
+        debug_topics = [
+            "rt/utlidar/cloud_livox_mid360",
+            "rt/lidar/cloud",
+            "rt/pointcloud",
+            "rt/cloud",
+        ]
+        
+        def debug_callback(topic_name):
+            def callback(data: dict):
+                logger.warning(f"🔍 DEBUG MESSAGE on {topic_name}: {type(data)} keys={list(data.keys()) if isinstance(data, dict) else 'not dict'}")
+            return callback
+        
+        for topic in debug_topics:
+            try:
+                self.conn.datachannel.pub_sub.subscribe(topic, debug_callback(topic))
+                logger.info(f"📡 Debug subscribed to: {topic}")
+            except Exception as e:
+                logger.debug(f"Could not subscribe to {topic}: {e}")
+    
+    def _log_all_datachannel_messages(self) -> None:
+        """Patch datachannel to log ALL incoming messages"""
+        try:
+            original_dispatch = self.conn.datachannel.pub_sub._dispatch_message
+            message_count = [0]
+            seen_topics = set()
+            
+            def logging_dispatch(topic: str, message: any):
+                """Intercept all messages before dispatch"""
+                message_count[0] += 1
+                
+                # Log new topics
+                if topic not in seen_topics:
+                    seen_topics.add(topic)
+                    logger.warning(f"🆕 NEW DATACHANNEL TOPIC: '{topic}'")
+                
+                # Log every 10th message for active monitoring
+                if message_count[0] % 10 == 0:
+                    msg_type = type(message).__name__
+                    msg_size = len(str(message)) if hasattr(message, '__len__') else 'N/A'
+                    logger.info(f"📨 [{message_count[0]}] {topic}: type={msg_type}, size={msg_size}")
+                
+                # Log ALL utlidar/lidar/slam messages
+                if any(keyword in topic.lower() for keyword in ['utlidar', 'lidar', 'slam', 'voxel', 'cloud', 'point']):
+                    logger.warning(f"🔶 LIDAR/SLAM MSG: topic='{topic}', type={type(message)}, size={len(str(message)) if hasattr(message, '__len__') else 'N/A'}")
+                    if isinstance(message, dict):
+                        logger.warning(f"🔶   Keys: {list(message.keys())}")
+                
+                # Call original dispatch
+                return original_dispatch(topic, message)
+            
+            # Monkey-patch the dispatch method
+            self.conn.datachannel.pub_sub._dispatch_message = logging_dispatch
+            logger.warning("🔧 PATCHED datachannel to log ALL messages!")
+            
+        except Exception as e:
+            logger.error(f"Failed to patch datachannel logging: {e}")
+    
+    async def _enable_lidar_service(self) -> None:
+        """Enable LiDAR driver service to publish point cloud data"""
+        try:
+            from ..api.constants import SystemService
+            
+            # Subscribe to response topic to see what robot says
+            def on_robot_state_response(data: dict):
+                logger.warning(f"🔧 ROBOT_STATE RESPONSE: {data}")
+            
+            self.conn.datachannel.pub_sub.subscribe("rt/api/robot_state/response", on_robot_state_response)
+            
+            logger.info("Enabling lidar_driver service...")
+            response = await self.executor.service_switch(
+                service_name=SystemService.LIDAR_DRIVER,
+                enable=True
+            )
+            
+            # Wait a moment for response
+            await asyncio.sleep(0.5)
+            
+            logger.info(f"LiDAR service command sent: {response}")
+                
+        except Exception as e:
+            logger.warning(f"Could not enable LiDAR service: {e}")
     
     # ========================================================================
     # Command Methods (delegate to executor)
@@ -415,3 +733,43 @@ class RobotController:
     @property
     def is_connected(self):
         return self.connected
+    
+    def _parse_slam_point_cloud(self, binary_data: bytes) -> list:
+        """Parse SLAM point cloud binary data to XYZ coordinates
+        
+        G1 SLAM point cloud format appears to be:
+        - Array of float32 values
+        - Structure: [x1, y1, z1, x2, y2, z2, ...]
+        
+        Args:
+            binary_data: Raw binary point cloud from rt/unitree/slam_mapping/points
+            
+        Returns:
+            List of [x, y, z] coordinates
+        """
+        try:
+            # Calculate number of floats (4 bytes each)
+            num_floats = len(binary_data) // 4
+            
+            # Must be divisible by 3 for XYZ triplets
+            if num_floats % 3 != 0:
+                logger.warning(f"Point cloud data not divisible by 3: {num_floats} floats")
+                # Truncate to nearest multiple of 3
+                num_floats = (num_floats // 3) * 3
+            
+            points = []
+            for i in range(0, num_floats, 3):
+                offset = i * 4
+                try:
+                    # Unpack 3 consecutive float32 values (little-endian)
+                    x, y, z = struct.unpack('<fff', binary_data[offset:offset+12])
+                    points.append([x, y, z])
+                except struct.error:
+                    break
+            
+            logger.debug(f"📐 Parsed {len(points)} points from {len(binary_data)} bytes")
+            return points
+            
+        except Exception as e:
+            logger.error(f"Error parsing point cloud: {e}")
+            return []

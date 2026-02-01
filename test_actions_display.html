@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>G1 Actions List Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+        }
+        #actionsList {
+            margin-top: 20px;
+        }
+        .action-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 3px solid #9c27b0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .action-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .play-btn {
+            background: #2196F3;
+            padding: 6px 15px;
+            font-size: 14px;
+        }
+        .error {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 G1 Teaching Actions Display</h1>
+        
+        <div>
+            <button onclick="connect()">1. Connect to Robot</button>
+            <button onclick="loadActions()" id="loadBtn" disabled>2. Load Actions List</button>
+        </div>
+        
+        <div id="status">
+            Status: Not connected
+        </div>
+        
+        <div id="actionsList"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:9000';
+        let isConnected = false;
+
+        async function connect() {
+            const status = document.getElementById('status');
+            status.textContent = 'Connecting...';
+            status.className = '';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/connect?ip=192.168.86.3&serial_number=E21D1000PAHBMB06`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.textContent = `✅ Connected! Robot state: ${data.state.fsm_state} (LED: ${data.state.led_color})`;
+                    status.className = 'success';
+                    isConnected = true;
+                    document.getElementById('loadBtn').disabled = false;
+                } else {
+                    status.textContent = `❌ Connection failed: ${data.error}`;
+                    status.className = 'error';
+                }
+            } catch (error) {
+                status.textContent = `❌ Error: ${error.message}`;
+                status.className = 'error';
+            }
+        }
+
+        async function loadActions() {
+            const status = document.getElementById('status');
+            const actionsList = document.getElementById('actionsList');
+            
+            status.textContent = '📋 Loading actions from robot...';
+            actionsList.innerHTML = '<p>Please wait...</p>';
+            
+            try {
+                // Try the teaching list endpoint (UDP protocol)
+                const response = await fetch(`${API_URL}/api/teaching/list`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                console.log('API Response:', data);
+                
+                if (data.success) {
+                    if (data.actions && data.actions.length > 0) {
+                        status.textContent = `✅ Found ${data.actions.length} actions`;
+                        status.className = 'success';
+                        
+                        actionsList.innerHTML = '<h3>Available Actions:</h3>' + 
+                            data.actions.map(action => `
+                                <div class="action-item">
+                                    <span class="action-name">${action}</span>
+                                    <button class="play-btn" onclick="playAction('${action}')">▶️ Play</button>
+                                </div>
+                            `).join('');
+                    } else {
+                        status.textContent = '⚠️ No actions found. Use Android app to teach actions first.';
+                        actionsList.innerHTML = '<p>No actions saved yet. Use the Unitree app to record your first action!</p>';
+                    }
+                } else {
+                    status.textContent = `⚠️ ${data.error || 'No response from robot'}`;
+                    actionsList.innerHTML = `<p>Could not load actions. Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                status.textContent = `❌ Error: ${error.message}`;
+                status.className = 'error';
+                actionsList.innerHTML = `<p>Failed to load: ${error.message}</p>`;
+            }
+        }
+
+        async function playAction(actionName) {
+            const status = document.getElementById('status');
+            status.textContent = `▶️ Playing action: ${actionName}...`;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/custom_action/execute?action_name=${encodeURIComponent(actionName)}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.textContent = `✅ ${data.message}`;
+                    status.className = 'success';
+                } else {
+                    status.textContent = `❌ ${data.error}`;
+                    status.className = 'error';
+                }
+            } catch (error) {
+                status.textContent = `❌ Error playing action: ${error.message}`;
+                status.className = 'error';
+            }
+        }
+    </script>
+</body>
+</html>

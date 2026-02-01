@@ -7,7 +7,7 @@ from typing import Optional, List
 import logging
 
 from ..api.constants import (
-    LocoAPI, ArmAPI, Service, FSMState, ArmGesture, ArmTask,
+    LocoAPI, ArmAPI, RobotStateAPI, Service, SystemService, FSMState, ArmGesture, ArmTask,
     VelocityLimits, SpeedMode, TTSSpeaker
 )
 
@@ -25,6 +25,31 @@ class CommandExecutor:
             datachannel: WebRTC datachannel for sending commands
         """
         self.datachannel = datachannel
+    
+    # ========================================================================
+    # System Service Management (robot_state Service)
+    # ========================================================================
+    
+    async def service_switch(self, service_name: str, enable: bool) -> dict:
+        """
+        Enable or disable a system service
+        
+        Args:
+            service_name: Service name (use SystemService constants)
+            enable: True to enable, False to disable
+            
+        Returns:
+            Response with status field indicating service state after operation
+        """
+        payload = {
+            "api_id": RobotStateAPI.SERVICE_SWITCH,
+            "parameter": json.dumps({
+                "name": service_name,
+                "switch": 1 if enable else 0
+            })
+        }
+        logger.info(f"{'Enabling' if enable else 'Disabling'} service: {service_name}")
+        return await self._send_command(payload, service=Service.ROBOT_STATE)
     
     # ========================================================================
     # Locomotion Commands (Sport Service)
@@ -708,3 +733,196 @@ class CommandExecutor:
         except Exception as e:
             logger.error(f"❌ Failed to send teaching command: {e}")
             return {"status": "error", "error": str(e)}
+    
+    # =========================================================================
+    # SLAM Control (enables/disables LiDAR)
+    # =========================================================================
+    
+    async def slam_start_mapping(self):
+        """Start SLAM mapping - this enables the LiDAR sensor
+        
+        Uses publish_request_new() which properly formats Client API calls
+        
+        Returns:
+            dict: Command payload sent to robot
+        """
+        from g1_app.api import SlamAPI, Service
+        
+        payload = {
+            "api_id": SlamAPI.START_MAPPING,
+            "parameter": json.dumps({
+                "data": {
+                    "slam_type": "indoor"
+                }
+            })
+        }
+        
+        logger.info("🗺️  Starting SLAM mapping (this enables LiDAR)")
+        await self.datachannel.pub_sub.publish_request_new(
+            f"rt/api/{Service.SLAM}/request",
+            payload
+        )
+        return payload
+    
+    async def slam_stop_mapping(self, map_name: str = "temp_map"):
+        """Stop SLAM mapping and save map
+        
+        Args:
+            map_name: Name for the saved map file (without .pcd extension)
+                     Recommended: test1-test10 to avoid filling disk
+        
+        Note: This keeps LiDAR active for relocation mode
+        
+        Returns:
+            dict: Command payload sent to robot
+        """
+        from g1_app.api import SlamAPI, Service
+        
+        # Ensure .pcd extension
+        if not map_name.endswith('.pcd'):
+            map_name = f"{map_name}.pcd"
+        
+        payload = {
+            "api_id": SlamAPI.END_MAPPING,
+            "parameter": json.dumps({
+                "data": {
+                    "address": f"/home/unitree/{map_name}"
+                }
+            })
+        }
+        
+        logger.info(f"🗺️  Stopping SLAM mapping, saving to {map_name}")
+        await self.datachannel.pub_sub.publish_request_new(
+            f"rt/api/{Service.SLAM}/request",
+            payload
+        )
+        return payload
+    
+    async def slam_close(self):
+        """Close SLAM completely - this disables the LiDAR sensor
+        
+        Returns:
+            dict: Command payload sent to robot
+        """
+        from g1_app.api import SlamAPI, Service
+        
+        payload = {
+            "api_id": SlamAPI.CLOSE_SLAM,
+            "parameter": json.dumps({
+                "data": {}
+            })
+        }
+        
+        logger.info("🗺️  Closing SLAM (disabling LiDAR)")
+        await self.datachannel.pub_sub.publish_request_new(
+            f"rt/api/{Service.SLAM}/request",
+            payload
+        )
+        return payload
+    
+    async def slam_load_map(self, map_name: str, x: float = 0.0, y: float = 0.0, z: float = 0.0):
+        """Load a saved map and initialize robot pose for navigation
+        
+        Args:
+            map_name: Name of the map file (without .pcd extension)
+            x, y, z: Initial position (meters)
+        
+        Returns:
+            dict: Command payload sent to robot
+        """
+        from g1_app.api import SlamAPI, Service
+        
+        # Ensure .pcd extension
+        if not map_name.endswith('.pcd'):
+            map_name = f"{map_name}.pcd"
+        
+        payload = {
+            "api_id": SlamAPI.INITIALIZE_POSE,
+            "parameter": json.dumps({
+                "data": {
+                    "x": x,
+                    "y": y,
+                    "z": z,
+                    "q_x": 0.0,
+                    "q_y": 0.0,
+                    "q_z": 0.0,
+                    "q_w": 1.0,
+                    "address": f"/home/unitree/{map_name}"
+                }
+            })
+        }
+        
+        logger.info(f"🗺️  Loading map {map_name}, initial pose: ({x}, {y}, {z})")
+        await self.datachannel.pub_sub.publish_request_new(
+            f"rt/api/{Service.SLAM}/request",
+            payload
+        )
+        return payload
+    
+    async def slam_navigate_to(self, x: float, y: float, z: float = 0.0):
+        """Navigate to a target position in the loaded map
+        
+        Args:
+            x, y, z: Target position (meters)
+        
+        Returns:
+            dict: Command payload sent to robot
+        """
+        from g1_app.api import SlamAPI, Service
+        
+        payload = {
+            "api_id": SlamAPI.POSE_NAVIGATION,
+            "parameter": json.dumps({
+                "data": {
+                    "targetPose": {
+                        "x": x,
+                        "y": y,
+                        "z": z,
+                        "q_x": 0.0,
+                        "q_y": 0.0,
+                        "q_z": 0.0,
+                        "q_w": 1.0
+                    },
+                    "mode": 1
+                }
+            })
+        }
+        
+        logger.info(f"🎯 Navigating to ({x}, {y}, {z})")
+        await self.datachannel.pub_sub.publish_request_new(
+            f"rt/api/{Service.SLAM}/request",
+            payload
+        )
+        return payload
+    
+    async def slam_pause_navigation(self):
+        """Pause current navigation"""
+        from g1_app.api import SlamAPI, Service
+        
+        payload = {
+            "api_id": SlamAPI.PAUSE_NAVIGATION,
+            "parameter": json.dumps({"data": {}})
+        }
+        
+        logger.info("⏸️  Pausing navigation")
+        await self.datachannel.pub_sub.publish_request_new(
+            f"rt/api/{Service.SLAM}/request",
+            payload
+        )
+        return payload
+    
+    async def slam_resume_navigation(self):
+        """Resume paused navigation"""
+        from g1_app.api import SlamAPI, Service
+        
+        payload = {
+            "api_id": SlamAPI.RESUME_NAVIGATION,
+            "parameter": json.dumps({"data": {}})
+        }
+        
+        logger.info("▶️  Resuming navigation")
+        await self.datachannel.pub_sub.publish_request_new(
+            f"rt/api/{Service.SLAM}/request",
+            payload
+        )
+        return payload
