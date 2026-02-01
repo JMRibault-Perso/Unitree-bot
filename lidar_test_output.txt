@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "test_lidar_realtime.py", line 10, in <module>
+    from go2_webrtc_connect.webrtc_connection import Go2Connection, WebRTCConnectionMethod
+ModuleNotFoundError: No module named 'go2_webrtc_connect'

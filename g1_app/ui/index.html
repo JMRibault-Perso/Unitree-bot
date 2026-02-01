@@ -425,6 +425,28 @@
             from { box-shadow: 0 0 20px rgba(72, 187, 120, 0.6); }
             to { box-shadow: 0 0 30px rgba(72, 187, 120, 0.9); }
         }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -482,6 +504,38 @@
             </div>
         </div>
 
+        <!-- Video and LiDAR Panel (side by side) -->
+        <div class="panel" id="videoPanel" style="display: none;">
+            <h2>📹 Robot Sensors</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <!-- Camera -->
+                <div>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #667eea;">Camera</h3>
+                    <div style="background: #000; border-radius: 8px; overflow: hidden;">
+                        <img id="videoStream" src="/api/video/stream" style="width: 100%; height: auto; display: block;" alt="Robot camera feed">
+                    </div>
+                </div>
+                <!-- LiDAR -->
+                <div>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #667eea;">LiDAR Point Cloud</h3>
+                    <div style="margin-bottom: 10px; display: flex; gap: 8px; justify-content: center;">
+                        <button onclick="startSLAM()" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            🗺️ Start SLAM
+                        </button>
+                        <button onclick="stopSLAM()" style="padding: 6px 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            ⏸️ Stop SLAM
+                        </button>
+                        <button onclick="closeSLAM()" style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            🛑 Close SLAM
+                        </button>
+                    </div>
+                    <div style="background: #000; border-radius: 8px; overflow: hidden; position: relative;">
+                        <canvas id="lidarCanvas" style="width: 100%; height: auto; display: block;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- FSM State Machine Panel -->
         <div class="panel" id="statePanel" style="display: none;">
             <h2>FSM State Machine</h2>
@@ -519,7 +573,7 @@
                     <span>3.0x (Fast)</span>
                 </div>
                 <div style="margin-top: 10px; font-size: 12px; color: #4a5568;">
-                    Base speeds: Forward ±0.3 m/s, Strafe ±0.2 m/s, Turn ±0.5 rad/s
+                    Base speeds: Forward ±0.3 m/s, Strafe ±0.6 m/s, Turn ±0.5 rad/s
                 </div>
             </div>
             
@@ -530,9 +584,9 @@
                 <div></div>
                 
                 <!-- Middle row -->
-                <button onclick="moveRobotScaled(0, 0.2, 0)" class="velocity-btn" title="A - Strafe Left">⬅️<br>LEFT</button>
+                <button onclick="moveRobotScaled(0, 0.6, 0)" class="velocity-btn" title="A - Strafe Left">⬅️<br>LEFT</button>
                 <button onclick="stopRobot()" class="velocity-btn stop-btn" title="Space - Stop">⏹️<br>STOP</button>
-                <button onclick="moveRobotScaled(0, -0.2, 0)" class="velocity-btn" title="D - Strafe Right">➡️<br>RIGHT</button>
+                <button onclick="moveRobotScaled(0, -0.6, 0)" class="velocity-btn" title="D - Strafe Right">➡️<br>RIGHT</button>
                 
                 <!-- Bottom row -->
                 <button onclick="moveRobotScaled(0, 0, 0.5)" class="velocity-btn" title="Q - Turn Left">↶<br>↶ TURN</button>
@@ -790,6 +844,44 @@
 
         // Transitional states - robot doesn't stay in these for long, they transition to stable states
         const TRANSITIONAL_STATES = ['SQUAT_TO_STAND', 'STAND_UP', 'LOCK_STANDING'];
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 400px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            // Set background color based on type
+            const colors = {
+                'success': '#48bb78',
+                'error': '#f56565',
+                'info': '#4299e1',
+                'warning': '#ed8936'
+            };
+            notification.style.backgroundColor = colors[type] || colors['info'];
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
 
         // Initialize WebSocket
         function initWebSocket() {
@@ -1191,6 +1283,7 @@
                     const velocityPanel = document.getElementById('velocityPanel');
                     const gesturesPanel = document.getElementById('gesturesPanel');
                     const teachModePanel = document.getElementById('teachModePanel');
+                    const videoPanel = document.getElementById('videoPanel');
                     const connectionStatus = document.getElementById('connectionStatus');
                     
                     if (statusPanel) statusPanel.style.display = 'block';
@@ -1198,6 +1291,10 @@
                     if (velocityPanel) velocityPanel.style.display = 'block';
                     if (gesturesPanel) gesturesPanel.style.display = 'block';
                     if (teachModePanel) teachModePanel.style.display = 'block';
+                    if (videoPanel) {
+                        videoPanel.style.display = 'block';
+                        startLidarVisualization(); // Start LiDAR rendering
+                    }
                     if (connectionStatus) {
                         connectionStatus.textContent = `Connected to ${name}`;
                         connectionStatus.className = 'connection-status status-connected';
@@ -1975,9 +2072,9 @@
         // Keyboard control mapping (base values - will be multiplied by velocityScale)
         const keyMapBase = {
             'w': { vx: 0.3, vy: 0, omega: 0 },      // Forward
-            'a': { vx: 0, vy: 0.2, omega: 0 },      // Strafe left
+            'a': { vx: 0, vy: 0.6, omega: 0 },      // Strafe left
             's': { vx: -0.3, vy: 0, omega: 0 },     // Backward
-            'd': { vx: 0, vy: -0.2, omega: 0 },     // Strafe right
+            'd': { vx: 0, vy: -0.6, omega: 0 },     // Strafe right
             'q': { vx: 0, vy: 0, omega: 0.5 },      // Turn left
             'e': { vx: 0, vy: 0, omega: -0.5 },     // Turn right
             ' ': { vx: 0, vy: 0, omega: 0 }         // Stop
@@ -2062,14 +2159,337 @@
         });
 
         // Initialize on page load
-        window.onload = () => {
+        document.addEventListener('DOMContentLoaded', () => {
             initWebSocket();
             refreshRobotList();  // Auto-discover bound robots
             updateStateButtons(); // Create initial buttons (will be disabled until connection)
+            initLidarCanvas();    // Initialize LiDAR visualization
             
             // Refresh status every 10 seconds
             setInterval(refreshRobotList, 10000);
-        };
+        });
+
+        // LiDAR visualization
+        let lidarInterval = null;
+        let trajectoryInterval = null;
+        
+        // SLAM control functions
+        async function startSLAM() {
+            try {
+                const response = await fetch('/api/slam/start', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('🗺️ SLAM mapping started - visualizing trajectory...', 'success');
+                    startTrajectoryVisualization();
+                } else {
+                    showNotification('Failed to start SLAM: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to start SLAM: ' + error.message, 'error');
+            }
+        }
+
+        async function stopSLAM() {
+            try {
+                const response = await fetch('/api/slam/stop', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    stopTrajectoryVisualization();
+                    showNotification('🗺️ SLAM mapping stopped - map saved to robot', 'success');
+                    // Attempt to download the map file
+                    setTimeout(() => downloadSLAMMap(), 2000);
+                } else {
+                    showNotification('Failed to stop SLAM: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to stop SLAM: ' + error.message, 'error');
+            }
+        }
+        
+        async function downloadSLAMMap() {
+            try {
+                showNotification('📥 Attempting to download map file...', 'info');
+                const response = await fetch('/api/slam/download_map');
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    if (blob.size > 100) {  // Valid PCD file
+                        // Save to browser
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'slam_map.pcd';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        // Parse and display in 3D viewer
+                        const text = await blob.text();
+                        displayPointCloud(text);
+                        showNotification('✅ Map downloaded successfully!', 'success');
+                    } else {
+                        const data = await response.json();
+                        showNotification('⚠️ Map file not available: ' + (data.error || data.info?.suggestion || 'Unknown'), 'warning');
+                    }
+                } else {
+                    showNotification('⚠️ Map file not available on this robot model', 'warning');
+                }
+            } catch (error) {
+                showNotification('Failed to download map: ' + error.message, 'error');
+            }
+        }
+        
+        function displayPointCloud(pcdText) {
+            // Parse PCD format and display in 3D canvas
+            // This will be implemented with Three.js
+            console.log('PCD data received, size:', pcdText.length);
+            showNotification('🎨 3D visualization coming soon...', 'info');
+            // TODO: Implement Three.js point cloud rendering
+        }
+
+        async function closeSLAM() {
+            try {
+                const response = await fetch('/api/slam/close', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('🛑 SLAM closed - LiDAR disabled', 'success');
+                } else {
+                    showNotification('Failed to close SLAM: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to close SLAM: ' + error.message, 'error');
+            }
+        }
+        
+        // Trajectory visualization for live SLAM mapping
+        function startTrajectoryVisualization() {
+            if (trajectoryInterval) return;
+            
+            const canvas = document.getElementById('lidarCanvas');
+            if (!canvas) return;
+            
+            trajectoryInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/slam/trajectory');
+                    const data = await response.json();
+                    
+                    if (data.success && data.points && data.points.length > 0) {
+                        renderTrajectory(data.points);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch trajectory:', error);
+                }
+            }, 500); // Update every 500ms
+        }
+        
+        function stopTrajectoryVisualization() {
+            if (trajectoryInterval) {
+                clearInterval(trajectoryInterval);
+                trajectoryInterval = null;
+            }
+        }
+        
+        function renderTrajectory(points) {
+            const canvas = document.getElementById('lidarCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2, 0);
+            ctx.lineTo(canvas.width/2, canvas.height);
+            ctx.moveTo(0, canvas.height/2);
+            ctx.lineTo(canvas.width, canvas.height/2);
+            ctx.stroke();
+            
+            if (points.length === 0) return;
+            
+            // Find bounds
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            points.forEach(p => {
+                minX = Math.min(minX, p.x);
+                maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y);
+                maxY = Math.max(maxY, p.y);
+            });
+            
+            // Calculate scale to fit canvas with padding
+            const padding = 50;
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            const scaleX = (canvas.width - 2 * padding) / rangeX;
+            const scaleY = (canvas.height - 2 * padding) / rangeY;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // Center the path
+            const offsetX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
+            const offsetY = canvas.height / 2 + ((minY + maxY) / 2) * scale; // Flip Y
+            
+            // Draw trajectory path
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            points.forEach((p, i) => {
+                const x = offsetX + p.x * scale;
+                const y = offsetY - p.y * scale; // Flip Y for screen coords
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+            
+            // Draw points with color by z-height
+            points.forEach((p, i) => {
+                const x = offsetX + p.x * scale;
+                const y = offsetY - p.y * scale;
+                
+                // Color gradient: blue (low) → green (mid) → red (high)
+                const hue = Math.max(0, Math.min(240, 240 - (p.z + 1) * 60));
+                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                
+                // Start point larger
+                const radius = (i === 0) ? 6 : 3;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            // Draw start marker
+            if (points.length > 0) {
+                const start = points[0];
+                const x = offsetX + start.x * scale;
+                const y = offsetY - start.y * scale;
+                
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, 2 * Math.PI);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px sans-serif';
+                ctx.fillText('START', x + 15, y + 5);
+            }
+            
+            // Draw info overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(10, 10, 200, 60);
+            ctx.fillStyle = '#0f0';
+            ctx.font = '14px monospace';
+            ctx.fillText(`Points: ${points.length}`, 20, 30);
+            ctx.fillText(`Range: ${rangeX.toFixed(1)}m × ${rangeY.toFixed(1)}m`, 20, 50);
+            ctx.fillText(`Scale: ${scale.toFixed(1)} px/m`, 20, 70);
+        }
+        
+        function initLidarCanvas() {
+            const canvas = document.getElementById('lidarCanvas');
+            if (!canvas) return;
+            
+            // Set canvas size
+            canvas.width = 640;
+            canvas.height = 480;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw placeholder
+            ctx.fillStyle = '#666';
+            ctx.font = '16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Waiting for LiDAR data...', canvas.width/2, canvas.height/2);
+        }
+        
+        function startLidarVisualization() {
+            if (lidarInterval) return;
+            
+            const canvas = document.getElementById('lidarCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            lidarInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/lidar/pointcloud');
+                    const data = await response.json();
+                    
+                    if (data.success && data.points && data.points.length > 0) {
+                        // Clear canvas
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw axes
+                        ctx.strokeStyle = '#333';
+                        ctx.beginPath();
+                        ctx.moveTo(canvas.width/2, 0);
+                        ctx.lineTo(canvas.width/2, canvas.height);
+                        ctx.moveTo(0, canvas.height/2);
+                        ctx.lineTo(canvas.width, canvas.height/2);
+                        ctx.stroke();
+                        
+                        // Draw points (top-down view: X-Y plane)
+                        const scale = 50; // pixels per meter
+                        const centerX = canvas.width / 2;
+                        const centerY = canvas.height / 2;
+                        
+                        data.points.forEach(p => {
+                            const x = centerX + p.x * scale;
+                            const y = centerY - p.y * scale; // Flip Y for screen coords
+                            
+                            // Color by height (Z)
+                            const hue = Math.max(0, Math.min(120, (p.z + 2) * 30));
+                            ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                            ctx.fillRect(x, y, 2, 2);
+                        });
+                    } else {
+                        // No data
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = '#666';
+                        ctx.font = '14px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('No LiDAR data', canvas.width/2, canvas.height/2);
+                    }
+                } catch (error) {
+                    console.error('LiDAR fetch error:', error);
+                }
+            }, 100); // 10 Hz
+        }
+        
+        function stopLidarVisualization() {
+            if (lidarInterval) {
+                clearInterval(lidarInterval);
+                lidarInterval = null;
+            }
+        }
 
         // Disconnect robot on page refresh/close
         window.addEventListener('beforeunload', (event) => {

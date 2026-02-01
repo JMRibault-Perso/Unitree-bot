@@ -23,6 +23,9 @@ if project_root not in sys.path:
 sys.path.insert(0, '/root/G1/go2_webrtc_connect')
 sys.path.insert(0, '/root/G1/unitree_sdk2')
 
+# Apply patches BEFORE importing anything that uses WebRTC
+from g1_app.patches import lidar_decoder_patch
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -216,10 +219,9 @@ async def discover_robots_endpoint():
         discovery = get_discovery()
         
         # Get all robots (bound + discovered)
-        all_robots = await discovery.get_robots()
-        bound_robots = discovery.get_bound_robots()
+        all_robots = discovery.get_robots()
         
-        logger.info(f"Found {len(all_robots)} total robots ({len(bound_robots)} bound)")
+        logger.info(f"Found {len(all_robots)} robots")
         
         return {
             "success": True,
@@ -228,14 +230,13 @@ async def discover_robots_endpoint():
                     "name": r.name,
                     "serial_number": r.serial_number,
                     "ip": r.ip,
-                    "is_bound": r.name in [b.name for b in bound_robots],
+                    "is_bound": True,  # All robots from get_robots() are bound
                     "is_online": r.is_online,
                     "last_seen": r.last_seen.isoformat() if r.last_seen else None
                 }
                 for r in all_robots
             ],
-            "count": len(all_robots),
-            "bound_count": len(bound_robots)
+            "count": len(all_robots)
         }
     except Exception as e:
         logger.error(f"Discovery failed: {e}")
@@ -1036,6 +1037,19 @@ async def teach_mode_page():
         return "<h1>Error loading teach mode page</h1>"
 
 
+# Point cloud viewer page route
+@app.get("/pointcloud", response_class=HTMLResponse)
+async def pointcloud_viewer_page():
+    """Serve the SLAM point cloud viewer page"""
+    try:
+        html_path = os.path.join(os.path.dirname(__file__), "pointcloud.html")
+        with open(html_path, "r") as f:
+            return f.read()
+    except Exception as e:
+        logger.error(f"Failed to load point cloud viewer page: {e}")
+        return "<h1>Error loading point cloud viewer</h1>"
+
+
 # Local storage for custom action favorites (persist across sessions)
 CUSTOM_ACTIONS_FILE = "/tmp/g1_custom_actions.json"
 
@@ -1353,6 +1367,47 @@ async def get_video_status():
             "message": "Video stream not yet initialized"
         }
 
+@app.get("/api/video/stream")
+async def video_stream():
+    """MJPEG video stream from robot camera"""
+    from fastapi.responses import StreamingResponse
+    import asyncio
+    import cv2
+    import numpy as np
+    
+    async def generate_frames():
+        """Generate MJPEG frames from WebRTC video"""
+        global robot
+        
+        while True:
+            if not robot or not robot.connected:
+                # Send placeholder frame when disconnected
+                placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(placeholder, "No video - Robot disconnected", (50, 240),
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                _, buffer = cv2.imencode('.jpg', placeholder)
+                frame = buffer.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            elif hasattr(robot, 'latest_frame') and robot.latest_frame is not None:
+                # Send actual video frame
+                frame = robot.latest_frame
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            else:
+                # Waiting for first frame
+                placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(placeholder, "Waiting for video...", (150, 240),
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                _, buffer = cv2.imencode('.jpg', placeholder)
+                frame = buffer.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            
+            await asyncio.sleep(0.033)  # ~30 FPS
+    
+    return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+
 
 # ============================================================================
 # LiDAR Status Endpoint
@@ -1373,6 +1428,141 @@ async def get_lidar_status():
         "active": lidar_active,
         "topic": "rt/utlidar/cloud_livox_mid360",
         "frequency": "10Hz" if lidar_active else "N/A"
+    }
+
+@app.get("/api/lidar/pointcloud")
+async def get_lidar_pointcloud():
+    """Get latest LiDAR point cloud"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    if hasattr(robot, 'latest_lidar_points') and robot.latest_lidar_points:
+        return {
+            "success": True,
+            "points": robot.latest_lidar_points,
+            "count": len(robot.latest_lidar_points)
+        }
+    
+    return {"success": True, "points": [], "count": 0}
+
+
+@app.post("/api/slam/start")
+async def slam_start():
+    """Start SLAM mapping to enable LiDAR"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        result = await robot.executor.slam_start_mapping()
+        return {"success": True, "command": result}
+    except Exception as e:
+        logger.error(f"Failed to start SLAM: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/slam/stop")
+async def slam_stop():
+    """Stop SLAM mapping"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        result = await robot.executor.slam_stop_mapping()
+        return {"success": True, "command": result}
+    except Exception as e:
+        logger.error(f"Failed to stop SLAM: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/slam/close")
+async def slam_close():
+    """Close SLAM and disable LiDAR"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        result = await robot.executor.slam_close()
+        return {"success": True, "command": result}
+    except Exception as e:
+        logger.error(f"Failed to close SLAM: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/slam/trajectory")
+async def get_slam_trajectory():
+    """Get current SLAM trajectory for live 3D visualization"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected", "points": []}
+    
+    try:
+        trajectory = getattr(robot, 'slam_trajectory', [])
+        return {
+            "success": True,
+            "points": trajectory,
+            "count": len(trajectory),
+            "active": getattr(robot, 'slam_active', False)
+        }
+    except Exception as e:
+        logger.error(f"Error getting trajectory: {e}")
+        return {"success": False, "error": str(e), "points": []}
+
+@app.get("/api/slam/download_map")
+async def download_slam_map():
+    """Download the PCD map file generated by SLAM
+    
+    The map is saved on the robot at /home/unitree/temp_map.pcd
+    Try to retrieve it via HTTP if available.
+    """
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    robot_ip = robot.robot_ip
+    map_filename = "temp_map.pcd"
+    
+    # Try common HTTP endpoints where the robot might serve files
+    import httpx
+    possible_urls = [
+        f"http://{robot_ip}:8080/files/{map_filename}",
+        f"http://{robot_ip}:8000/{map_filename}",
+        f"http://{robot_ip}:9000/download/{map_filename}",
+        f"http://{robot_ip}/slam/{map_filename}",
+    ]
+    
+    for url in possible_urls:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(url)
+                if response.status_code == 200 and len(response.content) > 100:
+                    from fastapi.responses import Response
+                    return Response(
+                        content=response.content,
+                        media_type="application/octet-stream",
+                        headers={"Content-Disposition": f"attachment; filename={map_filename}"}
+                    )
+        except Exception as e:
+            logger.debug(f"Failed to download from {url}: {e}")
+            continue
+    
+    # File not accessible via HTTP
+    return {
+        "success": False,
+        "error": "Map file not accessible via HTTP",
+        "info": {
+            "robot_ip": robot_ip,
+            "map_path": f"/home/unitree/{map_filename}",
+            "note": "G1 Air may not expose file download. The Android app likely uses SLAM info data with embedded point cloud or proprietary file transfer."
+        }
     }
 
 

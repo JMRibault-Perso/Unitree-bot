@@ -30,6 +30,31 @@ class Topic:
 class Service:
     SPORT = "sport"  # Locomotion (LocoClient uses this confusingly)
     ARM = "arm"      # Arm actions and gestures
+    ROBOT_STATE = "robot_state"  # Robot state management (RobotStateClient)
+    SLAM = "slam_operate"  # SLAM and navigation service
+
+
+# ============================================================================
+# System Service Names (for ServiceSwitch API)
+# ============================================================================
+class SystemService:
+    """Service names for RobotStateClient.ServiceSwitch()"""
+    AI_SPORT = "ai_sport"              # Main motion control service
+    BASIC_SERVICE = "basic_service"    # Basic service
+    ARM_EXAMPLE = "g1_arm_example"     # Upper limb motion service
+    VUI_SERVICE = "vui_service"        # Audio and lighting control
+    UNITREE_SLAM = "unitree_slam"      # Navigation service
+    LIDAR_DRIVER = "lidar_driver"      # LiDAR driver (not in official list but used in SLAM docs)
+
+
+# ============================================================================
+# Robot State API IDs (robot_state Service)
+# ============================================================================
+class RobotStateAPI(IntEnum):
+    """RobotStateClient API IDs for service management"""
+    SERVICE_SWITCH = 5001  # Enable/disable services
+    SET_REPORT_FREQ = 5002  # Set service status reporting frequency
+    # Error codes: 5201 (switch execution error), 5202 (service protected)
 
 
 # ============================================================================
@@ -70,6 +95,20 @@ class ArmAPI(IntEnum):
     DELETE_ACTION = 7112            # EXPERIMENTAL: Delete saved action
     
     STOP_CUSTOM_ACTION = 7113       # Stop teach playback
+
+
+# ============================================================================
+# SLAM API IDs (SLAM Service)
+# ============================================================================
+class SlamAPI(IntEnum):
+    """SLAM and navigation service API IDs"""
+    START_MAPPING = 1801      # Start SLAM mapping (enables LiDAR)
+    END_MAPPING = 1802        # End mapping and save map
+    INITIALIZE_POSE = 1804    # Load map and start relocation
+    POSE_NAVIGATION = 1102    # Navigate to target pose
+    PAUSE_NAVIGATION = 1201   # Pause navigation
+    RESUME_NAVIGATION = 1202  # Resume navigation
+    CLOSE_SLAM = 1901         # Close SLAM (disables LiDAR)
 
 
 # ============================================================================
@@ -273,7 +312,7 @@ class VelocityLimits:
     
     # Minimum speed thresholds (dead zone)
     MIN_LINEAR = 0.05   # m/s - minimum forward/backward before stopping
-    MIN_STRAFE = 0.05   # m/s - minimum strafe before stopping
+    MIN_STRAFE = 0.5    # m/s - minimum strafe before stopping
     MIN_ANGULAR = 0.05  # rad/s - minimum rotation before stopping
     
     @staticmethod

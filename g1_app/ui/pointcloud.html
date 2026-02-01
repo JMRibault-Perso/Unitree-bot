@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G1 SLAM Point Cloud Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #header {
+            background: #2a2a2a;
+            padding: 15px 20px;
+            border-bottom: 2px solid #00ff88;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #00ff88;
+        }
+        
+        #controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        button {
+            background: #00ff88;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #00cc66;
+            transform: scale(1.05);
+        }
+        
+        button:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #stats {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #00ff88;
+        }
+        
+        #canvas {
+            flex: 1;
+            background: #0a0a0a;
+            cursor: grab;
+        }
+        
+        #canvas:active {
+            cursor: grabbing;
+        }
+        
+        #status {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+            max-width: 300px;
+        }
+        
+        .status-item {
+            margin: 5px 0;
+            font-size: 13px;
+        }
+        
+        .status-label {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>🗺️ G1 SLAM Point Cloud Viewer</h1>
+            <div id="controls">
+                <button id="startMappingBtn">Start SLAM Mapping</button>
+                <button id="stopMappingBtn" disabled>Stop Mapping</button>
+                <button id="resetViewBtn">Reset View</button>
+                <div id="stats">
+                    <span>Points: <strong id="pointCount">0</strong></span> | 
+                    <span>FPS: <strong id="fps">0</strong></span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="status">
+            <div class="status-item">
+                <span class="status-label">SLAM Status:</span>
+                <span id="slamStatus">Inactive</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Connection:</span>
+                <span id="connectionStatus" class="loading">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Last Update:</span>
+                <span id="lastUpdate">Never</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Data Rate:</span>
+                <span id="dataRate">0 KB/s</span>
+            </div>
+        </div>
+        
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize canvas to fill window
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // State
+        let points = [];
+        let slamActive = false;
+        let rotation = { x: 0, y: 0 };
+        let scale = 20;
+        let offset = { x: canvas.width / 2, y: canvas.height / 2 };
+        let lastUpdateTime = Date.now();
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+        
+        // Mouse controls
+        let isDragging = false;
+        let lastMouse = { x: 0, y: 0 };
+        
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouse = { x: e.clientX, y: e.clientY };
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - lastMouse.x;
+            const dy = e.clientY - lastMouse.y;
+            
+            rotation.y += dx * 0.01;
+            rotation.x += dy * 0.01;
+            
+            lastMouse = { x: e.clientX, y: e.clientY };
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            scale *= (1 - e.deltaY * 0.001);
+            scale = Math.max(1, Math.min(200, scale));
+        });
+        
+        // 3D projection
+        function project3D(x, y, z) {
+            // Rotate around Y axis
+            const cosY = Math.cos(rotation.y);
+            const sinY = Math.sin(rotation.y);
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+            
+            // Rotate around X axis
+            const cosX = Math.cos(rotation.x);
+            const sinX = Math.sin(rotation.x);
+            const y1 = y * cosX - z1 * sinX;
+            const z2 = y * sinX + z1 * cosX;
+            
+            // Project to 2D
+            const perspective = 500 / (500 + z2);
+            return {
+                x: offset.x + x1 * scale * perspective,
+                y: offset.y - y1 * scale * perspective,
+                depth: z2
+            };
+        }
+        
+        // Render loop
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (points.length === 0) {
+                // Draw "No data" message
+                ctx.fillStyle = '#555';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No point cloud data - Start SLAM mapping to see points', canvas.width / 2, canvas.height / 2);
+                requestAnimationFrame(render);
+                return;
+            }
+            
+            // Sort points by depth for proper rendering
+            const projected = points.map(([x, y, z]) => {
+                const p = project3D(x, y, z);
+                return { ...p, z: z };
+            }).sort((a, b) => a.depth - b.depth);
+            
+            // Draw points
+            projected.forEach(({ x, y, depth, z }) => {
+                // Color by height (z coordinate)
+                const hue = ((z + 2) / 4) * 240; // Blue (low) to red (high)
+                const brightness = Math.min(255, Math.max(50, 150 + depth * 0.5));
+                
+                ctx.fillStyle = `hsl(${hue}, 80%, ${brightness / 2.5}%)`;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Update FPS
+            frameCount++;
+            const now = Date.now();
+            if (now - lastFpsUpdate > 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+            
+            requestAnimationFrame(render);
+        }
+        
+        // Start rendering
+        render();
+        
+        // Fetch point cloud data
+        async function fetchPointCloud() {
+            try {
+                const response = await fetch('/api/lidar/pointcloud');
+                const data = await response.json();
+                
+                if (data.success && data.points && data.points.length > 0) {
+                    points = data.points;
+                    
+                    // Update UI
+                    document.getElementById('pointCount').textContent = points.length.toLocaleString();
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    
+                    // Calculate data rate
+                    const now = Date.now();
+                    const elapsed = (now - lastUpdateTime) / 1000;
+                    const dataSize = points.length * 12; // 3 floats per point
+                    const rate = (dataSize / elapsed / 1024).toFixed(1);
+                    document.getElementById('dataRate').textContent = `${rate} KB/s`;
+                    
+                    lastUpdateTime = now;
+                }
+            } catch (error) {
+                console.error('Failed to fetch point cloud:', error);
+            }
+        }
+        
+        // Poll for updates when SLAM active
+        setInterval(() => {
+            if (slamActive) {
+                fetchPointCloud();
+            }
+        }, 100); // 10 Hz
+        
+        // SLAM control
+        document.getElementById('startMappingBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/slam/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ slam_type: 'indoor' })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    slamActive = true;
+                    document.getElementById('slamStatus').textContent = 'Active - Mapping...';
+                    document.getElementById('startMappingBtn').disabled = true;
+                    document.getElementById('stopMappingBtn').disabled = false;
+                    
+                    // Start fetching immediately
+                    fetchPointCloud();
+                } else {
+                    alert('Failed to start SLAM: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error starting SLAM: ' + error.message);
+            }
+        });
+        
+        document.getElementById('stopMappingBtn').addEventListener('click', async () => {
+            try {
+                const mapName = prompt('Enter map name (saved to /home/unitree/):', 'slam_map.pcd');
+                if (!mapName) return;
+                
+                const response = await fetch('/api/slam/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ map_name: mapName })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    slamActive = false;
+                    document.getElementById('slamStatus').textContent = 'Inactive';
+                    document.getElementById('startMappingBtn').disabled = false;
+                    document.getElementById('stopMappingBtn').disabled = true;
+                } else {
+                    alert('Failed to stop SLAM: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error stopping SLAM: ' + error.message);
+            }
+        });
+        
+        document.getElementById('resetViewBtn').addEventListener('click', () => {
+            rotation = { x: 0, y: 0 };
+            scale = 20;
+            offset = { x: canvas.width / 2, y: canvas.height / 2 };
+        });
+        
+        // Check connection
+        fetch('/api/status')
+            .then(r => r.json())
+            .then(data => {
+                if (data.connected) {
+                    document.getElementById('connectionStatus').textContent = '✅ Connected';
+                    document.getElementById('connectionStatus').classList.remove('loading');
+                } else {
+                    document.getElementById('connectionStatus').textContent = '❌ Disconnected';
+                    document.getElementById('connectionStatus').classList.remove('loading');
+                }
+            })
+            .catch(() => {
+                document.getElementById('connectionStatus').textContent = '❌ Error';
+                document.getElementById('connectionStatus').classList.remove('loading');
+            });
+    </script>
+</body>
+</html>

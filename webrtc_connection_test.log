@@ -1,0 +1,96 @@
+2026-01-30 21:03:15 [INFO] __main__: Step 1: Finding robot IP by MAC address fc:23:cd:92:60:02...
+2026-01-30 21:03:15 [INFO] __main__: ✅ Robot discovered via ARP
+2026-01-30 21:03:15 [INFO] __main__:    Robot: G1_6937
+2026-01-30 21:03:15 [INFO] __main__:    IP Address: 192.168.86.3
+2026-01-30 21:03:15 [INFO] __main__:    MAC Address: fc:23:cd:92:60:02
+2026-01-30 21:03:15 [INFO] __main__:    Serial: E21D1000PAHBMB06
+2026-01-30 21:03:15 [INFO] __main__: Step 2: Initializing WebRTC Connection...
+2026-01-30 21:03:15 [INFO] __main__: Step 3: Connecting to robot at 192.168.86.3...
+2026-01-30 21:03:15 [INFO] __main__:    Creating WebRTC peer connection...
+2026-01-30 21:03:15 [INFO] __main__:    Negotiating ICE candidates...
+2026-01-30 21:03:15 [INFO] __main__:    Establishing data channel...
+2026-01-30 21:03:15 [INFO] root: Creating offer...
+2026-01-30 21:03:15 [INFO] root: Trying to send SDP using the old method...
+2026-01-30 21:03:15 [INFO] root: SDP successfully sent using the old method.
+2026-01-30 21:03:15 [INFO] root: Track recieved: audio
+2026-01-30 21:03:15 [INFO] root: Track recieved: video
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('10.255.255.254', 47674) -> ('192.168.86.3', 48020)) State.FROZEN -> State.IN_PROGRESS
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('192.168.140.20', 46179) -> ('192.168.86.3', 48020)) State.FROZEN -> State.IN_PROGRESS
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('192.168.86.16', 45430) -> ('192.168.86.3', 48020)) State.FROZEN -> State.IN_PROGRESS
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('192.168.86.16', 45430) -> ('192.168.86.3', 48020)) State.IN_PROGRESS -> State.SUCCEEDED
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('172.17.0.1', 44655) -> ('192.168.86.3', 48020)) State.FROZEN -> State.FAILED
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('10.255.255.254', 47674) -> ('192.168.123.161', 45758)) State.FROZEN -> State.FAILED
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('192.168.140.20', 46179) -> ('192.168.123.161', 45758)) State.FROZEN -> State.FAILED
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('192.168.86.16', 45430) -> ('192.168.123.161', 45758)) State.FROZEN -> State.FAILED
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) Check CandidatePair(('172.17.0.1', 44655) -> ('192.168.123.161', 45758)) State.FROZEN -> State.FAILED
+2026-01-30 21:03:15 [INFO] aioice.ice: Connection(1) ICE completed
+2026-01-30 21:03:16 [INFO] root: Received message on data channel: {"type":"validation","data":"FU8KjrwO159aHMt1dmF"}
+2026-01-30 21:03:16 [INFO] root: Data channel opened
+2026-01-30 21:03:16 [INFO] root: > message sent: {"type": "validation", "topic": "", "data": "Ms4+h3W1wrZ/qIudptjUig=="}
+2026-01-30 21:03:16 [INFO] root: Received message on data channel: {"type":"validation", "data":"Validation Ok."}
+2026-01-30 21:03:16 [INFO] root: Validation succeed
+2026-01-30 21:03:16 [INFO] root: Received message on data channel: {"type":"errors","data":[]}
+2026-01-30 21:03:16 [INFO] __main__: ✅ WebRTC connection established successfully!
+2026-01-30 21:03:16 [ERROR] __main__: ❌ Test failed: 'WebRTCDataChannel' object has no attribute 'readyState'
+Traceback (most recent call last):
+  File "test_webrtc_connection_log.py", line 134, in test_webrtc_connection
+    logger.info(f"   Data channel state: {webrtc.datachannel.readyState}")
+AttributeError: 'WebRTCDataChannel' object has no attribute 'readyState'
+2026-01-30 21:03:16 [ERROR] asyncio: Exception in callback AsyncIOEventEmitter._emit_run.<locals>.callback(<Task finishe...StreamError()>) at /usr/local/lib/python3.8/dist-packages/pyee/asyncio.py:69
+handle: <Handle AsyncIOEventEmitter._emit_run.<locals>.callback(<Task finishe...StreamError()>) at /usr/local/lib/python3.8/dist-packages/pyee/asyncio.py:69>
+Traceback (most recent call last):
+  File "/usr/lib/python3.8/asyncio/events.py", line 81, in _run
+    self._context.run(self._callback, *self._args)
+  File "/usr/local/lib/python3.8/dist-packages/pyee/asyncio.py", line 77, in callback
+    self.emit("error", exc)
+  File "/usr/local/lib/python3.8/dist-packages/pyee/base.py", line 215, in emit
+    self._emit_handle_potential_error(event, args[0] if args else None)
+  File "/usr/local/lib/python3.8/dist-packages/pyee/base.py", line 173, in _emit_handle_potential_error
+    raise error
+  File "/root/G1/go2_webrtc_connect/unitree_webrtc_connect/webrtc_driver.py", line 166, in on_track
+    frame = await track.recv()
+  File "/usr/local/lib/python3.8/dist-packages/aiortc/rtcrtpreceiver.py", line 206, in recv
+    raise MediaStreamError
+aiortc.mediastreams.MediaStreamError
+2026-01-30 21:03:16 [INFO] root: Data channel closed
+2026-01-30 21:03:16 [ERROR] asyncio: Exception in callback AsyncIOEventEmitter._emit_run.<locals>.callback(<Task finishe...StreamError()>) at /usr/local/lib/python3.8/dist-packages/pyee/asyncio.py:69
+handle: <Handle AsyncIOEventEmitter._emit_run.<locals>.callback(<Task finishe...StreamError()>) at /usr/local/lib/python3.8/dist-packages/pyee/asyncio.py:69>
+Traceback (most recent call last):
+  File "/usr/lib/python3.8/asyncio/events.py", line 81, in _run
+    self._context.run(self._callback, *self._args)
+  File "/usr/local/lib/python3.8/dist-packages/pyee/asyncio.py", line 77, in callback
+    self.emit("error", exc)
+  File "/usr/local/lib/python3.8/dist-packages/pyee/base.py", line 215, in emit
+    self._emit_handle_potential_error(event, args[0] if args else None)
+  File "/usr/local/lib/python3.8/dist-packages/pyee/base.py", line 173, in _emit_handle_potential_error
+    raise error
+  File "/root/G1/go2_webrtc_connect/unitree_webrtc_connect/webrtc_driver.py", line 162, in on_track
+    frame = await track.recv()
+  File "/usr/local/lib/python3.8/dist-packages/aiortc/rtcrtpreceiver.py", line 206, in recv
+    raise MediaStreamError
+aiortc.mediastreams.MediaStreamError
+================================================================================
+G1 ROBOT WebRTC CONNECTION TEST
+================================================================================
+Test started at: 2026-01-30 21:03:15
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+🕒 WebRTC connection        : 🟡 started       (21:03:15)
+Decoder set to: LibVoxelDecoder
+🕒 Signaling State          : 🟡 have-local-offer (21:03:15)
+🕒 ICE Gathering State      : 🟡 gathering     (21:03:15)
+🕒 ICE Gathering State      : 🟢 complete      (21:03:15)
+🕒 ICE Connection State     : 🔵 checking      (21:03:15)
+🕒 Peer Connection State    : 🔵 connecting    (21:03:15)
+🕒 Signaling State          : 🟢 stable        (21:03:15)
+🕒 ICE Connection State     : 🟢 completed     (21:03:15)
+🕒 Peer Connection State    : 🟢 connected     (21:03:16)
+🕒 Data Channel Verification: ✅ OK            (21:03:16)
+
+================================================================================
+RESULT: FAILED - Exception: 'WebRTCDataChannel' object has no attribute 'readyState'
+================================================================================
+🕒 Signaling State          : ⚫ closed        (21:03:16)
+🕒 ICE Connection State     : ⚫ closed        (21:03:16)
+🕒 Peer Connection State    : ⚫ closed        (21:03:16)
+🕒 WebRTC connection        : 🔴 disconnected  (21:03:16)
