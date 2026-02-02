@@ -3,6 +3,7 @@ Command Executor - Builds API payloads and executes commands
 """
 
 import json
+import asyncio
 from typing import Optional, List
 import logging
 
@@ -876,6 +877,33 @@ class CommandExecutor:
             payload
         )
         return payload
+    
+    async def send_command_and_wait(self, topic: str, payload: dict, timeout: float = 5.0) -> dict:
+        """
+        Send a command and wait for response (simplified - just sends without waiting for specific response)
+        
+        Args:
+            topic: Topic to publish to
+            payload: Command payload
+            timeout: Timeout in seconds
+            
+        Returns:
+            Response or empty dict if timeout
+        """
+        try:
+            logger.info(f"Sending command to {topic}: {payload}")
+            await asyncio.wait_for(
+                self.datachannel.pub_sub.publish_request_new(topic, payload),
+                timeout=timeout
+            )
+            # Return success indicator - actual response handling would be more complex
+            return {"success": True}
+        except asyncio.TimeoutError:
+            logger.warning(f"Command timeout on {topic}")
+            return {"success": False, "error": "timeout"}
+        except Exception as e:
+            logger.error(f"Failed to send command: {e}")
+            return {"success": False, "error": str(e)}
     
     async def slam_pause_navigation(self):
         """Pause current navigation"""

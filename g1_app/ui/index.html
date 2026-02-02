@@ -504,34 +504,133 @@
             </div>
         </div>
 
-        <!-- Video and LiDAR Panel (side by side) -->
+        <!-- 3D SLAM Point Cloud Viewer -->
         <div class="panel" id="videoPanel" style="display: none;">
-            <h2>📹 Robot Sensors</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <!-- Camera -->
+            <h2>🗺️ SLAM Point Cloud & Robot Path</h2>
+            
+            <!-- Control buttons -->
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="slamStartBtn" onclick="startSLAM()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    ▶️ Start SLAM Mapping
+                </button>
+                <button id="slamStopBtn" onclick="stopSLAM()" disabled style="padding: 10px 20px; background: #ffc107; color: #000; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    ⏸️ Stop Mapping
+                </button>
+                <button onclick="resetView()" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    🔄 Reset View
+                </button>
+                <button onclick="togglePath()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    🛤️ Toggle Path
+                </button>
+            </div>
+
+            <!-- Status info -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
                 <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #667eea;">Camera</h3>
-                    <div style="background: #000; border-radius: 8px; overflow: hidden;">
-                        <img id="videoStream" src="/api/video/stream" style="width: 100%; height: auto; display: block;" alt="Robot camera feed">
+                    <div style="font-size: 12px; color: #666;">SLAM Status</div>
+                    <div id="slam3dStatus" style="font-weight: bold; color: #28a745;">Inactive</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #666;">Point Count</div>
+                    <div id="point3dCount" style="font-weight: bold;">0</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #666;">Path Length</div>
+                    <div id="pathLength" style="font-weight: bold;">0 m</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #666;">Data Rate</div>
+                    <div id="data3dRate" style="font-weight: bold;">0 KB/s</div>
+                </div>
+            </div>
+
+            <!-- 3D Canvas -->
+            <div style="background: #000; border-radius: 8px; overflow: hidden; position: relative;">
+                <canvas id="pointCloud3D" width="1200" height="600" style="width: 100%; height: auto; display: block; cursor: grab;"></canvas>
+                <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 8px 12px; border-radius: 4px; font-size: 11px;">
+                    🖱️ Drag: Rotate | Scroll: Zoom | Right-drag: Pan
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation and Map Management Panel -->
+        <div class="panel" id="navigationPanel" style="display: none;">
+            <h2>🎯 Navigation & Map Management</h2>
+            
+            <!-- Map Selection -->
+            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <h3 style="margin-top: 0; font-size: 14px; color: #333;">Load Saved Map</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <select id="mapSelector" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; flex: 1; min-width: 200px;">
+                        <option value="">-- Select a map --</option>
+                        <option value="test1.pcd">Test Map 1</option>
+                        <option value="test2.pcd">Test Map 2</option>
+                        <option value="test3.pcd">Test Map 3</option>
+                        <option value="test4.pcd">Test Map 4</option>
+                        <option value="test5.pcd">Test Map 5</option>
+                        <option value="test6.pcd">Test Map 6</option>
+                        <option value="test7.pcd">Test Map 7</option>
+                        <option value="test8.pcd">Test Map 8</option>
+                        <option value="test9.pcd">Test Map 9</option>
+                        <option value="test10.pcd">Test Map 10</option>
+                    </select>
+                    <button onclick="loadSelectedMap()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        📁 Load Map
+                    </button>
+                </div>
+                <div id="loadMapStatus" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
+            </div>
+
+            <!-- Navigation Mode -->
+            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <h3 style="margin-top: 0; font-size: 14px; color: #333;">Navigation Target</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;">X (meters)</label>
+                        <input type="number" id="navX" placeholder="0" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" step="0.1">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;">Y (meters)</label>
+                        <input type="number" id="navY" placeholder="0" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" step="0.1">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;">Z (meters)</label>
+                        <input type="number" id="navZ" placeholder="0" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" step="0.1">
                     </div>
                 </div>
-                <!-- LiDAR -->
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #667eea;">LiDAR Point Cloud</h3>
-                    <div style="margin-bottom: 10px; display: flex; gap: 8px; justify-content: center;">
-                        <button onclick="startSLAM()" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                            🗺️ Start SLAM
-                        </button>
-                        <button onclick="stopSLAM()" style="padding: 6px 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                            ⏸️ Stop SLAM
-                        </button>
-                        <button onclick="closeSLAM()" style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                            🛑 Close SLAM
-                        </button>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="sendNavigationGoal()" style="flex: 1; min-width: 150px; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        🎯 Navigate To Goal
+                    </button>
+                    <button onclick="pauseNavigation()" style="padding: 10px 16px; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        ⏸️ Pause
+                    </button>
+                    <button onclick="resumeNavigation()" style="padding: 10px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        ▶️ Resume
+                    </button>
+                </div>
+                <div id="navStatus" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
+            </div>
+
+            <!-- Navigation Info -->
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <h3 style="margin-top: 0; font-size: 14px; color: #333;">Navigation Status</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                    <div>
+                        <div style="font-size: 12px; color: #666;">Loaded Map</div>
+                        <div id="currentMapName" style="font-weight: bold; font-size: 13px;">None</div>
                     </div>
-                    <div style="background: #000; border-radius: 8px; overflow: hidden; position: relative;">
-                        <canvas id="lidarCanvas" style="width: 100%; height: auto; display: block;"></canvas>
+                    <div>
+                        <div style="font-size: 12px; color: #666;">Current Goal</div>
+                        <div id="currentGoal" style="font-weight: bold; font-size: 13px;">None</div>
                     </div>
+                    <div>
+                        <div style="font-size: 12px; color: #666;">Navigation Active</div>
+                        <div id="navActiveStatus" style="font-weight: bold; font-size: 13px; color: #dc3545;">Idle</div>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+                    <strong>Tip:</strong> You can also click directly on the 3D point cloud above to set navigation goals. Load a map first, then click on a point in the visualization.
                 </div>
             </div>
         </div>
@@ -1284,6 +1383,7 @@
                     const gesturesPanel = document.getElementById('gesturesPanel');
                     const teachModePanel = document.getElementById('teachModePanel');
                     const videoPanel = document.getElementById('videoPanel');
+                    const navigationPanel = document.getElementById('navigationPanel');
                     const connectionStatus = document.getElementById('connectionStatus');
                     
                     if (statusPanel) statusPanel.style.display = 'block';
@@ -1291,6 +1391,7 @@
                     if (velocityPanel) velocityPanel.style.display = 'block';
                     if (gesturesPanel) gesturesPanel.style.display = 'block';
                     if (teachModePanel) teachModePanel.style.display = 'block';
+                    if (navigationPanel) navigationPanel.style.display = 'block';
                     if (videoPanel) {
                         videoPanel.style.display = 'block';
                         startLidarVisualization(); // Start LiDAR rendering
@@ -1307,6 +1408,9 @@
                     if (data.state) {
                         initializeRobotState(data.state);
                     }
+                    
+                    // Initialize navigation status
+                    updateNavigationStatus();
                     
                     showMessage(`Connected to ${name}`, 'success');
                 } else {
@@ -2179,7 +2283,10 @@
                 const response = await fetch('/api/slam/start', { method: 'POST' });
                 const data = await response.json();
                 if (data.success) {
-                    showNotification('🗺️ SLAM mapping started - visualizing trajectory...', 'success');
+                    showNotification('🗺️ SLAM mapping started - visualizing in 3D...', 'success');
+                    document.getElementById('slamStartBtn').disabled = true;
+                    document.getElementById('slamStopBtn').disabled = false;
+                    start3DVisualization();
                     startTrajectoryVisualization();
                 } else {
                     showNotification('Failed to start SLAM: ' + (data.error || 'Unknown error'), 'error');
@@ -2194,7 +2301,10 @@
                 const response = await fetch('/api/slam/stop', { method: 'POST' });
                 const data = await response.json();
                 if (data.success) {
+                    stop3DVisualization();
                     stopTrajectoryVisualization();
+                    document.getElementById('slamStartBtn').disabled = false;
+                    document.getElementById('slamStopBtn').disabled = true;
                     showNotification('🗺️ SLAM mapping stopped - map saved to robot', 'success');
                     // Attempt to download the map file
                     setTimeout(() => downloadSLAMMap(), 2000);
@@ -2261,6 +2371,167 @@
                 showNotification('Failed to close SLAM: ' + error.message, 'error');
             }
         }
+
+        // =====================================================================
+        // Navigation and Map Management Functions
+        // =====================================================================
+
+        async function loadSelectedMap() {
+            const mapName = document.getElementById('mapSelector').value;
+            if (!mapName) {
+                showNotification('⚠️ Please select a map first', 'warning');
+                return;
+            }
+
+            try {
+                const statusDiv = document.getElementById('loadMapStatus');
+                statusDiv.textContent = 'Loading map...';
+                statusDiv.style.color = '#0066cc';
+
+                const response = await fetch('/api/slam/load_map', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        map_name: mapName,
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('currentMapName').textContent = mapName;
+                    statusDiv.textContent = `✅ Map '${mapName}' loaded successfully!`;
+                    statusDiv.style.color = '#28a745';
+                    showNotification(`📍 Map '${mapName}' loaded - ready for navigation`, 'success');
+                    
+                    // Update navigation status
+                    updateNavigationStatus();
+                } else {
+                    statusDiv.textContent = `❌ ${data.error}`;
+                    statusDiv.style.color = '#dc3545';
+                    showNotification('Failed to load map: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('loadMapStatus');
+                statusDiv.textContent = `❌ ${error.message}`;
+                statusDiv.style.color = '#dc3545';
+                showNotification('Failed to load map: ' + error.message, 'error');
+            }
+        }
+
+        async function sendNavigationGoal() {
+            try {
+                const x = parseFloat(document.getElementById('navX').value);
+                const y = parseFloat(document.getElementById('navY').value);
+                const z = parseFloat(document.getElementById('navZ').value);
+
+                if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                    showNotification('⚠️ Please enter valid coordinates', 'warning');
+                    return;
+                }
+
+                const statusDiv = document.getElementById('navStatus');
+                statusDiv.textContent = 'Sending navigation goal...';
+                statusDiv.style.color = '#0066cc';
+
+                const response = await fetch('/api/slam/navigate_to', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x, y, z })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('currentGoal').textContent = `(${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`;
+                    statusDiv.textContent = `✅ Navigating to (${x}, ${y}, ${z})`;
+                    statusDiv.style.color = '#28a745';
+                    showNotification(`🎯 Navigation goal set: (${x}, ${y}, ${z})`, 'success');
+                    document.getElementById('navActiveStatus').textContent = 'Navigating';
+                    document.getElementById('navActiveStatus').style.color = '#28a745';
+                } else {
+                    statusDiv.textContent = `❌ ${data.error}`;
+                    statusDiv.style.color = '#dc3545';
+                    showNotification('Failed to send navigation goal: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('navStatus');
+                statusDiv.textContent = `❌ ${error.message}`;
+                statusDiv.style.color = '#dc3545';
+                showNotification('Failed to send goal: ' + error.message, 'error');
+            }
+        }
+
+        async function pauseNavigation() {
+            try {
+                const response = await fetch('/api/slam/pause_navigation', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('navActiveStatus').textContent = 'Paused';
+                    document.getElementById('navActiveStatus').style.color = '#ffc107';
+                    showNotification('⏸️ Navigation paused', 'success');
+                } else {
+                    showNotification('Failed to pause navigation: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to pause: ' + error.message, 'error');
+            }
+        }
+
+        async function resumeNavigation() {
+            try {
+                const response = await fetch('/api/slam/resume_navigation', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('navActiveStatus').textContent = 'Navigating';
+                    document.getElementById('navActiveStatus').style.color = '#28a745';
+                    showNotification('▶️ Navigation resumed', 'success');
+                } else {
+                    showNotification('Failed to resume navigation: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to resume: ' + error.message, 'error');
+            }
+        }
+
+        async function updateNavigationStatus() {
+            try {
+                const response = await fetch('/api/slam/navigation_status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update status displays
+                    if (data.loaded_map) {
+                        document.getElementById('currentMapName').textContent = data.loaded_map;
+                    }
+                    
+                    if (data.current_goal) {
+                        const g = data.current_goal;
+                        document.getElementById('currentGoal').textContent = `(${g.x.toFixed(2)}, ${g.y.toFixed(2)}, ${g.z.toFixed(2)})`;
+                    }
+                    
+                    if (data.navigation_active) {
+                        document.getElementById('navActiveStatus').textContent = 'Navigating';
+                        document.getElementById('navActiveStatus').style.color = '#28a745';
+                    } else {
+                        document.getElementById('navActiveStatus').textContent = 'Idle';
+                        document.getElementById('navActiveStatus').style.color = '#dc3545';
+                    }
+                }
+            } catch (error) {
+                console.log('Navigation status check failed:', error);
+            }
+        }
+
+        // Click on 3D point cloud to set navigation goal (initialized in init3DViewer)
+
+        // Poll navigation status every 2 seconds
+        setInterval(updateNavigationStatus, 2000);
         
         // Trajectory visualization for live SLAM mapping
         function startTrajectoryVisualization() {
@@ -2498,6 +2769,263 @@
                 fetch('/api/disconnect', { method: 'POST' }).catch(() => {});
             }
         });
+        
+        // ===== 3D Point Cloud Visualization with Robot Path =====
+        let pointCloud3DActive = false;
+        let canvas3D, ctx3D;
+        let points3D = [];
+        let robotPath = [];  // Array of {x, y, z, timestamp} positions
+        let showPath = true;
+        let rotation3D = { x: -30, y: 45 };
+        let scale3D = 15;
+        let offset3D = { x: 0, y: 0 };
+        let isDragging = false;
+        let lastMouse = { x: 0, y: 0 };
+        let lastUpdateTime = Date.now();
+        let lastRobotPos = null;
+        
+        function init3DViewer() {
+            canvas3D = document.getElementById('pointCloud3D');
+            ctx3D = canvas3D.getContext('2d');
+            
+            // Mouse controls
+            canvas3D.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouse = { x: e.clientX, y: e.clientY };
+                canvas3D.style.cursor = 'grabbing';
+            });
+            
+            canvas3D.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - lastMouse.x;
+                const dy = e.clientY - lastMouse.y;
+                
+                if (e.button === 0) {  // Left button - rotate
+                    rotation3D.y += dx * 0.5;
+                    rotation3D.x += dy * 0.5;
+                } else {  // Right button - pan
+                    offset3D.x += dx;
+                    offset3D.y += dy;
+                }
+                
+                lastMouse = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas3D.addEventListener('mouseup', () => {
+                isDragging = false;
+                canvas3D.style.cursor = 'grab';
+            });
+            
+            canvas3D.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                scale3D *= e.deltaY < 0 ? 1.1 : 0.9;
+                scale3D = Math.max(1, Math.min(100, scale3D));
+            });
+            
+            // Click handler for Ctrl+Click navigation goal
+            canvas3D.addEventListener('click', async (e) => {
+                if (!e.ctrlKey) return;  // Only on Ctrl+Click
+                
+                // Get canvas position
+                const rect = canvas3D.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                
+                // Convert screen coordinates back to 3D world coordinates
+                // This is approximate - just use the center of point cloud
+                if (points3D.length > 0) {
+                    const avgX = points3D.reduce((sum, p) => sum + p[0], 0) / points3D.length;
+                    const avgY = points3D.reduce((sum, p) => sum + p[1], 0) / points3D.length;
+                    const avgZ = points3D.reduce((sum, p) => sum + p[2], 0) / points3D.length;
+                    
+                    // Update navigation inputs
+                    document.getElementById('navX').value = avgX.toFixed(2);
+                    document.getElementById('navY').value = avgY.toFixed(2);
+                    document.getElementById('navZ').value = avgZ.toFixed(2);
+                    
+                    console.log(`Set navigation goal to (${avgX.toFixed(2)}, ${avgY.toFixed(2)}, ${avgZ.toFixed(2)})`);
+                }
+            });
+        }
+        
+        function project3D(x, y, z) {
+            // Rotate around Y axis
+            const cosY = Math.cos(rotation3D.y * Math.PI / 180);
+            const sinY = Math.sin(rotation3D.y * Math.PI / 180);
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+            
+            // Rotate around X axis
+            const cosX = Math.cos(rotation3D.x * Math.PI / 180);
+            const sinX = Math.sin(rotation3D.x * Math.PI / 180);
+            const y1 = y * cosX - z1 * sinX;
+            const z2 = y * sinX + z1 * cosX;
+            
+            // Project to 2D
+            const screenX = canvas3D.width / 2 + x1 * scale3D + offset3D.x;
+            const screenY = canvas3D.height / 2 - y1 * scale3D + offset3D.y;
+            
+            return { x: screenX, y: screenY, depth: z2 };
+        }
+        
+        function render3DScene() {
+            // Clear canvas
+            ctx3D.fillStyle = '#0a0a0a';
+            ctx3D.fillRect(0, 0, canvas3D.width, canvas3D.height);
+            
+            // Draw grid
+            ctx3D.strokeStyle = '#222';
+            ctx3D.lineWidth = 1;
+            for (let i = -10; i <= 10; i++) {
+                const p1 = project3D(i, 0, -10);
+                const p2 = project3D(i, 0, 10);
+                ctx3D.beginPath();
+                ctx3D.moveTo(p1.x, p1.y);
+                ctx3D.lineTo(p2.x, p2.y);
+                ctx3D.stroke();
+                
+                const p3 = project3D(-10, 0, i);
+                const p4 = project3D(10, 0, i);
+                ctx3D.beginPath();
+                ctx3D.moveTo(p3.x, p3.y);
+                ctx3D.lineTo(p4.x, p4.y);
+                ctx3D.stroke();
+            }
+            
+            // Draw point cloud
+            if (points3D.length > 0) {
+                points3D.forEach(point => {
+                    const proj = project3D(point[0], point[1], point[2]);
+                    
+                    // Color by height
+                    const hue = Math.max(0, Math.min(240, (point[2] + 1) * 120));
+                    ctx3D.fillStyle = `hsl(${hue}, 80%, 50%)`;
+                    ctx3D.fillRect(proj.x - 1, proj.y - 1, 2, 2);
+                });
+            }
+            
+            // Draw robot path
+            if (showPath && robotPath.length > 1) {
+                ctx3D.strokeStyle = '#00ff00';
+                ctx3D.lineWidth = 3;
+                ctx3D.beginPath();
+                
+                const first = project3D(robotPath[0].x, robotPath[0].y, robotPath[0].z);
+                ctx3D.moveTo(first.x, first.y);
+                
+                for (let i = 1; i < robotPath.length; i++) {
+                    const proj = project3D(robotPath[i].x, robotPath[i].y, robotPath[i].z);
+                    ctx3D.lineTo(proj.x, proj.y);
+                }
+                ctx3D.stroke();
+                
+                // Draw robot position (last point)
+                const last = robotPath[robotPath.length - 1];
+                const robotProj = project3D(last.x, last.y, last.z);
+                ctx3D.fillStyle = '#ff0000';
+                ctx3D.beginPath();
+                ctx3D.arc(robotProj.x, robotProj.y, 5, 0, Math.PI * 2);
+                ctx3D.fill();
+            }
+            
+            // No data message
+            if (points3D.length === 0) {
+                ctx3D.fillStyle = '#666';
+                ctx3D.font = '16px Arial';
+                ctx3D.textAlign = 'center';
+                ctx3D.fillText('Start SLAM mapping to see points', canvas3D.width / 2, canvas3D.height / 2);
+            }
+        }
+        
+        async function update3DPointCloud() {
+            if (!pointCloud3DActive) return;
+            
+            try {
+                const response = await fetch('/api/lidar/pointcloud');
+                const data = await response.json();
+                
+                if (data.success && data.points && data.points.length > 0) {
+                    points3D = data.points;
+                    document.getElementById('point3dCount').textContent = data.count.toLocaleString();
+                    
+                    // Calculate data rate
+                    const now = Date.now();
+                    const elapsed = (now - lastUpdateTime) / 1000;
+                    const dataSize = data.count * 12; // 3 floats
+                    const rate = (dataSize / elapsed / 1024).toFixed(1);
+                    document.getElementById('data3dRate').textContent = `${rate} KB/s`;
+                    lastUpdateTime = now;
+                    
+                    // Update robot path (use center of point cloud as rough position)
+                    if (data.count > 10) {
+                        const avgX = points3D.reduce((sum, p) => sum + p[0], 0) / points3D.length;
+                        const avgY = points3D.reduce((sum, p) => sum + p[1], 0) / points3D.length;
+                        const avgZ = points3D.reduce((sum, p) => sum + p[2], 0) / points3D.length;
+                        
+                        const currentPos = { x: avgX, y: avgY, z: avgZ, timestamp: now };
+                        
+                        // Only add if moved significantly
+                        if (!lastRobotPos || 
+                            Math.sqrt(Math.pow(currentPos.x - lastRobotPos.x, 2) + 
+                                    Math.pow(currentPos.y - lastRobotPos.y, 2)) > 0.1) {
+                            robotPath.push(currentPos);
+                            lastRobotPos = currentPos;
+                            
+                            // Limit path length
+                            if (robotPath.length > 500) robotPath.shift();
+                            
+                            // Calculate path length
+                            let pathLen = 0;
+                            for (let i = 1; i < robotPath.length; i++) {
+                                const dx = robotPath[i].x - robotPath[i-1].x;
+                                const dy = robotPath[i].y - robotPath[i-1].y;
+                                pathLen += Math.sqrt(dx*dx + dy*dy);
+                            }
+                            document.getElementById('pathLength').textContent = pathLen.toFixed(2) + ' m';
+                        }
+                    }
+                    
+                    render3DScene();
+                }
+            } catch (error) {
+                console.error('3D point cloud fetch error:', error);
+            }
+        }
+        
+        function start3DVisualization() {
+            if (!canvas3D) init3DViewer();
+            pointCloud3DActive = true;
+            document.getElementById('slam3dStatus').textContent = 'Active - Mapping...';
+            document.getElementById('slam3dStatus').style.color = '#28a745';
+            
+            // Start update loop
+            const updateLoop = setInterval(() => {
+                if (!pointCloud3DActive) {
+                    clearInterval(updateLoop);
+                    return;
+                }
+                update3DPointCloud();
+            }, 100); // 10 Hz
+        }
+        
+        function stop3DVisualization() {
+            pointCloud3DActive = false;
+            document.getElementById('slam3dStatus').textContent = 'Inactive';
+            document.getElementById('slam3dStatus').style.color = '#dc3545';
+        }
+        
+        function resetView() {
+            rotation3D = { x: -30, y: 45 };
+            scale3D = 15;
+            offset3D = { x: 0, y: 0 };
+            render3DScene();
+        }
+        
+        function togglePath() {
+            showPath = !showPath;
+            render3DScene();
+        }
+        
     </script>
 </body>
 </html>
