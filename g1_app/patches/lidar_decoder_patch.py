@@ -75,7 +75,11 @@ def patched_deal_array_buffer_for_lidar(self, buffer):
             else:
                 logger.warning(f"   ⚠️  PointCloud2 decoder returned 0 points")
             
-            return decoded_data
+            # CRITICAL FIX: Return data in WebRTC message format
+            # The message structure must match what the original deal_array_buffer_for_lidar returns:
+            # {'type': 'msg', 'data': {'data': decoded_data, ...other_fields}}
+            message['data']['data'] = decoded_data
+            return message
             
         except Exception as decode_error:
             logger.error(f"PointCloud2 decode error: {decode_error}")

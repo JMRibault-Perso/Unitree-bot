@@ -51,13 +51,15 @@ class EventBus:
         with cls._lock:
             subscribers = cls._subscribers.get(event_type, []).copy()
         
-        logger.debug(f"Emitting '{event_type}' to {len(subscribers)} subscribers")
+        logger.debug(f"Emitting '{event_type}' to {len(subscribers)} subscribers (type: {type(subscribers)}, content: {[c.__name__ for c in subscribers]})")
         
-        for callback in subscribers:
+        for i, callback in enumerate(subscribers):
             try:
+                logger.debug(f"  Calling subscriber {i}: {callback.__name__}")
                 callback(data)
+                logger.debug(f"  ✅ Subscriber {i} completed")
             except Exception as e:
-                logger.error(f"Error in subscriber for '{event_type}': {e}")
+                logger.error(f"Error in subscriber {i} for '{event_type}': {e}", exc_info=True)
     
     @classmethod
     def clear(cls) -> None:

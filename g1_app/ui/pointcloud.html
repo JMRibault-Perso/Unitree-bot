@@ -369,21 +369,35 @@
         });
         
         // Check connection
-        fetch('/api/status')
-            .then(r => r.json())
-            .then(data => {
-                if (data.connected) {
+        async function checkConnection() {
+            try {
+                const response = await fetch('/api/lidar/pointcloud');
+                const data = await response.json();
+                
+                // If we have recent points, we're connected
+                if (data.success && data.count > 0) {
                     document.getElementById('connectionStatus').textContent = '✅ Connected';
                     document.getElementById('connectionStatus').classList.remove('loading');
                 } else {
-                    document.getElementById('connectionStatus').textContent = '❌ Disconnected';
-                    document.getElementById('connectionStatus').classList.remove('loading');
+                    // Fall back to status API
+                    const statusResponse = await fetch('/api/status');
+                    const statusData = await statusResponse.json();
+                    
+                    if (statusData.connected) {
+                        document.getElementById('connectionStatus').textContent = '✅ Connected';
+                        document.getElementById('connectionStatus').classList.remove('loading');
+                    } else {
+                        document.getElementById('connectionStatus').textContent = '❌ Disconnected';
+                        document.getElementById('connectionStatus').classList.remove('loading');
+                    }
                 }
-            })
-            .catch(() => {
+            } catch (error) {
                 document.getElementById('connectionStatus').textContent = '❌ Error';
                 document.getElementById('connectionStatus').classList.remove('loading');
-            });
+            }
+        }
+        
+        checkConnection();
     </script>
 </body>
 </html>

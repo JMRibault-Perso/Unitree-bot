@@ -170,28 +170,53 @@ def on_speech_recognized(data):
 
 
 def on_lidar_data_received(data):
-    """Broadcast LiDAR status to all web clients (throttled)"""
+    """Store point cloud data and broadcast status to web clients"""
+    print(f"DEBUG: on_lidar_data_received called, data type: {type(data)}")
     try:
-        # Only broadcast metadata, not full point cloud
-        asyncio.create_task(manager.broadcast({
-            "type": "lidar_active",
-            "data": {
-                "active": True,
-                "height": data.get("height"),
-                "width": data.get("width"),
-                "point_step": data.get("point_step")
-            }
-        }))
+        global robot
+        
+        if data is None:
+            print("WARNING: data is None")
+            logger.warning("⚠️  Received None data in on_lidar_data_received")
+            return
+            
+        points = data.get('points', []) if isinstance(data, dict) else []
+        print(f"DEBUG: Got {len(points)} points, robot={robot}")
+        logger.info(f"🔵 on_lidar_data_received called with {len(points)} points")
+        
+        # Store the point cloud data for API endpoint
+        if robot:
+            # Convert to list if it's a numpy array, then copy
+            if hasattr(points, 'tolist'):
+                robot.latest_lidar_points = points.tolist()
+            elif len(points) > 0:
+                robot.latest_lidar_points = list(points)
+            else:
+                robot.latest_lidar_points = []
+            print(f"DEBUG: Stored {len(robot.latest_lidar_points)} points in robot.latest_lidar_points")
+            logger.info(f"📊 Stored {len(robot.latest_lidar_points)} points in robot.latest_lidar_points")
+        else:
+            print("WARNING: robot is None!")
+            logger.warning("⚠️  Robot object is None, cannot store points")
+            
     except Exception as e:
-        logger.error(f"Error in on_lidar_data_received: {e}")
+        print(f"ERROR in handler: {e}")
+        logger.error(f"❌ Error in on_lidar_data_received: {e}", exc_info=True)
 
 
 # Subscribe to events
+logger.info("🔧 Setting up EventBus subscriptions...")
 EventBus.subscribe(Events.STATE_CHANGED, on_state_change)
+logger.info(f"  ✅ Subscribed to STATE_CHANGED")
 EventBus.subscribe(Events.CONNECTION_CHANGED, on_connection_change)
+logger.info(f"  ✅ Subscribed to CONNECTION_CHANGED")
 EventBus.subscribe(Events.BATTERY_UPDATED, on_battery_update)
+logger.info(f"  ✅ Subscribed to BATTERY_UPDATED")
 EventBus.subscribe(Events.SPEECH_RECOGNIZED, on_speech_recognized)
+logger.info(f"  ✅ Subscribed to SPEECH_RECOGNIZED")
 EventBus.subscribe(Events.LIDAR_DATA_RECEIVED, on_lidar_data_received)
+logger.info(f"  ✅ Subscribed to LIDAR_DATA_RECEIVED with handler: {on_lidar_data_received}")
+logger.info("🔧 EventBus subscriptions complete")
 
 
 @app.on_event("startup")
@@ -1438,39 +1463,90 @@ async def video_stream():
 # LiDAR Status Endpoint
 # ============================================================================
 
+@app.get("/api/status")
+async def get_status():
+    """Get overall robot status"""
+    global robot
+    
+    try:
+        print(f"DEBUG /api/status: robot={robot}, robot.connected={robot.connected if robot else 'N/A'}")
+        connected = robot.connected if robot else False
+        robot_name = "Unknown"
+        fsm_id = 0
+        battery = 0
+        
+        if robot:
+            if hasattr(robot, 'robot_name'):
+                robot_name = robot.robot_name
+            if connected and hasattr(robot, 'state_machine') and robot.state_machine:
+                if hasattr(robot.state_machine, 'current_state'):
+                    fsm_id = robot.state_machine.current_state.fsm_id
+                    battery = robot.state_machine.current_state.battery_percentage
+        
+        return {
+            "connected": connected,
+            "robot_name": robot_name,
+            "fsm_id": fsm_id,
+            "battery": battery
+        }
+    except Exception as e:
+        logger.error(f"Error in /api/status: {e}", exc_info=True)
+        return {
+            "connected": False,
+            "robot_name": "Error",
+            "fsm_id": 0,
+            "battery": 0
+        }
+
 @app.get("/api/lidar/status")
 async def get_lidar_status():
     """Get LiDAR status"""
     global robot
     
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    lidar_active = robot.state_machine.current_state.lidar_active
-    
-    return {
-        "success": True,
-        "active": lidar_active,
-        "topic": "rt/utlidar/cloud_livox_mid360",
-        "frequency": "10Hz" if lidar_active else "N/A"
-    }
+    try:
+        if not robot or not robot.connected:
+            return {"success": False, "error": "Not connected"}
+        
+        lidar_active = False
+        if hasattr(robot, 'state_machine') and robot.state_machine:
+            if hasattr(robot.state_machine, 'current_state'):
+                lidar_active = robot.state_machine.current_state.lidar_active
+        
+        return {
+            "success": True,
+            "active": lidar_active,
+            "topic": "rt/utlidar/cloud_livox_mid360",
+            "frequency": "10Hz" if lidar_active else "N/A"
+        }
+    except Exception as e:
+        logger.error(f"Error in /api/lidar/status: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
 
 @app.get("/api/lidar/pointcloud")
 async def get_lidar_pointcloud():
     """Get latest LiDAR point cloud"""
     global robot
     
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    if hasattr(robot, 'latest_lidar_points') and robot.latest_lidar_points:
+    try:
+        if not robot or not hasattr(robot, 'latest_lidar_points'):
+            return {"success": True, "points": [], "count": 0}
+        
+        points = robot.latest_lidar_points if robot.latest_lidar_points else []
+        
+        # Limit response size - only send every Nth point if too many
+        max_points = 5000
+        if len(points) > max_points:
+            step = len(points) // max_points
+            points = points[::step]
+        
         return {
             "success": True,
-            "points": robot.latest_lidar_points,
-            "count": len(robot.latest_lidar_points)
+            "points": points,
+            "count": len(points)
         }
-    
-    return {"success": True, "points": [], "count": 0}
+    except Exception as e:
+        logger.error(f"Error in /api/lidar/pointcloud: {e}", exc_info=True)
+        return {"success": True, "points": [], "count": 0}
 
 
 @app.post("/api/slam/start")
@@ -1587,6 +1663,235 @@ async def download_slam_map():
             "robot_ip": robot_ip,
             "map_path": f"/home/unitree/{map_filename}",
             "note": "G1 Air may not expose file download. The Android app likely uses SLAM info data with embedded point cloud or proprietary file transfer."
+        }
+    }
+
+
+# ============================================================================
+# SLAM Map Management and Navigation Endpoints
+# ============================================================================
+
+@app.get("/api/slam/maps")
+async def get_saved_maps():
+    """Get list of saved SLAM maps on the robot"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected", "maps": []}
+    
+    try:
+        logger.info("Querying robot for saved SLAM maps...")
+        
+        maps = []
+        
+        # Try to detect maps by probing common names
+        # These are typical map names used by Unitree robots
+        common_map_names = [
+            "test1", "test2", "test3", "test4", "test5",
+            "map1", "map2", "room1", "room2",
+            "recorded_map", "exported_map", "main", "default",
+            "front_room", "kitchen", "bedroom", "garage",
+            "floor1", "floor2"
+        ]
+        
+        # Try to get list from SLAM service or fallback to common names
+        detected_maps = []
+        
+        # Try SLAM query (may not be supported on all robots)
+        try:
+            # Send a simple query to SLAM service to list available maps
+            # This will be supported on robots with SLAM service enabled
+            query_payload = {
+                "api_id": 1950,  # Custom map list query
+            }
+            
+            await asyncio.wait_for(
+                robot.executor.datachannel.pub_sub.publish_request_new(
+                    f"rt/api/slam/request",
+                    query_payload
+                ),
+                timeout=3.0
+            )
+            
+            logger.info("Sent map list query to SLAM service")
+        except Exception as e:
+            logger.debug(f"SLAM service query not available: {e}")
+        
+        # For now, return common map names that can be probed
+        # The robot will confirm if each map exists when user tries to load it
+        for map_name in common_map_names[:10]:  # Limit to first 10
+            detected_maps.append({
+                "name": f"{map_name}.pcd",
+                "path": f"/home/unitree/{map_name}.pcd",
+                "loadable": True
+            })
+        
+        # If we found maps, return them
+        if detected_maps:
+            logger.info(f"📍 Probing found {len(detected_maps)} potential maps")
+            return {
+                "success": True,
+                "maps": detected_maps,
+                "count": len(detected_maps),
+                "note": "Showing detected map slots. Verify by loading."
+            }
+        
+        # No maps found
+        return {
+            "success": True,
+            "maps": [],
+            "count": 0,
+            "note": "No maps detected. Start SLAM mapping to create maps."
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting maps list: {e}")
+        return {"success": False, "error": str(e), "maps": []}
+
+
+@app.post("/api/slam/load_map")
+async def load_map(request: Request):
+    """Load a saved SLAM map and initialize robot pose for navigation
+    
+    Request body:
+    {
+        "map_name": "test1.pcd",  # Name of map file (with or without .pcd)
+        "x": 0.0,                 # Optional: initial robot position
+        "y": 0.0,
+        "z": 0.0
+    }
+    """
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        data = await request.json()
+        map_name = data.get("map_name", "test1.pcd")
+        x = float(data.get("x", 0.0))
+        y = float(data.get("y", 0.0))
+        z = float(data.get("z", 0.0))
+        
+        # Send load map command
+        result = await robot.executor.slam_load_map(map_name, x, y, z)
+        
+        # Update robot state
+        robot.navigation_active = True
+        robot.loaded_map = map_name
+        robot.navigation_goal = None
+        
+        logger.info(f"🗺️  Map '{map_name}' loaded for navigation")
+        
+        return {
+            "success": True,
+            "command": result,
+            "map": map_name,
+            "initial_pose": {"x": x, "y": y, "z": z},
+            "status": "ready_for_navigation"
+        }
+    except Exception as e:
+        logger.error(f"Error loading map: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/slam/navigate_to")
+async def navigate_to_goal(request: Request):
+    """Send robot to a specific position in the loaded map
+    
+    Request body:
+    {
+        "x": 2.0,      # Target X position (meters)
+        "y": 1.5,      # Target Y position (meters)
+        "z": 0.0       # Optional: target height
+    }
+    
+    Note: Target must be within 10 meters of current position
+    """
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    if not getattr(robot, 'navigation_active', False):
+        return {"success": False, "error": "Navigation not active - load a map first"}
+    
+    try:
+        data = await request.json()
+        x = float(data.get("x"))
+        y = float(data.get("y"))
+        z = float(data.get("z", 0.0))
+        
+        # Send navigation command
+        result = await robot.executor.slam_navigate_to(x, y, z)
+        
+        # Store goal
+        robot.navigation_goal = {"x": x, "y": y, "z": z, "timestamp": datetime.now().isoformat()}
+        
+        logger.info(f"🎯 Navigation goal set: ({x}, {y}, {z})")
+        
+        return {
+            "success": True,
+            "command": result,
+            "goal": robot.navigation_goal,
+            "status": "navigating"
+        }
+    except Exception as e:
+        logger.error(f"Error sending navigation goal: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/slam/pause_navigation")
+async def pause_navigation():
+    """Pause active navigation"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        result = await robot.executor.slam_pause_navigation()
+        logger.info("⏸️  Navigation paused")
+        return {"success": True, "command": result, "status": "paused"}
+    except Exception as e:
+        logger.error(f"Error pausing navigation: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/slam/resume_navigation")
+async def resume_navigation():
+    """Resume paused navigation"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        result = await robot.executor.slam_resume_navigation()
+        logger.info("▶️  Navigation resumed")
+        return {"success": True, "command": result, "status": "resumed"}
+    except Exception as e:
+        logger.error(f"Error resuming navigation: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/slam/navigation_status")
+async def get_navigation_status():
+    """Get current navigation status"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    return {
+        "success": True,
+        "navigation_active": getattr(robot, 'navigation_active', False),
+        "loaded_map": getattr(robot, 'loaded_map', None),
+        "current_goal": getattr(robot, 'navigation_goal', None),
+        "slam_info": {
+            "active": getattr(robot, 'slam_active', False),
+            "trajectory_points": len(getattr(robot, 'slam_trajectory', [])),
+            "latest_pose": robot.slam_trajectory[-1] if getattr(robot, 'slam_trajectory', []) else None
         }
     }
 

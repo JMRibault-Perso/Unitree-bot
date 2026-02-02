@@ -59,6 +59,13 @@ class RobotController:
         self.latest_lidar_points = []
         self.lidar_handler = LiDARPointCloudHandler()
         
+        # SLAM and Navigation state
+        self.slam_active = False
+        self.slam_trajectory = []
+        self.navigation_active = False
+        self.loaded_map = None
+        self.navigation_goal = None
+        
         # Register callback to update latest_lidar_points when new data arrives
         def on_point_cloud_update(binary_data: bytes, metadata: dict):
             try:
@@ -340,29 +347,53 @@ class RobotController:
             def on_slam_point_cloud(data: dict):
                 """Handle SLAM mapping point cloud messages
                 
-                Patched decoder returns:
+                PointCloud2 decoder sets message['data']['data'] = decoded_data
+                So the callback receives message['data'] which contains:
                 {
-                    'type': 'lidar_pointcloud',
-                    'binary_data': bytes,  # Raw point cloud
-                    'metadata': dict,      # JSON metadata
-                    'size': int            # Binary data size
+                    'header': {...},         # Original ROS2 header
+                    'xmin', 'xmax', etc.,   # Bounding box
+                    'data': {                # ← Decoded PointCloud2 data
+                        'point_count': int,
+                        'points': [[x,y,z], ...],
+                        'format': 'g1_slam_int16_12byte',
+                        'metadata': {...}
+                    }
                 }
                 """
                 try:
-                    if isinstance(data, dict) and data.get('type') == 'lidar_pointcloud':
-                        binary_data = data.get('binary_data')
-                        metadata = data.get('metadata', {})
+                    # The message structure is TRIPLE-nested:
+                    # data = {'type': 'msg', 'topic': '...', 'data': {...}}
+                    # data['data'] = {'header': ..., 'xmin': ..., 'data': {...}}
+                    # data['data']['data'] = {point_count, points, ...} ← DECODED POINTCLOUD
+                    
+                    if isinstance(data, dict) and 'data' in data:
+                        outer_data = data['data']  # Has header, bounds, and nested 'data'
                         
-                        if binary_data:
-                            # Pass to LiDAR handler (triggers callbacks)
-                            self.lidar_handler.set_raw_point_cloud(binary_data, metadata)
+                        if isinstance(outer_data, dict) and 'data' in outer_data:
+                            # THIS is the decoded point cloud!
+                            pointcloud = outer_data['data']
                             
-                            logger.debug(f"📦 SLAM point cloud: {len(binary_data)} bytes, metadata: {list(metadata.keys())}")
+                            if isinstance(pointcloud, dict) and 'point_count' in pointcloud:
+                                point_count = pointcloud['point_count']
+                                points = pointcloud.get('points', [])
+                                
+                                logger.info(f"🎯 Received {point_count} points from SLAM")
+                                
+                                EventBus.emit(Events.LIDAR_DATA_RECEIVED, {
+                                    'point_count': point_count,
+                                    'points': points,
+                                    'format': pointcloud.get('format', 'unknown'),
+                                    'metadata': pointcloud.get('metadata', {})
+                                })
+                            else:
+                                logger.warning(f"⚠️  point_count not found. Keys: {list(pointcloud.keys()) if isinstance(pointcloud, dict) else type(pointcloud)}")
+                        else:
+                            logger.warning(f"⚠️  No nested 'data' in outer_data")
                     else:
-                        logger.warning(f"Unexpected point cloud data format: {type(data)}")
+                        logger.warning(f"⚠️  No 'data' key in callback data")
                         
                 except Exception as e:
-                    logger.error(f"Error processing SLAM point cloud: {e}")
+                    logger.error(f"❌ Error processing SLAM point cloud: {e}")
                     import traceback
                     traceback.print_exc()
             
