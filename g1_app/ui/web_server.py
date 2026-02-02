@@ -37,7 +37,7 @@ from g1_app.utils import setup_app_logging
 from g1_app.core.robot_discovery import get_discovery
 
 # Setup logging
-setup_app_logging(verbose=True)
+setup_app_logging(verbose=False)
 logger = logging.getLogger(__name__)
 
 # FastAPI app
@@ -360,6 +360,10 @@ async def connect_robot(ip: str, serial_number: str):
             state = robot.current_state
             allowed = robot.state_machine.get_allowed_transitions()
             
+            # Pause discovery while connected (keep cached robots)
+            discovery = get_discovery()
+            await discovery.stop(clear=False)
+
             return {
                 "success": True,
                 "state": {
@@ -403,6 +407,10 @@ async def connect_robot(ip: str, serial_number: str):
         # CRITICAL: Get allowed transitions for the initial state
         allowed = robot.state_machine.get_allowed_transitions()
         
+        # Pause discovery while connected (keep cached robots)
+        discovery = get_discovery()
+        await discovery.stop(clear=False)
+
         return {
             "success": True,
             "state": {
@@ -431,6 +439,9 @@ async def disconnect_robot():
         if robot:
             await robot.disconnect()
             robot = None
+        # Resume discovery after disconnect
+        discovery = get_discovery()
+        await discovery.start()
         return {"success": True}
     except Exception as e:
         logger.error(f"Disconnect failed: {e}")
@@ -1598,10 +1609,14 @@ async def download_slam_map():
     The map is saved on the robot at /home/unitree/temp_map.pcd
     Try to retrieve it via HTTP if available.
     """
+    from fastapi.responses import JSONResponse, Response
     global robot
     
     if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Not connected"}
+        )
     
     robot_ip = robot.robot_ip
     map_filename = "temp_map.pcd"
@@ -1620,7 +1635,6 @@ async def download_slam_map():
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(url)
                 if response.status_code == 200 and len(response.content) > 100:
-                    from fastapi.responses import Response
                     return Response(
                         content=response.content,
                         media_type="application/octet-stream",
@@ -1631,15 +1645,18 @@ async def download_slam_map():
             continue
     
     # File not accessible via HTTP
-    return {
-        "success": False,
-        "error": "Map file not accessible via HTTP",
-        "info": {
-            "robot_ip": robot_ip,
-            "map_path": f"/home/unitree/{map_filename}",
-            "note": "G1 Air may not expose file download. The Android app likely uses SLAM info data with embedded point cloud or proprietary file transfer."
+    return JSONResponse(
+        status_code=404,
+        content={
+            "success": False,
+            "error": "Map file not accessible via HTTP",
+            "info": {
+                "robot_ip": robot_ip,
+                "map_path": f"/home/unitree/{map_filename}",
+                "suggestion": "G1 Air may not expose file download endpoints. Use SLAM point cloud data instead."
+            }
         }
-    }
+    )
 
 
 # ============================================================================

@@ -1,11 +1,13 @@
 """
-Robot Discovery - ARP table scanning (Windows/Linux compatible)
+Robot Discovery - MAC-based ARP table lookup (Windows/Linux compatible)
+Uses MAC addresses from bindings file to find robot IPs via ARP cache
 """
 import asyncio
 import logging
 import platform
 import subprocess
 import json
+import socket
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, asdict
@@ -122,33 +124,72 @@ class RobotDiscovery:
             return False
     
     async def _scan_loop(self):
-        """Scan ARP table every 5 seconds"""
+        """Scan ARP table every 5 seconds to find bound robots by MAC"""
         while self._running:
             try:
+                # Refresh ARP cache by pinging the broadcast address
+                # This forces the network stack to populate ARP with all reachable devices
+                system = platform.system().lower()
+                try:
+                    # Get local subnet from a socket connection (more reliable than hardcoding)
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    local_ip = s.getsockname()[0]
+                    s.close()
+                    # Calculate broadcast address (assumes /24 subnet)
+                    broadcast_ip = ".".join(local_ip.split(".")[:3]) + ".255"
+                except:
+                    broadcast_ip = "192.168.1.255"  # Fallback
+                
+                # Send broadcast ping to populate ARP cache
+                try:
+                    if system == "windows":
+                        subprocess.run(['ping', '-n', '1', broadcast_ip], 
+                                     capture_output=True, timeout=2)
+                    else:
+                        subprocess.run(['ping', '-c', '1', '-b', broadcast_ip], 
+                                     capture_output=True, timeout=2)
+                except:
+                    pass  # Broadcast might fail, that's ok
+                
+                # Now scan the ARP table for bound robot MACs
                 entries = self._get_arp_table()
                 logger.debug(f"ARP scan found {len(entries)} entries")
                 
-                # Update bound robots with discovered IPs
-                for ip, mac in entries:
-                    mac = mac.lower()
-                    logger.debug(f"Checking ARP entry: {ip} -> {mac}")
+                # Check each bound robot's MAC against ARP table
+                for robot_name, robot in list(self._robots.items()):
+                    if not robot.mac_address:
+                        continue
                     
-                    # Find if this MAC matches a bound robot
-                    for robot_name, robot in self._robots.items():
-                        if robot.mac_address and robot.mac_address.lower() == mac:
-                            logger.info(f"MAC match! Robot {robot_name} found at {ip}, testing ping...")
-                            # Update IP and online status
+                    target_mac = robot.mac_address.lower()
+                    logger.debug(f"Looking for robot {robot_name} with MAC {target_mac}")
+                    
+                    # Search ARP table for this MAC
+                    found = False
+                    for ip, mac in entries:
+                        if mac.lower() == target_mac:
+                            logger.info(f"✓ Found {robot_name} at {ip} via ARP")
                             if self._ping_ok(ip):
                                 robot.ip = ip
                                 robot.is_online = True
                                 robot.last_seen = datetime.now()
-                                logger.info(f"ARP: Robot {robot_name} is ONLINE at {ip}")
+                                logger.info(f"✓ Robot {robot_name} is ONLINE at {ip}")
+                                found = True
+                                break
                             else:
-                                logger.warning(f"ARP: Robot {robot_name} at {ip} failed ping test")
-                            break
+                                logger.debug(f"Ping failed for {robot_name} at {ip}")
+                    
+                    if not found:
+                        # MAC not in ARP cache - robot might be offline
+                        if robot.is_online:
+                            logger.warning(f"✗ Robot {robot_name} is OFFLINE (MAC {target_mac} not in ARP)")
+                        robot.is_online = False
+                        robot.ip = None
                 
             except Exception as e:
                 logger.error(f"ARP scan error: {e}")
+                import traceback
+                traceback.print_exc()
             
             await asyncio.sleep(5)
     
@@ -160,8 +201,12 @@ class RobotDiscovery:
         logger.info("Starting robot discovery via ARP table...")
         self._scan_task = asyncio.create_task(self._scan_loop())
     
-    async def stop(self):
-        """Stop discovery"""
+    async def stop(self, clear: bool = True):
+        """Stop discovery
+
+        Args:
+            clear: Whether to clear cached robots (default True)
+        """
         if not self._running:
             return
         self._running = False
@@ -172,7 +217,8 @@ class RobotDiscovery:
                 await self._scan_task
             except asyncio.CancelledError:
                 pass
-        self._robots.clear()
+        if clear:
+            self._robots.clear()
     
     def get_robots(self) -> List[RobotInfo]:
         """Get list of discovered robots"""

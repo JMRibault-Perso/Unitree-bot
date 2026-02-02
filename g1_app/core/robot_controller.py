@@ -51,6 +51,8 @@ class RobotController:
         
         # Track first FSM state received after connection
         self._first_state_logged = False
+        self._last_state_log_ts = 0.0
+        self._last_bms_log_ts = 0.0
         
         # Video frame storage
         self.latest_frame = None
@@ -190,8 +192,11 @@ class RobotController:
                         logger.warning("=" * 80)
                         self._first_state_logged = True
                     
-                    # Debug logging (disabled - too verbose)
-                    logger.info(f"🤖 Robot state update: fsm_id={fsm_id}, fsm_mode={fsm_mode}, task_id={task_id}")
+                    # Throttle state logs to avoid flooding
+                    now = asyncio.get_event_loop().time()
+                    if (now - self._last_state_log_ts) > 2.0:
+                        logger.info(f"🤖 Robot state update: fsm_id={fsm_id}, fsm_mode={fsm_mode}, task_id={task_id}")
+                        self._last_state_log_ts = now
                     
                     # Update state machine with actual FSM state
                     if fsm_id is not None:
@@ -234,11 +239,15 @@ class RobotController:
         """
         def on_bms_update(data: dict):
             """Handle BMS state updates"""
-            logger.info(f"🔋 BMS CALLBACK! Topic: {data.get('topic', 'unknown')}")
+            # Throttle battery logs to avoid flooding
+            now = asyncio.get_event_loop().time()
+            if (now - self._last_bms_log_ts) > 5.0:
+                logger.info(f"🔋 BMS CALLBACK! Topic: {data.get('topic', 'unknown')}")
             try:
                 if isinstance(data, dict) and 'data' in data:
                     bms_data = data['data']
-                    logger.info(f"🔋 BMS Keys: {list(bms_data.keys())[:30]}")
+                    if (now - self._last_bms_log_ts) > 5.0:
+                        logger.info(f"🔋 BMS Keys: {list(bms_data.keys())[:30]}")
                     
                     # BmsState_ fields from SDK: soc_, current_, temperature_, bmsvoltage_
                     soc = bms_data.get('soc', bms_data.get('soc_', bms_data.get('battery_percentage', 0)))
@@ -251,7 +260,9 @@ class RobotController:
                     # Voltage is array, sum or take first
                     voltage_value = sum(voltage) / 1000.0 if isinstance(voltage, (list, tuple)) else voltage / 1000.0
                     
-                    logger.info(f"🔋 Battery: {soc}% | {voltage_value}V | {current}mA | {temp_value}°C")
+                    if (now - self._last_bms_log_ts) > 5.0:
+                        logger.info(f"🔋 Battery: {soc}% | {voltage_value}V | {current}mA | {temp_value}°C")
+                        self._last_bms_log_ts = now
                     
                     EventBus.emit(Events.BATTERY_UPDATED, {
                         "soc": soc,

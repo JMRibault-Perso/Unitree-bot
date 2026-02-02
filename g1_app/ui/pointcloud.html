@@ -122,6 +122,9 @@
                 <button id="startMappingBtn">Start SLAM Mapping</button>
                 <button id="stopMappingBtn" disabled>Stop Mapping</button>
                 <button id="resetViewBtn">Reset View</button>
+                <button id="topViewBtn" style="background: #6c63ff;">🔝 Top View</button>
+                <button id="sideViewBtn" style="background: #6c63ff;">↔️ Side View</button>
+                <button id="frontViewBtn" style="background: #6c63ff;">➡️ Front View</button>
                 <div id="stats">
                     <span>Points: <strong id="pointCount">0</strong></span> | 
                     <span>FPS: <strong id="fps">0</strong></span>
@@ -167,7 +170,7 @@
         // State
         let points = [];
         let slamActive = false;
-        let rotation = { x: 0, y: 0 };
+        let rotation = { x: -Math.PI / 2, y: 0 };  // Start with top-down view for horizontal SLAM map
         let scale = 20;
         let offset = { x: canvas.width / 2, y: canvas.height / 2 };
         let lastUpdateTime = Date.now();
@@ -189,8 +192,8 @@
             const dx = e.clientX - lastMouse.x;
             const dy = e.clientY - lastMouse.y;
             
-            rotation.y += dx * 0.01;
-            rotation.x += dy * 0.01;
+            rotation.y -= dx * 0.01;  // Invert horizontal rotation
+            rotation.x -= dy * 0.01;  // Invert vertical rotation
             
             lastMouse = { x: e.clientX, y: e.clientY };
         });
@@ -363,6 +366,28 @@
         });
         
         document.getElementById('resetViewBtn').addEventListener('click', () => {
+            rotation = { x: 0, y: 0 };
+            scale = 20;
+            offset = { x: canvas.width / 2, y: canvas.height / 2 };
+        });
+        
+        // View presets for better SLAM map orientation
+        document.getElementById('topViewBtn').addEventListener('click', () => {
+            // Top-down view (bird's eye) - best for SLAM navigation
+            rotation = { x: -Math.PI / 2, y: 0 };
+            scale = 20;
+            offset = { x: canvas.width / 2, y: canvas.height / 2 };
+        });
+        
+        document.getElementById('sideViewBtn').addEventListener('click', () => {
+            // Side view (looking from right)
+            rotation = { x: 0, y: Math.PI / 2 };
+            scale = 20;
+            offset = { x: canvas.width / 2, y: canvas.height / 2 };
+        });
+        
+        document.getElementById('frontViewBtn').addEventListener('click', () => {
+            // Front view (looking forward with robot)
             rotation = { x: 0, y: 0 };
             scale = 20;
             offset = { x: canvas.width / 2, y: canvas.height / 2 };

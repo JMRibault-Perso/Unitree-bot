@@ -504,17 +504,25 @@
             </div>
         </div>
 
-        <!-- 3D SLAM Point Cloud Viewer -->
+        <!-- Camera Video Panel -->
         <div class="panel" id="videoPanel" style="display: none;">
+            <h2>📹 Robot Camera</h2>
+            <div style="background: #000; border-radius: 8px; overflow: hidden;">
+                <img id="videoStream" src="/api/video/stream" style="width: 100%; height: auto; display: block;" alt="Robot camera feed">
+            </div>
+        </div>
+
+        <!-- 3D SLAM Point Cloud Viewer -->
+        <div class="panel" id="slamPanel" style="display: none;">
             <h2>🗺️ SLAM Point Cloud & Robot Path</h2>
             
             <!-- Control buttons -->
             <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                 <button id="slamStartBtn" onclick="startSLAM()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    ▶️ Start SLAM Mapping
+                    ▶️ Start SLAM
                 </button>
                 <button id="slamStopBtn" onclick="stopSLAM()" disabled style="padding: 10px 20px; background: #ffc107; color: #000; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    ⏸️ Stop Mapping
+                    ⏸️ Stop SLAM
                 </button>
                 <button onclick="resetView()" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
                     🔄 Reset View
@@ -1383,6 +1391,7 @@
                     const gesturesPanel = document.getElementById('gesturesPanel');
                     const teachModePanel = document.getElementById('teachModePanel');
                     const videoPanel = document.getElementById('videoPanel');
+                    const slamPanel = document.getElementById('slamPanel');
                     const navigationPanel = document.getElementById('navigationPanel');
                     const connectionStatus = document.getElementById('connectionStatus');
                     
@@ -1394,7 +1403,9 @@
                     if (navigationPanel) navigationPanel.style.display = 'block';
                     if (videoPanel) {
                         videoPanel.style.display = 'block';
-                        startLidarVisualization(); // Start LiDAR rendering
+                    }
+                    if (slamPanel) {
+                        slamPanel.style.display = 'block';
                     }
                     if (connectionStatus) {
                         connectionStatus.textContent = `Connected to ${name}`;
@@ -2176,11 +2187,11 @@
         // Keyboard control mapping (base values - will be multiplied by velocityScale)
         const keyMapBase = {
             'w': { vx: 0.3, vy: 0, omega: 0 },      // Forward
-            'a': { vx: 0, vy: 0.6, omega: 0 },      // Strafe left
+            'a': { vx: 0, vy: -0.6, omega: 0 },     // Strafe left
             's': { vx: -0.3, vy: 0, omega: 0 },     // Backward
-            'd': { vx: 0, vy: -0.6, omega: 0 },     // Strafe right
-            'q': { vx: 0, vy: 0, omega: 0.5 },      // Turn left
-            'e': { vx: 0, vy: 0, omega: -0.5 },     // Turn right
+            'd': { vx: 0, vy: 0.6, omega: 0 },      // Strafe right
+            'q': { vx: 0, vy: 0, omega: -0.5 },     // Turn left
+            'e': { vx: 0, vy: 0, omega: 0.5 },      // Turn right
             ' ': { vx: 0, vy: 0, omega: 0 }         // Stop
         };
 
@@ -2356,20 +2367,6 @@
             console.log('PCD data received, size:', pcdText.length);
             showNotification('🎨 3D visualization coming soon...', 'info');
             // TODO: Implement Three.js point cloud rendering
-        }
-
-        async function closeSLAM() {
-            try {
-                const response = await fetch('/api/slam/close', { method: 'POST' });
-                const data = await response.json();
-                if (data.success) {
-                    showNotification('🛑 SLAM closed - LiDAR disabled', 'success');
-                } else {
-                    showNotification('Failed to close SLAM: ' + (data.error || 'Unknown error'), 'error');
-                }
-            } catch (error) {
-                showNotification('Failed to close SLAM: ' + error.message, 'error');
-            }
         }
 
         // =====================================================================
@@ -2699,69 +2696,6 @@
             ctx.fillText('Waiting for LiDAR data...', canvas.width/2, canvas.height/2);
         }
         
-        function startLidarVisualization() {
-            if (lidarInterval) return;
-            
-            const canvas = document.getElementById('lidarCanvas');
-            if (!canvas) return;
-            
-            const ctx = canvas.getContext('2d');
-            
-            lidarInterval = setInterval(async () => {
-                try {
-                    const response = await fetch('/api/lidar/pointcloud');
-                    const data = await response.json();
-                    
-                    if (data.success && data.points && data.points.length > 0) {
-                        // Clear canvas
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        
-                        // Draw axes
-                        ctx.strokeStyle = '#333';
-                        ctx.beginPath();
-                        ctx.moveTo(canvas.width/2, 0);
-                        ctx.lineTo(canvas.width/2, canvas.height);
-                        ctx.moveTo(0, canvas.height/2);
-                        ctx.lineTo(canvas.width, canvas.height/2);
-                        ctx.stroke();
-                        
-                        // Draw points (top-down view: X-Y plane)
-                        const scale = 50; // pixels per meter
-                        const centerX = canvas.width / 2;
-                        const centerY = canvas.height / 2;
-                        
-                        data.points.forEach(p => {
-                            const x = centerX + p.x * scale;
-                            const y = centerY - p.y * scale; // Flip Y for screen coords
-                            
-                            // Color by height (Z)
-                            const hue = Math.max(0, Math.min(120, (p.z + 2) * 30));
-                            ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-                            ctx.fillRect(x, y, 2, 2);
-                        });
-                    } else {
-                        // No data
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.fillStyle = '#666';
-                        ctx.font = '14px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('No LiDAR data', canvas.width/2, canvas.height/2);
-                    }
-                } catch (error) {
-                    console.error('LiDAR fetch error:', error);
-                }
-            }, 100); // 10 Hz
-        }
-        
-        function stopLidarVisualization() {
-            if (lidarInterval) {
-                clearInterval(lidarInterval);
-                lidarInterval = null;
-            }
-        }
-
         // Disconnect robot on page refresh/close
         window.addEventListener('beforeunload', (event) => {
             if (isConnected) {
@@ -2776,7 +2710,7 @@
         let points3D = [];
         let robotPath = [];  // Array of {x, y, z, timestamp} positions
         let showPath = true;
-        let rotation3D = { x: -30, y: 45 };
+        let rotation3D = { x: -90, y: 0 };  // Top-down view for horizontal SLAM map
         let scale3D = 15;
         let offset3D = { x: 0, y: 0 };
         let isDragging = false;
@@ -2801,8 +2735,8 @@
                 const dy = e.clientY - lastMouse.y;
                 
                 if (e.button === 0) {  // Left button - rotate
-                    rotation3D.y += dx * 0.5;
-                    rotation3D.x += dy * 0.5;
+                    rotation3D.y -= dx * 0.5;  // Invert horizontal rotation
+                    rotation3D.x -= dy * 0.5;  // Invert vertical rotation
                 } else {  // Right button - pan
                     offset3D.x += dx;
                     offset3D.y += dy;
@@ -3015,7 +2949,7 @@
         }
         
         function resetView() {
-            rotation3D = { x: -30, y: 45 };
+            rotation3D = { x: -90, y: 0 };  // Top-down view for horizontal SLAM map
             scale3D = 15;
             offset3D = { x: 0, y: 0 };
             render3DScene();
