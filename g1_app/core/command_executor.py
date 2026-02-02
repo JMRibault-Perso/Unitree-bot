@@ -429,6 +429,24 @@ class CommandExecutor:
         logger.info(f"EXPERIMENTAL: Deleting action '{action_name}' (API 7112)")
         return await self._send_command(payload, service=Service.ARM)
     
+    async def rename_action(self, old_name: str, new_name: str) -> dict:
+        """
+        EXPERIMENTAL: Rename a saved action
+        
+        Args:
+            old_name: Current name of the action
+            new_name: New name for the action
+            
+        Returns:
+            Command payload
+        """
+        payload = {
+            "api_id": ArmAPI.RENAME_ACTION,
+            "parameter": json.dumps({"old_name": old_name, "new_name": new_name})
+        }
+        logger.info(f"EXPERIMENTAL: Renaming action '{old_name}' to '{new_name}' (API 7113)")
+        return await self._send_command(payload, service=Service.ARM)
+    
     async def stop_custom_action(self) -> dict:
         """Stop custom action playback"""
         payload = {

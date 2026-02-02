@@ -1,0 +1,36 @@
+DEBUG:g1_app.core.event_bus:Subscribed to 'state_changed' (total subscribers: 1)
+2026-01-30 20:00:41,042 [DEBUG] g1_app.core.event_bus: Subscribed to 'state_changed' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'connection_changed' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'battery_updated' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'speech_recognized' (total subscribers: 1)
+2026-01-30 20:00:41,043 [DEBUG] g1_app.core.event_bus: Subscribed to 'connection_changed' (total subscribers: 1)
+2026-01-30 20:00:41,043 [DEBUG] g1_app.core.event_bus: Subscribed to 'battery_updated' (total subscribers: 1)
+2026-01-30 20:00:41,043 [DEBUG] g1_app.core.event_bus: Subscribed to 'speech_recognized' (total subscribers: 1)
+2026-01-30 20:00:41,043 [DEBUG] g1_app.core.event_bus: Subscribed to 'lidar_data_received' (total subscribers: 1)
+DEBUG:g1_app.core.event_bus:Subscribed to 'lidar_data_received' (total subscribers: 1)
+c:\Unitree\G1\Unitree-bot\g1_app\ui\web_server.py:196: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+c:\Unitree\G1\Unitree-bot\g1_app\ui\web_server.py:204: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+INFO:     Started server process [28988]
+INFO:     Waiting for application startup.
+INFO:g1_app.core.robot_discovery:[*] RobotDiscovery initialized (ARP cache scanning, no multicast)
+2026-01-30 20:00:41,136 [INFO] g1_app.core.robot_discovery: [*] RobotDiscovery initialized (ARP cache scanning, no multicast)
+INFO:g1_app.core.robot_discovery:[*] Starting robot discovery (ARP scan every 5 seconds)
+2026-01-30 20:00:41,137 [INFO] g1_app.core.robot_discovery: [*] Starting robot discovery (ARP scan every 5 seconds)
+INFO:g1_app.core.robot_discovery:[+] Discovered robot: Robot_192.168.86.3 at 192.168.86.3 (MAC: fc:23:cd:92:60:02)
+2026-01-30 20:00:41,205 [INFO] g1_app.core.robot_discovery: [+] Discovered robot: Robot_192.168.86.3 at 192.168.86.3 (MAC: fc:23:cd:92:60:02)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55281 - "WebSocket /ws" [accepted]
+INFO:     connection open

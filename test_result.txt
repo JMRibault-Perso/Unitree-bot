@@ -1,0 +1,14 @@
+============================================================
+Testing ACTUAL Connection Flow
+============================================================
+
+0. POST /api/disconnect (cleanup)
+Status: 200
+
+1. GET /api/discover
+Status: 200
+Discovered: name=Robot_192.168.86.3 ip=192.168.86.3 serial=Robot_192.168.86.3
+
+2. POST /api/connect (timeout=15 seconds)
+ERROR: Connection timed out after 15 seconds - robot not responding
+This means the robot is online in ARP cache but not responding to WebRTC

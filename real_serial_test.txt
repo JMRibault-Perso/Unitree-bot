@@ -1,0 +1,11 @@
+============================================================
+Testing Connection with Real Serial Number
+============================================================
+
+Target: G1_6937 @ 192.168.86.3
+
+1. POST /api/disconnect (cleanup)
+Status: 200
+
+2. POST /api/connect (timeout=15 seconds)
+ERROR: Connection timed out - robot not responding on WebRTC

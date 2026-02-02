@@ -93,8 +93,9 @@ class ArmAPI(IntEnum):
     STOP_RECORD_ACTION = 7110       # EXPERIMENTAL: Stop recording
     SAVE_RECORDED_ACTION = 7111     # EXPERIMENTAL: Save recording with name
     DELETE_ACTION = 7112            # EXPERIMENTAL: Delete saved action
+    RENAME_ACTION = 7113            # EXPERIMENTAL: Rename saved action
     
-    STOP_CUSTOM_ACTION = 7113       # Stop teach playback
+    STOP_CUSTOM_ACTION = 7114       # Stop teach playback
 
 
 # ============================================================================
