@@ -13,17 +13,39 @@ import sys
 import logging
 import struct
 import json
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+import os
+from pathlib import Path
 
-from unitree_webrtc_connect.webrtc_datachannel import WebRTCDataChannel
+# Add WebRTC library paths (Linux and Windows)
+project_root = str(Path(__file__).parent.parent.parent)
+webrtc_paths = [
+    '/root/G1/go2_webrtc_connect',  # Linux
+    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows
+]
+for path in webrtc_paths:
+    if os.path.exists(path) and path not in sys.path:
+        sys.path.insert(0, path)
+
+# Try to import WebRTC - only available on Linux with library installed
+try:
+    from unitree_webrtc_connect.webrtc_datachannel import WebRTCDataChannel
+    WEBRTC_AVAILABLE = True
+except ImportError:
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️  unitree_webrtc_connect not available - LiDAR decoder patch disabled (Windows/missing library)")
+    WEBRTC_AVAILABLE = False
+    WebRTCDataChannel = None
 
 # Import PointCloud2 decoder instead of LibVoxel
 from .pointcloud2_decoder import PointCloud2Decoder
 
 logger = logging.getLogger(__name__)
 
-# Store original method
-_original_deal_array_buffer_for_lidar = WebRTCDataChannel.deal_array_buffer_for_lidar
+# Store original method if WebRTC is available
+if WEBRTC_AVAILABLE:
+    _original_deal_array_buffer_for_lidar = WebRTCDataChannel.deal_array_buffer_for_lidar
+else:
+    _original_deal_array_buffer_for_lidar = None
 
 def patched_deal_array_buffer_for_lidar(self, buffer):
     """
@@ -102,7 +124,9 @@ def patched_deal_array_buffer_for_lidar(self, buffer):
         }
 
 
-# Apply the patch
-WebRTCDataChannel.deal_array_buffer_for_lidar = patched_deal_array_buffer_for_lidar
-
-logger.info("✅ G1 PointCloud2 decoder patch applied")
+# Apply the patch only if WebRTC is available
+if WEBRTC_AVAILABLE and WebRTCDataChannel is not None:
+    WebRTCDataChannel.deal_array_buffer_for_lidar = patched_deal_array_buffer_for_lidar
+    logger.info("✅ G1 PointCloud2 decoder patch applied")
+else:
+    logger.warning("⚠️  G1 PointCloud2 decoder patch NOT applied (WebRTC library not available)")

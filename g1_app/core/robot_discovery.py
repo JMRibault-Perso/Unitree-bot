@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 # Path to robot bindings file
 BINDINGS_FILE = Path.home() / ".unitree_robot_bindings.json"
 
+# Known Unitree MAC address prefixes (OUI - Organizationally Unique Identifier)
+UNITREE_MAC_PREFIXES = [
+    'fc:23:cd',  # Unitree Robotics MAC prefix
+]
+
 @dataclass
 class RobotInfo:
     """Information about a discovered robot"""
@@ -86,12 +91,21 @@ class RobotDiscovery:
             if system == "windows":
                 result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=2)
                 for line in result.stdout.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
                     parts = line.split()
+                    # Windows format: IP MAC TYPE
+                    # Example: "192.168.86.11         fc-23-cd-92-60-02     dynamic"
                     if len(parts) >= 2:
+                        # Check if first part looks like an IP address
                         ip = parts[0].strip()
-                        mac = parts[1].strip().replace('-', ':')
-                        # Get all entries, will match against bound MACs
-                        arp_entries.append((ip, mac))
+                        if '.' in ip and len(ip.split('.')) == 4:
+                            mac = parts[1].strip().replace('-', ':').lower()
+                            # Validate MAC format (should have colons or dashes)
+                            if ':' in mac or len(mac.replace(':', '')) == 12:
+                                arp_entries.append((ip, mac))
+                                logger.debug(f"ARP entry: {ip} -> {mac}")
             else:
                 # Linux/Mac
                 result = subprocess.run(['arp', '-n'], capture_output=True, text=True, timeout=2)
@@ -99,7 +113,7 @@ class RobotDiscovery:
                     parts = line.split()
                     if len(parts) >= 3:
                         ip = parts[0]
-                        mac = parts[2]
+                        mac = parts[2].lower()
                         # Get all entries, will match against bound MACs
                         arp_entries.append((ip, mac))
                             
@@ -127,62 +141,63 @@ class RobotDiscovery:
         """Scan ARP table every 5 seconds to find bound robots by MAC"""
         while self._running:
             try:
-                # Refresh ARP cache by pinging the broadcast address
-                # This forces the network stack to populate ARP with all reachable devices
-                system = platform.system().lower()
-                try:
-                    # Get local subnet from a socket connection (more reliable than hardcoding)
-                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s.connect(("8.8.8.8", 80))
-                    local_ip = s.getsockname()[0]
-                    s.close()
-                    # Calculate broadcast address (assumes /24 subnet)
-                    broadcast_ip = ".".join(local_ip.split(".")[:3]) + ".255"
-                except:
-                    broadcast_ip = "192.168.1.255"  # Fallback
-                
-                # Send broadcast ping to populate ARP cache
-                try:
-                    if system == "windows":
-                        subprocess.run(['ping', '-n', '1', broadcast_ip], 
-                                     capture_output=True, timeout=2)
-                    else:
-                        subprocess.run(['ping', '-c', '1', '-b', broadcast_ip], 
-                                     capture_output=True, timeout=2)
-                except:
-                    pass  # Broadcast might fail, that's ok
-                
-                # Now scan the ARP table for bound robot MACs
+                # Just scan the existing ARP table - no need for broadcast
+                # The robot should already be in ARP from normal network activity
                 entries = self._get_arp_table()
-                logger.debug(f"ARP scan found {len(entries)} entries")
+                logger.debug(f"ARP scan found {len(entries)} total entries")
                 
-                # Check each bound robot's MAC against ARP table
+                # First, check for any Unitree robots by MAC prefix (auto-discovery)
+                for ip, mac in entries:
+                    mac_prefix = ':'.join(mac.split(':')[:3])
+                    if mac_prefix in UNITREE_MAC_PREFIXES:
+                        # Found a Unitree robot!
+                        robot_name = f"G1_{mac.replace(':', '')[-4:]}"  # Use last 4 chars of MAC as ID
+                        
+                        if robot_name not in self._robots:
+                            logger.info(f"🤖 Auto-discovered Unitree robot at {ip} (MAC: {mac})")
+                            robot = RobotInfo(
+                                serial_number="",
+                                name=robot_name,
+                                ip=ip,
+                                mac_address=mac,
+                                last_seen=datetime.now(),
+                                is_online=True
+                            )
+                            self._robots[robot_name] = robot
+                        else:
+                            # Update existing robot
+                            robot = self._robots[robot_name]
+                            if robot.ip != ip:
+                                logger.info(f"🔄 Robot {robot_name} IP changed: {robot.ip} -> {ip}")
+                            robot.ip = ip
+                            robot.is_online = True
+                            robot.last_seen = datetime.now()
+                
+                # Then check bound robots (if any)
                 for robot_name, robot in list(self._robots.items()):
                     if not robot.mac_address:
+                        logger.debug(f"Robot {robot_name} has no MAC address configured")
                         continue
                     
                     target_mac = robot.mac_address.lower()
-                    logger.debug(f"Looking for robot {robot_name} with MAC {target_mac}")
                     
                     # Search ARP table for this MAC
                     found = False
                     for ip, mac in entries:
-                        if mac.lower() == target_mac:
-                            logger.info(f"✓ Found {robot_name} at {ip} via ARP")
-                            if self._ping_ok(ip):
-                                robot.ip = ip
-                                robot.is_online = True
-                                robot.last_seen = datetime.now()
-                                logger.info(f"✓ Robot {robot_name} is ONLINE at {ip}")
-                                found = True
-                                break
-                            else:
-                                logger.debug(f"Ping failed for {robot_name} at {ip}")
+                        if mac == target_mac:
+                            logger.debug(f"✓ Found {robot_name} at {ip} (MAC: {mac})")
+                            if robot.ip != ip:
+                                logger.info(f"🔄 Robot {robot_name} IP changed: {robot.ip} -> {ip}")
+                            robot.ip = ip
+                            robot.is_online = True
+                            robot.last_seen = datetime.now()
+                            found = True
+                            break
                     
                     if not found:
                         # MAC not in ARP cache - robot might be offline
                         if robot.is_online:
-                            logger.warning(f"✗ Robot {robot_name} is OFFLINE (MAC {target_mac} not in ARP)")
+                            logger.warning(f"✗ Robot {robot_name} is now OFFLINE (MAC {target_mac} not in ARP)")
                         robot.is_online = False
                         robot.ip = None
                 

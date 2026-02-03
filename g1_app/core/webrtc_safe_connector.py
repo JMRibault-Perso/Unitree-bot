@@ -30,7 +30,18 @@ class SafeWebRTCConnector:
         script = f"""
 import sys
 import asyncio
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+import os
+from pathlib import Path
+
+# Add WebRTC library paths (Linux and Windows)
+project_root = r'{project_root}'
+webrtc_paths = [
+    '/root/G1/go2_webrtc_connect',  # Linux
+    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows
+]
+for path in webrtc_paths:
+    if os.path.exists(path) and path not in sys.path:
+        sys.path.insert(0, path)
 
 from unitree_webrtc_connect.webrtc_driver import UnitreeWebRTCConnection, WebRTCConnectionMethod
 import json
