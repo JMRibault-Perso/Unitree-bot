@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import platform
 from typing import Optional
 
 
@@ -37,8 +38,18 @@ def setup_logger(
     
     formatter = logging.Formatter(format_string)
     
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
+    # Console handler with UTF-8 encoding for Windows
+    if platform.system() == 'Windows':
+        # Use UTF-8 encoding on Windows, with error handling to avoid crashes
+        console_handler = logging.StreamHandler(
+            stream=sys.stdout
+        )
+        # Reconfigure stdout to use UTF-8 with error replacement
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    else:
+        console_handler = logging.StreamHandler(sys.stdout)
+    
     console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)

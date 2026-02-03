@@ -954,3 +954,77 @@ class CommandExecutor:
             payload
         )
         return payload
+    
+    def send_lowcmd_arm_command(self, command: dict) -> bool:
+        """
+        Send arm motor commands via rt/arm_sdk topic (HIGH-LEVEL ARM SDK)
+        
+        Based on g1_arm7_sdk_dds_example.cpp from Unitree SDK:
+        - Topic: rt/arm_sdk (NOT rt/lowcmd)
+        - Message: LowCmd_ structure with 35 motor slots
+        - Special: motor_cmd[29] (kNotUsedJoint) = weight for smooth transitions
+        
+        Args:
+            command: Arm command dict with joints list
+            
+        Returns:
+            True if sent successfully
+        """
+        try:
+            # Extract joint commands
+            joints = command.get('joints', [])
+            if not joints:
+                logger.error("No joints in command")
+                return False
+            
+            # Build LowCmd message for rt/arm_sdk topic
+            # Structure has 35 total motor slots (29 real motors + 6 unused for special params)
+            arm_sdk_msg = {
+                "motor_cmd": []
+            }
+            
+            # Initialize all 35 motor slots (29 motors + 6 unused)
+            for i in range(35):
+                arm_sdk_msg["motor_cmd"].append({
+                    "q": 0.0,
+                    "dq": 0.0,
+                    "tau": 0.0,
+                    "kp": 0.0,
+                    "kd": 0.0
+                })
+            
+            # Set transition weight in kNotUsedJoint (index 29)
+            # When weight = 1.0, motors follow commanded positions
+            # Weight should ramp from 0 to 1 over time for smooth transitions
+            enable_arm_sdk = command.get('enable_arm_sdk', True)
+            arm_sdk_msg["motor_cmd"][29]["q"] = 1.0 if enable_arm_sdk else 0.0
+            
+            # Set commanded joints
+            for joint in joints:
+                motor_index = joint.get('motor_index')
+                if motor_index is None or motor_index < 0 or motor_index >= 29:
+                    logger.error(f"Invalid motor index: {motor_index}")
+                    continue
+                
+                arm_sdk_msg["motor_cmd"][motor_index] = {
+                    "q": float(joint.get('q', 0.0)),
+                    "dq": float(joint.get('dq', 0.0)),
+                    "tau": float(joint.get('tau', 0.0)),
+                    "kp": float(joint.get('kp', 60.0)),
+                    "kd": float(joint.get('kd', 1.5))
+                }
+            
+            logger.info(f"📤 Publishing to rt/arm_sdk: {len(joints)} joints, weight={arm_sdk_msg['motor_cmd'][29]['q']}")
+            
+            # Publish to rt/arm_sdk topic via WebRTC datachannel
+            self.datachannel.pub_sub.publish_without_callback(
+                "rt/arm_sdk",
+                arm_sdk_msg
+            )
+            
+            logger.info("✅ rt/arm_sdk command sent")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send arm_sdk command: {e}", exc_info=True)
+            return False

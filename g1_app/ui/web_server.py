@@ -20,11 +20,20 @@ project_root = str(Path(__file__).parent.parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
-sys.path.insert(0, '/root/G1/unitree_sdk2')
+# Add WebRTC library paths (Linux and Windows)
+webrtc_paths = [
+    '/root/G1/go2_webrtc_connect',  # Linux path
+    '/root/G1/unitree_sdk2',  # Linux path
+    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows path
+]
+
+for path in webrtc_paths:
+    if os.path.exists(path) and path not in sys.path:
+        sys.path.insert(0, path)
 
 # Apply patches BEFORE importing anything that uses WebRTC
-from g1_app.patches import lidar_decoder_patch
+# Temporarily disabled - causes import errors on Windows
+# from g1_app.patches import lidar_decoder_patch
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
@@ -35,6 +44,7 @@ import re
 from g1_app import RobotController, EventBus, Events, FSMState, LEDColor
 from g1_app.utils import setup_app_logging
 from g1_app.core.robot_discovery import get_discovery
+from g1_app.arm_controller import ArmController
 
 # Setup logging
 setup_app_logging(verbose=False)
@@ -43,8 +53,17 @@ logger = logging.getLogger(__name__)
 # FastAPI app
 app = FastAPI(title="G1 Robot Controller")
 
+# Mount static files directory
+static_dir = Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+    logger.info(f"✅ Mounted static files from: {static_dir}")
+else:
+    logger.warning(f"⚠️ Static directory not found: {static_dir}")
+
 # Global robot controller
 robot: Optional[RobotController] = None
+arm_controller: Optional[ArmController] = None
 connect_lock = asyncio.Lock()
 connected_clients = []
 
@@ -331,7 +350,7 @@ async def get_index():
     """Serve the main HTML page"""
     html_file = Path(__file__).parent / "index.html"
     if html_file.exists():
-        content = html_file.read_text()
+        content = html_file.read_text(encoding='utf-8')
         return HTMLResponse(
             content=content,
             headers={
@@ -2066,6 +2085,257 @@ async def teaching_play(action_id: int = 1):
         return {"success": False, "error": str(e)}
 
 
+# ============================================================================
+# ARM TEACHING ENDPOINTS (Coordinate-based motion control)
+# ============================================================================
+
+@app.post("/api/arm/move")
+async def arm_move(request: Request):
+    """
+    Move arm to specified joint positions
+    
+    Body:
+        {
+            "arm": "left" or "right",
+            "joints": [7 joint angles in radians],
+            "speed": 1.0 (optional, movement speed multiplier)
+        }
+    """
+    global robot, arm_controller
+    
+    logger.debug("=== API /api/arm/move called ===")
+    logger.debug(f"Robot connected: {robot.connected if robot else False}")
+    
+    if not robot or not robot.connected:
+        logger.warning("API call rejected: not connected to robot")
+        return {"success": False, "error": "Not connected to robot"}
+    
+    try:
+        data = await request.json()
+        logger.debug(f"Request data: {data}")
+        
+        arm = data.get("arm", "left")
+        joints = data.get("joints", [])
+        speed = data.get("speed", 1.0)
+        
+        logger.debug(f"Arm: {arm}, Speed: {speed}")
+        logger.debug(f"Joints count: {len(joints)}")
+        logger.debug(f"Joints (rad): {joints}")
+        logger.debug(f"Joints (deg): {[f'{j*180/3.14159:.1f}°' for j in joints]}")
+        
+        if len(joints) != 7:
+            logger.warning(f"Invalid joint count: {len(joints)}")
+            return {"success": False, "error": f"Expected 7 joints, got {len(joints)}"}
+        
+        # Initialize arm controller if needed
+        if arm_controller is None:
+            logger.debug("Initializing arm controller...")
+            arm_controller = ArmController(robot)
+        
+        # Calculate duration based on speed
+        duration = 2.0 / speed
+        logger.debug(f"Movement duration: {duration}s")
+        
+        # Send command to robot
+        logger.debug("Calling arm_controller.move_to_pose()...")
+        success = await arm_controller.move_to_pose(arm, joints, duration=duration)
+        logger.debug(f"move_to_pose() returned: {success}")
+        
+        if success:
+            logger.info(f"✅ Successfully sent {arm} arm command")
+            return {
+                "success": True,
+                "message": f"Moving {arm} arm to target pose",
+                "joints": joints
+            }
+        else:
+            logger.error("❌ Failed to send arm command")
+            return {"success": False, "error": "Failed to send arm command"}
+            
+    except Exception as e:
+        logger.error(f"❌ Arm move failed: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/arm/read")
+async def arm_read(arm: str = "left"):
+    """
+    Read current arm joint positions
+    
+    Args:
+        arm: "left" or "right"
+        
+    Returns:
+        {
+            "success": true,
+            "arm": "left",
+            "joints": [7 joint angles in radians]
+        }
+    """
+    global robot, arm_controller
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected to robot"}
+    
+    try:
+        # Initialize arm controller if needed
+        if arm_controller is None:
+            arm_controller = ArmController(robot)
+        
+        # Read current pose from robot
+        joints = await arm_controller.read_current_pose(arm)
+        
+        if joints:
+            return {
+                "success": True,
+                "arm": arm,
+                "joints": joints
+            }
+        else:
+            return {"success": False, "error": "Failed to read arm pose"}
+            
+    except Exception as e:
+        logger.error(f"Arm read failed: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/arm/play_sequence")
+async def arm_play_sequence(request: Request):
+    """
+    Play back a sequence of waypoints
+    
+    Body:
+        {
+            "waypoints": [
+                {"arm": "left", "joints": [7 angles]},
+                {"arm": "right", "joints": [7 angles]},
+                ...
+            ],
+            "speed": 1.0 (optional)
+        }
+    """
+    global robot, arm_controller
+    
+    logger.debug("=== API /api/arm/play_sequence called ===")
+    logger.debug(f"Robot connected: {robot.connected if robot else False}")
+    
+    if not robot or not robot.connected:
+        logger.warning("API call rejected: not connected to robot")
+        return {"success": False, "error": "Not connected to robot"}
+    
+    try:
+        data = await request.json()
+        waypoints = data.get("waypoints", [])
+        speed = data.get("speed", 1.0)
+        
+        logger.debug(f"Waypoint count: {len(waypoints)}")
+        logger.debug(f"Speed: {speed}")
+        logger.debug(f"Waypoints: {waypoints}")
+        
+        if not waypoints:
+            logger.warning("No waypoints provided")
+            return {"success": False, "error": "No waypoints provided"}
+        
+        # Initialize arm controller if needed
+        if arm_controller is None:
+            logger.debug("Initializing arm controller...")
+            arm_controller = ArmController(robot)
+        
+        # Play sequence
+        logger.info(f"▶️ Starting sequence playback ({len(waypoints)} waypoints)")
+        success = await arm_controller.play_sequence(waypoints, speed)
+        logger.debug(f"play_sequence() returned: {success}")
+        
+        if success:
+            logger.info(f"✅ Sequence playback completed successfully")
+            return {
+                "success": True,
+                "message": f"Played sequence with {len(waypoints)} waypoints",
+                "waypoint_count": len(waypoints)
+            }
+        else:
+            logger.error("❌ Sequence playback failed")
+            return {"success": False, "error": "Sequence playback failed"}
+            
+    except Exception as e:
+        logger.error(f"❌ Sequence playback failed: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/arm/presets")
+async def arm_presets(arm: str = "left"):
+    """
+    Get available preset poses for arm
+    
+    Args:
+        arm: "left" or "right"
+        
+    Returns:
+        {
+            "success": true,
+            "presets": {
+                "rest": [7 joint angles],
+                "forward_reach": [7 joint angles],
+                ...
+            }
+        }
+    """
+    global arm_controller
+    
+    try:
+        # Initialize arm controller if needed
+        if arm_controller is None:
+            arm_controller = ArmController(None)
+        
+        presets = arm_controller.preset_poses(arm)
+        
+        return {
+            "success": True,
+            "arm": arm,
+            "presets": presets
+        }
+        
+    except Exception as e:
+        logger.error(f"Get presets failed: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/arm/preset/{preset_name}")
+async def arm_go_to_preset(preset_name: str, arm: str = "left", speed: float = 1.0):
+    """
+    Move arm to a preset pose
+    
+    Args:
+        preset_name: Name of preset (e.g., "rest", "forward_reach", "button_push")
+        arm: "left" or "right"
+        speed: Movement speed multiplier
+    """
+    global robot, arm_controller
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected to robot"}
+    
+    try:
+        # Initialize arm controller if needed
+        if arm_controller is None:
+            arm_controller = ArmController(robot)
+        
+        duration = 2.0 / speed
+        success = await arm_controller.go_to_preset(arm, preset_name, duration)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Moving {arm} arm to '{preset_name}' pose"
+            }
+        else:
+            return {"success": False, "error": f"Unknown preset: {preset_name}"}
+            
+    except Exception as e:
+        logger.error(f"Go to preset failed: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates"""
@@ -2088,12 +2358,12 @@ async def websocket_endpoint(websocket: WebSocket):
 def main():
     """Run the web server"""
     logger.info("Starting G1 Web UI Server")
-    logger.info("Open http://localhost:9000 in your browser")
+    logger.info("Open http://localhost:3000 in your browser")
     
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=9000,
+        port=3000,
         log_level="info"
     )
 
