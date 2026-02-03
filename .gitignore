@@ -7,3 +7,37 @@ build
 #cland
 .cache
 android_app_decompiled/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+.venv/
+venv/
+
+# Logs
+*.log
+server_debug.log
+server.log
+
+# Test files
+test_*.py
+!test_fsm_query.py
+
+# PCAP captures
+*.pcap
+*.pcapng
+
+# Libraries (embedded git repos should be submodules)
+libs/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
