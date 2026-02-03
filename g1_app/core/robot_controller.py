@@ -6,10 +6,19 @@ import asyncio
 import sys
 import logging
 import struct
+import os
 from typing import Optional
+from pathlib import Path
 
-# Add WebRTC library to path
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+# Add WebRTC library paths (Linux and Windows)
+project_root = str(Path(__file__).parent.parent.parent)
+webrtc_paths = [
+    '/root/G1/go2_webrtc_connect',  # Linux
+    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows
+]
+for path in webrtc_paths:
+    if os.path.exists(path) and path not in sys.path:
+        sys.path.insert(0, path)
 
 from unitree_webrtc_connect.webrtc_driver import UnitreeWebRTCConnection
 from unitree_webrtc_connect.constants import WebRTCConnectionMethod
@@ -115,6 +124,9 @@ class RobotController:
             
             # Subscribe to robot state topic
             self._subscribe_to_state()
+            
+            # Subscribe to low-level state (motor positions, IMU, etc.)
+            self._subscribe_to_lowstate()
             
             # Subscribe to battery updates
             self._subscribe_to_battery()
@@ -230,6 +242,38 @@ class RobotController:
             logger.info(f"✅ Subscribed to {Topic.SPORT_MODE_STATE_LF}")
         except Exception as e:
             logger.warning(f"Could not subscribe to state topic: {e}")
+    
+    def _subscribe_to_lowstate(self) -> None:
+        """Subscribe to rt/lowstate for motor positions and IMU data
+        
+        LowState_ message contains:
+        - motor_state[]: Array of 29 motor states with q (position), dq (velocity), tau (torque), etc.
+        - imu_state: IMU quaternion, gyroscope, accelerometer
+        - battery: Power status
+        """
+        def on_lowstate_update(data: dict):
+            """Cache latest lowstate for arm position reading"""
+            try:
+                logger.debug(f"📖 rt/lowstate callback triggered, data type: {type(data)}")
+                if isinstance(data, dict) and 'data' in data:
+                    lowstate_data = data['data']
+                    motor_count = len(lowstate_data.get('motor_state', []))
+                    logger.debug(f"📖 Lowstate has {motor_count} motors")
+                    
+                    # Store on the pub_sub object for easy access
+                    if not hasattr(self.conn.datachannel.pub_sub, '_last_lowstate'):
+                        logger.info(f"📖 Started caching rt/lowstate for arm reads ({motor_count} motors)")
+                    self.conn.datachannel.pub_sub._last_lowstate = lowstate_data
+                else:
+                    logger.warning(f"📖 Lowstate data format unexpected: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+            except Exception as e:
+                logger.error(f"Error caching lowstate: {e}", exc_info=True)
+        
+        try:
+            self.conn.datachannel.pub_sub.subscribe("rt/lowstate", on_lowstate_update)
+            logger.info("✅ Subscribed to rt/lowstate for arm position reading")
+        except Exception as e:
+            logger.warning(f"Could not subscribe to rt/lowstate: {e}")
     
     def _subscribe_to_battery(self) -> None:
         """Subscribe to battery state updates
@@ -766,6 +810,107 @@ class RobotController:
         except Exception as e:
             logger.error(f"API {api_id} failed: {e}")
             return {"success": False, "error": str(e)}
+    
+    async def send_command(self, command: dict) -> bool:
+        """Send generic command to robot via WebRTC datachannel
+        
+        Sends low-level motor commands to rt/lowcmd topic via WebRTC datachannel.
+        This is how arm control works - direct motor position/torque commands.
+        
+        Args:
+            command: Command dictionary with structure:
+                {
+                    "type": "arm_command",
+                    "arm": "left" or "right",
+                    "enable_arm_sdk": True,
+                    "joints": [
+                        {"motor_index": 15-21 (left) or 22-28 (right),
+                         "q": position (rad),
+                         "dq": velocity (rad/s),
+                         "tau": torque (Nm),
+                         "kp": position gain,
+                         "kd": damping gain},
+                        ...
+                    ]
+                }
+        
+        Returns:
+            True if command sent successfully
+        """
+        if not self.connected or not self.executor:
+            logger.error("Cannot send command: not connected")
+            return False
+        
+        try:
+            # Send low-level motor command via rt/lowcmd topic
+            # This publishes directly to the DDS topic via WebRTC datachannel
+            return await self.executor.send_lowcmd_arm_command(command)
+        except Exception as e:
+            logger.error(f"Failed to send command: {e}", exc_info=True)
+            return False
+    
+    async def request_arm_state(self, arm: str) -> Optional[dict]:
+        """Request current arm joint positions from robot
+        
+        Reads from rt/lowstate topic which contains motor_state array with current positions.
+        
+        Args:
+            arm: 'left' or 'right'
+        
+        Returns:
+            dict with 'joints' key containing list of 7 joint angles, or None if failed
+        """
+        if not self.connected or not self.executor:
+            logger.error("Cannot request arm state: not connected")
+            return None
+        
+        try:
+            logger.debug(f"📖 Reading {arm} arm state from rt/lowstate...")
+            
+            # Get joint indices for this arm
+            if arm == 'left':
+                joint_indices = list(range(15, 22))  # Motors 15-21
+            elif arm == 'right':
+                joint_indices = list(range(22, 29))  # Motors 22-28
+            else:
+                logger.error(f"Invalid arm: {arm}")
+                return None
+            
+            logger.debug(f"📖 Looking for motors: {joint_indices}")
+            
+            # Read current state - this will be set by the rt/lowstate subscription callback
+            # For now, use a simple approach: wait briefly for state update
+            await asyncio.sleep(0.1)  # Give time for latest state
+            
+            # Check if lowstate subscription is working
+            if not hasattr(self.conn.datachannel.pub_sub, '_last_lowstate'):
+                logger.error("❌ rt/lowstate not cached yet - no data received from robot")
+                logger.error("   Make sure rt/lowstate subscription is active")
+                return None
+            
+            # Extract joint positions from last received lowstate
+            lowstate = self.conn.datachannel.pub_sub._last_lowstate
+            logger.debug(f"📖 Lowstate keys: {list(lowstate.keys())}")
+            
+            if not lowstate or 'motor_state' not in lowstate:
+                logger.error(f"❌ Lowstate missing motor_state: keys={list(lowstate.keys()) if lowstate else 'None'}")
+                return None
+            
+            motor_states = lowstate['motor_state']
+            logger.debug(f"📖 Lowstate has {len(motor_states)} motor states")
+            
+            if len(motor_states) < 29:
+                logger.error(f"❌ Not enough motor states: {len(motor_states)} (need at least 29)")
+                return None
+            
+            # Extract the 7 joint positions for this arm
+            joints = [motor_states[i]['q'] for i in joint_indices]
+            logger.info(f"✅ Read {arm} arm state: {[f'{j:.3f}rad ({j*180/3.14159:.1f}°)' for j in joints]}")
+            return {'joints': joints}
+            
+        except Exception as e:
+            logger.error(f"Failed to request arm state: {e}", exc_info=True)
+            return None
     
     # Properties
     @property

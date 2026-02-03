@@ -6,13 +6,16 @@ Test script to verify FSM state query API
 import asyncio
 import sys
 import json
+import os
 
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+# Add the local WebRTC driver to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'libs', 'go2_webrtc_connect'))
+
 from unitree_webrtc_connect.webrtc_driver import UnitreeWebRTCConnection
 from unitree_webrtc_connect.constants import WebRTCConnectionMethod
 
-ROBOT_IP = "192.168.86.2"
-ROBOT_SN = "E21D1000PAHBMB06"
+ROBOT_IP = "192.168.86.11"
+ROBOT_SN = "G1_6002"
 
 async def test_fsm_query():
     """Test querying FSM state from robot"""
