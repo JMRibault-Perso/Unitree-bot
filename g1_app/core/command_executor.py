@@ -365,86 +365,6 @@ class CommandExecutor:
             "parameter": json.dumps({"action_name": action_name})
         }
         logger.info(f"Playing custom action: {action_name}")
-        return self._send_command(payload, service=Service.ARM)
-    
-    async def start_record_action(self) -> dict:
-        """
-        EXPERIMENTAL: Start recording a teach mode action
-        
-        Returns:
-            Command payload
-        """
-        payload = {
-            "api_id": ArmAPI.START_RECORD_ACTION,
-            "parameter": "{}"
-        }
-        logger.info("EXPERIMENTAL: Starting action recording (API 7109)")
-        return await self._send_command(payload, service=Service.ARM)
-    
-    async def stop_record_action(self) -> dict:
-        """
-        EXPERIMENTAL: Stop recording teach mode action
-        
-        Returns:
-            Command payload
-        """
-        payload = {
-            "api_id": ArmAPI.STOP_RECORD_ACTION,
-            "parameter": "{}"
-        }
-        logger.info("EXPERIMENTAL: Stopping action recording (API 7110)")
-        return await self._send_command(payload, service=Service.ARM)
-    
-    async def save_recorded_action(self, action_name: str) -> dict:
-        """
-        EXPERIMENTAL: Save recorded action with a name
-        
-        Args:
-            action_name: Name to save the action under
-            
-        Returns:
-            Command payload
-        """
-        payload = {
-            "api_id": ArmAPI.SAVE_RECORDED_ACTION,
-            "parameter": json.dumps({"action_name": action_name})
-        }
-        logger.info(f"EXPERIMENTAL: Saving recorded action as '{action_name}' (API 7111)")
-        return await self._send_command(payload, service=Service.ARM)
-    
-    async def delete_action(self, action_name: str) -> dict:
-        """
-        EXPERIMENTAL: Delete a saved action
-        
-        Args:
-            action_name: Name of action to delete
-            
-        Returns:
-            Command payload
-        """
-        payload = {
-            "api_id": ArmAPI.DELETE_ACTION,
-            "parameter": json.dumps({"action_name": action_name})
-        }
-        logger.info(f"EXPERIMENTAL: Deleting action '{action_name}' (API 7112)")
-        return await self._send_command(payload, service=Service.ARM)
-    
-    async def rename_action(self, old_name: str, new_name: str) -> dict:
-        """
-        EXPERIMENTAL: Rename a saved action
-        
-        Args:
-            old_name: Current name of the action
-            new_name: New name for the action
-            
-        Returns:
-            Command payload
-        """
-        payload = {
-            "api_id": ArmAPI.RENAME_ACTION,
-            "parameter": json.dumps({"old_name": old_name, "new_name": new_name})
-        }
-        logger.info(f"EXPERIMENTAL: Renaming action '{old_name}' to '{new_name}' (API 7113)")
         return await self._send_command(payload, service=Service.ARM)
     
     async def stop_custom_action(self) -> dict:
@@ -546,7 +466,7 @@ class CommandExecutor:
         Send raw API request to robot
         
         Args:
-            api_id: API command ID (e.g., 7107 for GetActionList, 7109-7112 for recording)
+            api_id: API command ID (7106-7108, 7113 for arm actions)
             parameter: Optional parameters dict
             
         Returns:
@@ -957,12 +877,12 @@ class CommandExecutor:
     
     def send_lowcmd_arm_command(self, command: dict) -> bool:
         """
-        Send arm motor commands via rt/arm_sdk topic (HIGH-LEVEL ARM SDK)
+        Send arm motor commands via rt/lowcmd topic
         
-        Based on g1_arm7_sdk_dds_example.cpp from Unitree SDK:
-        - Topic: rt/arm_sdk (NOT rt/lowcmd)
+        Standard DDS low-level motor control:
+        - Topic: rt/lowcmd (standard motor command topic)
         - Message: LowCmd_ structure with 35 motor slots
-        - Special: motor_cmd[29] (kNotUsedJoint) = weight for smooth transitions
+        - Special: motor_cmd[29].q = weight for smooth transitions (0.0-1.0)
         
         Args:
             command: Arm command dict with joints list
@@ -1014,15 +934,18 @@ class CommandExecutor:
                     "kd": float(joint.get('kd', 1.5))
                 }
             
-            logger.info(f"📤 Publishing to rt/arm_sdk: {len(joints)} joints, weight={arm_sdk_msg['motor_cmd'][29]['q']}")
+            # Allow topic override via command parameter
+            topic = command.get('topic', 'rt/arm_sdk')
             
-            # Publish to rt/arm_sdk topic via WebRTC datachannel
+            logger.info(f"📤 Publishing to {topic}: {len(joints)} joints, weight={arm_sdk_msg['motor_cmd'][29]['q']}")
+            
+            # Publish to specified topic via WebRTC datachannel
             self.datachannel.pub_sub.publish_without_callback(
-                "rt/arm_sdk",
+                topic,
                 arm_sdk_msg
             )
             
-            logger.info("✅ rt/arm_sdk command sent")
+            logger.info(f"✅ {topic} command sent")
             return True
             
         except Exception as e:

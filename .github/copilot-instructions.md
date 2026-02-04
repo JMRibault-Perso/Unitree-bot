@@ -35,6 +35,13 @@ The G1 Air lacks secondary development mode, meaning you cannot run custom code 
 - No "Developer Mode" or "SDK Mode" in app or remote ✗
 - Result: **G1 Air lacks SDK/DDS capability**
 
+**WebRTC Topic Naming Convention (G1 Air):**
+- WebRTC only publishes **low-frequency (lf) variants** of topics
+- Standard topic: `rt/lowstate` → WebRTC topic: `rt/lf/lowstate`
+- Pattern applies to all state topics: `rt/lf/sportmodestate`, `rt/lf/bmsstate`, etc.
+- High-frequency DDS topics (used in SDK examples) are NOT available over WebRTC
+- Always use `rt/lf/` prefix when subscribing to robot state over WebRTC
+
 ### WiFi Connection Modes
 
 The G1 supports two WiFi modes (see [Unitree FAQ](https://support.unitree.com/home/en/G1_developer/FAQ)):
