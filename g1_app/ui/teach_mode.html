@@ -290,6 +290,22 @@
                 <button onclick="checkCurrentState()" style="margin-left: 10px; background: #718096;">Check Current State</button>
             </div>
 
+            <!-- Read Current Pose -->
+            <div class="workflow-step">
+                <h3>📍 Read Current Arm Positions</h3>
+                <p>Manually position the robot's arms, then click to read joint angles. Use this to discover safe motion ranges.</p>
+                <button class="info" onclick="readCurrentPose()">📖 Read Current Pose</button>
+                <button class="success" id="btnSavePose" onclick="saveCurrentPose()" style="margin-left: 10px; display: none;">💾 Save This Pose</button>
+                <div id="poseDisplay" style="margin-top: 15px; display: none;">
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 0.9em;">
+                        <strong>Left Arm:</strong>
+                        <div id="leftArmPose" style="margin-left: 15px; margin-top: 5px;"></div>
+                        <strong style="margin-top: 10px; display: block;">Right Arm:</strong>
+                        <div id="rightArmPose" style="margin-left: 15px; margin-top: 5px;"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Step 2: Start Recording -->
             <div class="workflow-step" id="step2">
                 <h3>Step 2: Start Recording</h3>
@@ -334,6 +350,19 @@
                 <p style="color: #6b7280;">No actions saved yet. Record your first action above!</p>
             </div>
         </div>
+
+        <!-- Safe Poses Library -->
+        <div class="panel">
+            <h2>🎯 Safe Poses Library</h2>
+            <p style="color: #6b7280; margin-bottom: 15px;">Saved arm positions for reference and testing. Move arms manually, read pose, then save.</p>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button onclick="exportSafePoses()" id="btnExportPoses" disabled>📥 Export to File</button>
+                <button onclick="clearSafePoses()" id="btnClearPoses" class="danger" disabled>🗑️ Clear All</button>
+            </div>
+            <div id="safePosesList" style="max-height: 400px; overflow-y: auto;">
+                <p style="color: #9ca3af;">No poses saved yet. Read and save your first pose above!</p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -343,6 +372,8 @@
         let inTeachMode = false;
         let isRecording = false;
         let hasRecordedData = false;
+        let safePoses = [];
+        let lastReadPose = null;
 
         // Connect to WebSocket
         function connectWebSocket() {
@@ -522,6 +553,172 @@
             } catch (error) {
                 showMessage('Failed to check state: ' + error.message, 'error');
             }
+        }
+
+        async function readCurrentPose() {
+            try {
+                const response = await fetch('/api/arm/read_pose');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    showMessage('❌ Failed to read pose: ' + (data.error || 'Unknown error'), 'error');
+                    return;
+                }
+                
+                const jointNames = ['shoulder_pitch', 'shoulder_roll', 'shoulder_yaw', 'elbow', 
+                                  'wrist_roll', 'wrist_pitch', 'wrist_yaw'];
+                
+                // Display left arm
+                let leftHTML = '';
+                data.left_arm.forEach((angle, i) => {
+                    const degrees = (angle * 180 / Math.PI).toFixed(1);
+                    leftHTML += `<div>${i}: ${jointNames[i].padEnd(16, ' ')} = ${angle.toFixed(3)} rad (${degrees}°)</div>`;
+                });
+                document.getElementById('leftArmPose').innerHTML = leftHTML;
+                
+                // Display right arm
+                let rightHTML = '';
+                data.right_arm.forEach((angle, i) => {
+                    const degrees = (angle * 180 / Math.PI).toFixed(1);
+                    rightHTML += `<div>${i}: ${jointNames[i].padEnd(16, ' ')} = ${angle.toFixed(3)} rad (${degrees}°)</div>`;
+                });
+                document.getElementById('rightArmPose').innerHTML = rightHTML;
+                
+                // Show the pose display and save button
+                document.getElementById('poseDisplay').style.display = 'block';
+                document.getElementById('btnSavePose').style.display = 'inline-block';
+                
+                // Store for saving
+                lastReadPose = {
+                    left_arm: data.left_arm,
+                    right_arm: data.right_arm,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Also log to console for easy copying
+                console.log('Left arm:', data.left_arm);
+                console.log('Right arm:', data.right_arm);
+                
+                showMessage('✅ Pose read successfully - click "Save This Pose" to add to library', 'success');
+                
+            } catch (error) {
+                showMessage('Failed to read pose: ' + error.message, 'error');
+            }
+        }
+
+        function saveCurrentPose() {
+            if (!lastReadPose) {
+                showMessage('❌ No pose to save - read a pose first', 'error');
+                return;
+            }
+
+            const poseName = prompt('Enter a name for this pose (e.g., "arms_down", "reach_forward"):');
+            if (!poseName || poseName.trim() === '') {
+                showMessage('⚠️ Save cancelled', 'info');
+                return;
+            }
+
+            const pose = {
+                name: poseName.trim(),
+                left_arm: lastReadPose.left_arm,
+                right_arm: lastReadPose.right_arm,
+                timestamp: lastReadPose.timestamp
+            };
+
+            safePoses.push(pose);
+            updateSafePosesList();
+            showMessage(`✅ Saved pose "${poseName}"`, 'success');
+
+            // Enable export/clear buttons
+            document.getElementById('btnExportPoses').disabled = false;
+            document.getElementById('btnClearPoses').disabled = false;
+        }
+
+        function updateSafePosesList() {
+            const listEl = document.getElementById('safePosesList');
+            
+            if (safePoses.length === 0) {
+                listEl.innerHTML = '<p style="color: #9ca3af;">No poses saved yet. Read and save your first pose above!</p>';
+                return;
+            }
+
+            let html = '<div style="display: grid; gap: 10px;">';
+            safePoses.forEach((pose, index) => {
+                const date = new Date(pose.timestamp);
+                const timeStr = date.toLocaleTimeString();
+                
+                html += `
+                    <div style="background: #f3f4f6; padding: 15px; border-radius: 5px; border-left: 4px solid #667eea;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <strong style="color: #374151; font-size: 1.1em;">${index + 1}. ${pose.name}</strong>
+                                <div style="color: #6b7280; font-size: 0.85em; margin-top: 2px;">Saved at ${timeStr}</div>
+                            </div>
+                            <button onclick="deleteSafePose(${index})" class="danger" style="padding: 6px 12px; font-size: 0.85em;">Delete</button>
+                        </div>
+                        <details style="cursor: pointer;">
+                            <summary style="color: #667eea; font-weight: 600; user-select: none;">Show Joint Angles</summary>
+                            <div style="font-family: monospace; font-size: 0.85em; margin-top: 10px; padding: 10px; background: white; border-radius: 3px;">
+                                <div style="margin-bottom: 8px;"><strong>Left arm:</strong> [${pose.left_arm.map(v => v.toFixed(3)).join(', ')}]</div>
+                                <div><strong>Right arm:</strong> [${pose.right_arm.map(v => v.toFixed(3)).join(', ')}]</div>
+                            </div>
+                        </details>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            listEl.innerHTML = html;
+        }
+
+        function deleteSafePose(index) {
+            if (confirm(`Delete pose "${safePoses[index].name}"?`)) {
+                safePoses.splice(index, 1);
+                updateSafePosesList();
+                showMessage('✅ Pose deleted', 'success');
+                
+                if (safePoses.length === 0) {
+                    document.getElementById('btnExportPoses').disabled = true;
+                    document.getElementById('btnClearPoses').disabled = true;
+                }
+            }
+        }
+
+        function clearSafePoses() {
+            if (confirm(`Clear all ${safePoses.length} saved poses?`)) {
+                safePoses = [];
+                updateSafePosesList();
+                document.getElementById('btnExportPoses').disabled = true;
+                document.getElementById('btnClearPoses').disabled = true;
+                showMessage('✅ All poses cleared', 'success');
+            }
+        }
+
+        function exportSafePoses() {
+            if (safePoses.length === 0) {
+                showMessage('❌ No poses to export', 'error');
+                return;
+            }
+
+            const exportData = {
+                exported_at: new Date().toISOString(),
+                robot: 'G1',
+                pose_count: safePoses.length,
+                poses: safePoses
+            };
+
+            const jsonStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `g1_safe_poses_${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showMessage(`✅ Exported ${safePoses.length} poses to file`, 'success');
         }
 
         async function startRecording() {

@@ -114,8 +114,14 @@ LED Color Mapping:
 
 ### Arm Service (actions)
 - 7106: ExecuteAction - Pre-programmed gestures
-- 7107: GetActionList - Retrieve available gestures
-- 7108: ExecuteCustomAction - Play teach mode recording
+- 7107: GetActionList - Retrieve all custom actions stored on robot
+- 7108: ExecuteCustomAction - Play a custom action by name
+- 7109: StartRecordAction - Begin recording arm movements
+- 7110: StopRecordAction - Stop recording without saving
+- 7111: SaveRecordedAction - Save recording with name and duration
+- 7112: DeleteAction - Delete a custom action from robot
+- 7113: StopCustomAction - Emergency stop during playback
+- 7114: RenameAction - Rename an existing custom action
 - 7113: StopCustomAction - Stop teach playback
 
 ### Audio Service (VUI)

@@ -150,28 +150,35 @@ class RobotDiscovery:
                 for ip, mac in entries:
                     mac_prefix = ':'.join(mac.split(':')[:3])
                     if mac_prefix in UNITREE_MAC_PREFIXES:
-                        # Found a Unitree robot!
-                        robot_name = f"G1_{mac.replace(':', '')[-4:]}"  # Use last 4 chars of MAC as ID
+                        # Check if this MAC already exists in bound robots (avoid duplicates)
+                        existing_robot = None
+                        for robot in self._robots.values():
+                            if robot.mac_address and robot.mac_address.lower() == mac.lower():
+                                existing_robot = robot
+                                break
                         
-                        if robot_name not in self._robots:
-                            logger.info(f"🤖 Auto-discovered Unitree robot at {ip} (MAC: {mac})")
-                            robot = RobotInfo(
-                                serial_number="",
-                                name=robot_name,
-                                ip=ip,
-                                mac_address=mac,
-                                last_seen=datetime.now(),
-                                is_online=True
-                            )
-                            self._robots[robot_name] = robot
+                        if existing_robot:
+                            # Update existing bound robot's IP if changed
+                            if existing_robot.ip != ip:
+                                logger.info(f"🔄 Robot {existing_robot.name} IP changed: {existing_robot.ip} -> {ip}")
+                                existing_robot.ip = ip
+                            existing_robot.last_seen = datetime.now()
+                            existing_robot.is_online = True
                         else:
-                            # Update existing robot
-                            robot = self._robots[robot_name]
-                            if robot.ip != ip:
-                                logger.info(f"🔄 Robot {robot_name} IP changed: {robot.ip} -> {ip}")
-                            robot.ip = ip
-                            robot.is_online = True
-                            robot.last_seen = datetime.now()
+                            # Auto-discover new robot not in bindings
+                            robot_name = f"G1_{mac.replace(':', '')[-4:]}"  # Use last 4 chars of MAC as ID
+                            
+                            if robot_name not in self._robots:
+                                logger.info(f"🤖 Auto-discovered Unitree robot at {ip} (MAC: {mac})")
+                                robot = RobotInfo(
+                                    serial_number="",
+                                    name=robot_name,
+                                    ip=ip,
+                                    mac_address=mac,
+                                    last_seen=datetime.now(),
+                                    is_online=True
+                                )
+                                self._robots[robot_name] = robot
                 
                 # Then check bound robots (if any)
                 for robot_name, robot in list(self._robots.items()):

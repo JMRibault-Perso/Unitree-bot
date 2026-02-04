@@ -614,129 +614,6 @@ async def set_balance_mode_endpoint(mode: int):
         return {"success": False, "error": str(e)}
 
 
-@app.post("/api/teach/start_recording")
-async def start_recording_endpoint():
-    """EXPERIMENTAL: Start recording teach mode action (API 7109)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    if not robot.executor:
-        return {"success": False, "error": "Executor not initialized"}
-    
-    try:
-        result = await robot.executor.start_record_action()
-        logger.info(f"Start recording result: {result}")
-        return {
-            "success": True,
-            "message": "Recording started (experimental API)",
-            "data": result
-        }
-    except Exception as e:
-        logger.error(f"Start recording failed: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teach/stop_recording")
-async def stop_recording_endpoint():
-    """EXPERIMENTAL: Stop recording teach mode action (API 7110)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    if not robot.executor:
-        return {"success": False, "error": "Executor not initialized"}
-    
-    try:
-        result = await robot.executor.stop_record_action()
-        logger.info(f"Stop recording result: {result}")
-        return {
-            "success": True,
-            "message": "Recording stopped (experimental API)",
-            "data": result
-        }
-    except Exception as e:
-        logger.error(f"Stop recording failed: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teach/save_recording")
-async def save_recording_endpoint(action_name: str):
-    """EXPERIMENTAL: Save recorded action with name (API 7111)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    if not robot.executor:
-        return {"success": False, "error": "Executor not initialized"}
-    
-    try:
-        result = await robot.executor.save_recorded_action(action_name)
-        logger.info(f"Save recording result: {result}")
-        return {
-            "success": True,
-            "message": f"Recording saved as '{action_name}' (experimental API)",
-            "data": result
-        }
-    except Exception as e:
-        logger.error(f"Save recording failed: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teach/delete_action")
-async def delete_action_endpoint(action_name: str):
-    """EXPERIMENTAL: Delete saved action (API 7112)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    if not robot.executor:
-        return {"success": False, "error": "Executor not initialized"}
-    
-    try:
-        result = await robot.executor.delete_action(action_name)
-        logger.info(f"Delete action result: {result}")
-        return {
-            "success": True,
-            "message": f"Action '{action_name}' deleted (experimental API)",
-            "data": result
-        }
-    except Exception as e:
-        logger.error(f"Delete action failed: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teach/rename_action")
-async def rename_action_endpoint(old_name: str, new_name: str):
-    """EXPERIMENTAL: Rename saved action (API 7113)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    if not robot.executor:
-        return {"success": False, "error": "Executor not initialized"}
-    
-    if not old_name or not new_name:
-        return {"success": False, "error": "Action names cannot be empty"}
-    
-    try:
-        result = await robot.executor.rename_action(old_name, new_name)
-        logger.info(f"Rename action result: {result}")
-        return {
-            "success": True,
-            "message": f"Action '{old_name}' renamed to '{new_name}' (experimental API)",
-            "data": result
-        }
-    except Exception as e:
-        logger.error(f"Rename action failed: {e}")
-        return {"success": False, "error": str(e)}
-
-
 @app.get("/api/max_speeds")
 async def get_max_speeds_endpoint():
     """Get current max speeds based on mode"""
@@ -908,83 +785,20 @@ async def list_custom_actions_endpoint():
         return {"success": False, "error": str(e)}
 
 
-@app.get("/api/test/hidden_apis")
-async def test_hidden_apis():
-    """Test hidden APIs 7109-7112 to see if they exist"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    results = {}
-    
-    # Test API 7107 - GetActionList (documented)
-    try:
-        result = await robot.get_custom_action_list()
-        results["7107_GET_ACTION_LIST"] = {
-            "success": result["success"],
-            "data": result.get("actions", result.get("message"))
-        }
-    except Exception as e:
-        results["7107_GET_ACTION_LIST"] = {"success": False, "error": str(e)}
-    
-    # Test API 7109 - START_RECORD_ACTION (hypothesis)
-    try:
-        response = await robot.send_api_command(7109, {})
-        results["7109_START_RECORD"] = {
-            "raw_response": response,
-            "exists": response.get("error_code") != 3104 if isinstance(response, dict) else True
-        }
-    except Exception as e:
-        results["7109_START_RECORD"] = {"error": str(e)}
-    
-    # Test API 7110 - STOP_RECORD_ACTION (hypothesis)
-    try:
-        response = await robot.send_api_command(7110, {})
-        results["7110_STOP_RECORD"] = {
-            "raw_response": response,
-            "exists": response.get("error_code") != 3104 if isinstance(response, dict) else True
-        }
-    except Exception as e:
-        results["7110_STOP_RECORD"] = {"error": str(e)}
-    
-    # Test API 7111 - SAVE_RECORDED_ACTION (hypothesis)
-    try:
-        response = await robot.send_api_command(7111, {"action_name": "test_probe"})
-        results["7111_SAVE_RECORD"] = {
-            "raw_response": response,
-            "exists": response.get("error_code") != 3104 if isinstance(response, dict) else True
-        }
-    except Exception as e:
-        results["7111_SAVE_RECORD"] = {"error": str(e)}
-    
-    # Test API 7112 - DELETE_ACTION (hypothesis)
-    try:
-        response = await robot.send_api_command(7112, {"action_name": "test_probe"})
-        results["7112_DELETE_ACTION"] = {
-            "raw_response": response,
-            "exists": response.get("error_code") != 3104 if isinstance(response, dict) else True
-        }
-    except Exception as e:
-        results["7112_DELETE_ACTION"] = {"error": str(e)}
-    
-    return {"success": True, "results": results}
-
-
 # ============================================================================
 # Teach Mode Endpoints
 # ============================================================================
 
 @app.post("/api/teach/start_record")
 async def start_recording():
-    """Start recording arm movements (API 7109)"""
+    """Start recording arm movements via teaching protocol"""
     global robot
     
     if not robot or not robot.connected:
         return {"success": False, "error": "Robot not connected"}
     
     try:
-        result = await robot.send_api_command(7109, {})
+        result = await robot.executor.start_recording()
         return {"success": True, "data": result}
     except Exception as e:
         logger.error(f"Start recording failed: {e}")
@@ -993,14 +807,14 @@ async def start_recording():
 
 @app.post("/api/teach/stop_record")
 async def stop_recording():
-    """Stop recording arm movements (API 7110)"""
+    """Stop recording arm movements via teaching protocol"""
     global robot
     
     if not robot or not robot.connected:
         return {"success": False, "error": "Robot not connected"}
     
     try:
-        result = await robot.send_api_command(7110, {})
+        result = await robot.executor.stop_recording()
         return {"success": True, "data": result}
     except Exception as e:
         logger.error(f"Stop recording failed: {e}")
@@ -1009,7 +823,7 @@ async def stop_recording():
 
 @app.post("/api/teach/save_action")
 async def save_recorded_action(request: Request):
-    """Save recorded action with a name (API 7111)"""
+    """Save recorded action with a name via teaching protocol"""
     global robot
     
     if not robot or not robot.connected:
@@ -1026,7 +840,8 @@ async def save_recorded_action(request: Request):
         if not re.match(r'^[a-zA-Z0-9_]+$', action_name):
             return {"success": False, "error": "Invalid action name. Use only letters, numbers, and underscores."}
         
-        result = await robot.send_api_command(7111, {"action_name": action_name})
+        # Use teaching protocol save command (not official SDK API)
+        result = await robot.executor.save_teaching_action(action_name)
         
         # Also add to local favorites list
         actions = load_custom_actions()
@@ -1042,11 +857,8 @@ async def save_recorded_action(request: Request):
 
 @app.post("/api/teach/delete_action")
 async def delete_recorded_action(request: Request):
-    """Delete a saved action (API 7112)"""
+    """Delete a saved action from local favorites only (no SDK API exists)"""
     global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Robot not connected"}
     
     try:
         data = await request.json()
@@ -1055,15 +867,15 @@ async def delete_recorded_action(request: Request):
         if not action_name:
             return {"success": False, "error": "action_name required"}
         
-        result = await robot.send_api_command(7112, {"action_name": action_name})
-        
-        # Remove from local favorites list
+        # Remove from local favorites list only
+        # Note: There is NO official SDK API to delete actions from robot
         actions = load_custom_actions()
         if action_name in actions:
             actions.remove(action_name)
             save_custom_actions(actions)
-        
-        return {"success": True, "data": result, "action_name": action_name}
+            return {"success": True, "message": f"Removed '{action_name}' from favorites", "action_name": action_name}
+        else:
+            return {"success": False, "error": f"Action '{action_name}' not found in favorites"}
     except Exception as e:
         logger.error(f"Delete action failed: {e}")
         return {"success": False, "error": str(e)}
@@ -1110,7 +922,8 @@ async def get_teach_action_list():
 async def teach_mode_page():
     """Serve the teach mode page"""
     try:
-        with open("teach_mode.html", "r") as f:
+        html_path = os.path.join(os.path.dirname(__file__), "teach_mode.html")
+        with open(html_path, "r") as f:
             return f.read()
     except Exception as e:
         logger.error(f"Failed to load teach mode page: {e}")
@@ -1176,13 +989,56 @@ async def get_robot_action_list():
         return {"success": False, "error": "Executor not initialized"}
     
     try:
-        result = await robot.executor.get_action_list()
-        # The robot returns action list data - we need to parse the response
-        logger.info(f"Robot action list response: {result}")
+        response_future = asyncio.get_event_loop().create_future()
+
+        def _handle_response(message):
+            try:
+                if not isinstance(message, dict):
+                    return
+                if message.get("type") != "res":
+                    return
+                data = message.get("data", {})
+                header = data.get("header", {})
+                identity = header.get("identity", {})
+                if identity.get("api_id") != 7107:
+                    return
+                if not response_future.done():
+                    response_future.set_result(message)
+            except Exception:
+                pass
+
+        robot.conn.datachannel.pub_sub.subscribe("rt/api/arm/response", _handle_response)
+
+        payload = {
+            "api_id": 7107,
+            "parameter": {}
+        }
+
+        await robot.conn.datachannel.pub_sub.publish_request_new("rt/api/arm/request", payload)
+
+        response = await asyncio.wait_for(response_future, timeout=5)
+        raw_data = response.get("data", {}).get("data")
+
+        if not raw_data:
+            return {"success": False, "error": "Missing action list data"}
+
+        try:
+            parsed = json.loads(raw_data)
+            if isinstance(parsed, str):
+                parsed = json.loads(parsed)
+        except Exception as exc:
+            return {"success": False, "error": f"Failed to parse action list: {exc}"}
+
+        gestures = parsed[0] if isinstance(parsed, list) and len(parsed) > 0 else []
+        custom_actions = parsed[1] if isinstance(parsed, list) and len(parsed) > 1 else []
+
         return {
             "success": True,
-            "data": result  # Return raw data for now, will parse after seeing format
+            "gestures": gestures,
+            "custom_actions": custom_actions
         }
+    except asyncio.TimeoutError:
+        return {"success": False, "error": "Timed out waiting for robot response"}
     except Exception as e:
         logger.error(f"Failed to get robot action list: {e}")
         return {"success": False, "error": str(e)}
@@ -1280,6 +1136,31 @@ async def get_gestures_list():
         }
     except Exception as e:
         logger.error(f"Get gestures list failed: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/arm/read_pose")
+async def read_current_pose():
+    """Read current arm joint positions"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Robot not connected"}
+    
+    try:
+        # Read current arm positions
+        left_data = await robot.request_arm_state('left')
+        right_data = await robot.request_arm_state('right')
+        
+        if not left_data or not right_data:
+            return {"success": False, "error": "Failed to read arm state from robot"}
+        
+        return {
+            "success": True,
+            "left_arm": left_data['joints'],
+            "right_arm": right_data['joints']
+        }
+    except Exception as e:
+        logger.error(f"Read pose failed: {e}")
         return {"success": False, "error": str(e)}
 
 @app.get("/api/debug/transitions")

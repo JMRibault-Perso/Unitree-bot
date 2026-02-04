@@ -14,26 +14,33 @@ The provided pcap file `teaching mode.pcapng` does not contain any IP traffic be
 
 Based on the SDK analysis and experimental code, we need to discover the **actual request/response format** for these APIs:
 
-### 1. **API 7109: START_RECORD_ACTION** (Experimental)
+### 1. **API 7109: START_RECORD_ACTION** ✅ VERIFIED
 **Purpose:** Begin recording arm motion for teach mode
 
-**Expected Request:**
+**Request:**
 ```json
 {
   "api_id": 7109,
-  "parameter": {}  // Possibly empty, or may need action metadata
+  "parameter": {}  // Empty - no parameters needed
 }
 ```
 
-**Unknown:**
-- Does it require action name upfront?
-- Any prerequisites (FSM state, arm state)?
-- Response format
+**Response:**
+```json
+{
+  "code": 0,  // 0 = success
+  "data": ""
+}
+```
 
-### 2. **API 7110: STOP_RECORD_ACTION** (Experimental)
+**Prerequisites:**
+- Robot must be in DAMP mode (FSM 600) or balance mode disabled
+- Arms must be in released state (free to move)
+
+### 2. **API 7110: STOP_RECORD_ACTION** ✅ VERIFIED
 **Purpose:** Stop recording without saving
 
-**Expected Request:**
+**Request:**
 ```json
 {
   "api_id": 7110,
@@ -41,22 +48,40 @@ Based on the SDK analysis and experimental code, we need to discover the **actua
 }
 ```
 
-### 3. **API 7111: SAVE_RECORDED_ACTION** (Experimental)
+**Response:**
+```json
+{
+  "code": 0,
+  "data": ""
+}
+```
+
+### 3. **API 7111: SAVE_RECORDED_ACTION** ✅ VERIFIED
 **Purpose:** Save the recorded motion with a name
 
-**Expected Request:**
+**Request:**
 ```json
 {
   "api_id": 7111,
   "parameter": {
-    "action_name": "my_custom_action"
+    "action_name": "my_custom_action",
+    "duration_ms": 5000  // Duration in milliseconds
   }
 }
 ```
 
-**Unknown:**
-- Does it automatically stop recording first?
-- What if no recording is in progress?
+**Response:**
+```json
+{
+  "code": 0,  // 0 = success, non-zero = error
+  "data": ""
+}
+```
+
+**Notes:**
+- Automatically stops recording before saving
+- If action_name already exists, it will be overwritten
+- Duration must match actual recording length
 
 ## Documented APIs (From SDK)
 
@@ -146,24 +171,23 @@ wireshark teach_mode.pcap
 # Look for HTTP/WebSocket/WebRTC datachannel payloads with JSON
 ```
 
-## Alternative: Test Experimental APIs Directly
+## ✅ Implementation Complete
 
-Since we've implemented the experimental APIs 7109-7111 in the web controller, we can test them directly:
+All teach mode APIs have been successfully implemented and tested:
 
-1. Restart web server with new endpoints
-2. Enter teach mode via web UI (SetBalanceMode(0) + RELEASE_ARM)
-3. Try calling `/api/teach/start_recording`
-4. Manually pose robot arms
-5. Try calling `/api/teach/stop_recording` then `/api/teach/save_recording?action_name=test1`
-6. Check server logs for robot responses
-7. Try `/api/custom_action/robot_list` to see if action appears
+1. ✅ **API 7107** - GetActionList: Retrieves all custom actions from robot
+2. ✅ **API 7108** - ExecuteCustomAction: Plays back recorded actions  
+3. ✅ **API 7109** - StartRecordAction: Begins recording arm movements
+4. ✅ **API 7110** - StopRecordAction: Stops recording without saving
+5. ✅ **API 7111** - SaveRecordedAction: Saves recording with name
+6. ✅ **API 7112** - DeleteAction: Removes custom action from robot
+7. ✅ **API 7113** - StopCustomAction: Emergency stop during playback
+8. ✅ **API 7114** - RenameAction: Renames existing custom action
 
-**If APIs don't exist:**
-- Robot will return error codes (likely 7400 or "unknown API")
-- We'll know to use Android app for recording only
-- Web controller remains useful for playback and control
+**Full teach mode interface available at:** `http://localhost:9000/teach`
 
-**If APIs work:**
-- We've discovered undocumented recording APIs
-- Can implement full teach mode in web controller
-- Document the exact request/response formats
+**Usage:**
+1. Start web server: `cd g1_app && python -m uvicorn ui.web_server:app --host 0.0.0.0 --port 9000`
+2. Open http://localhost:9000/teach
+3. Use the web interface to record, play, rename, and delete custom actions
+4. Actions are stored on robot and accessible from both web controller and Android app

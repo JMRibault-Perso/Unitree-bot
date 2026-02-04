@@ -1,24 +1,40 @@
 # Teach Mode Recording Implementation Plan
 
 ## Overview
-SDK does NOT expose recording APIs - only playback of pre-recorded actions. Android app uses proprietary protocol.
+The G1 robot supports **full teach mode functionality** via WebRTC APIs:
 
-We can implement a **local** teach mode recording system that:
-1. Records arm joint positions while in FSM 501 + arms released
-2. Saves trajectories as JSON files
-3. Plays them back using low-level motor commands
+**Available APIs:**
+- **7107**: GetActionList - Retrieve all custom actions stored on robot
+- **7108**: ExecuteCustomAction - Play back a custom action by name
+- **7109**: StartRecordAction - Begin recording arm movements
+- **7110**: StopRecordAction - Stop recording without saving
+- **7111**: SaveRecordedAction - Save recording with a name
+- **7112**: DeleteAction - Remove a custom action
+- **7113**: StopCustomAction - Emergency stop during playback
+- **7114**: RenameAction - Rename an existing action
+
+**How it works:**
+1. Actions are recorded and stored **on the robot itself**
+2. Recording captures arm joint trajectories at ~50Hz
+3. Playback executes the stored trajectory
+4. Actions persist across robot reboots
+5. Actions can be accessed from both Android app and web controller
 
 ## Architecture
 
-### Backend Components Created
+### Backend Components Implemented ✅
 
-**`g1_app/core/teach_mode_recorder.py`** ✅ CREATED
-- `TeachModeRecorder` class manages recording lifecycle
-- Records 14 arm joint positions (7 DOF per arm) from `rt/lowstate` topic
-- Stores recordings as JSON in `g1_app/data/custom_actions/`
-- Sample rate: ~50 Hz (matching state update frequency)
+**`g1_app/api/arm_api.py`**
+- Full teach mode API implementation (7107-7114)
+- WebRTC request/response handling
+- Error handling and validation
 
-### What Still Needs Implementation
+**`g1_app/ui/teach_mode.html`**
+- Complete teach mode user interface
+- Record, play, rename, delete actions
+- Real-time status updates
+
+### Current Implementation Status
 
 #### 1. Robot Controller Integration
 

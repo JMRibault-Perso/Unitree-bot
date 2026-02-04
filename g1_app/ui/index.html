@@ -890,12 +890,21 @@
                     </div>
                 </div>
                 
-                <!-- Custom Actions List -->
+                <!-- Custom Actions List (Robot) -->
                 <div style="margin-bottom: 20px;">
-                    <h3 style="color: #4a5568; font-size: 14px; margin: 0 0 10px 0;">Saved Custom Actions</h3>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px;">
+                        <h3 style="color: #4a5568; font-size: 14px; margin: 0;">Robot Custom Actions</h3>
+                        <button onclick="loadCustomActionsList()" 
+                            style="padding: 6px 12px; background: #4299e1; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="customActionsStatus" style="font-size: 12px; color: #718096; margin-bottom: 8px;">
+                        Not loaded
+                    </div>
                     <div id="customActionsList" style="display: grid; gap: 8px;">
                         <div style="text-align: center; padding: 30px; color: #a0aec0; font-size: 14px;">
-                            No custom actions added yet
+                            No custom actions loaded yet
                         </div>
                     </div>
                 </div>
@@ -1841,58 +1850,62 @@
         }
 
         async function loadCustomActionsList() {
+            const listContainer = document.getElementById('customActionsList');
+            const statusEl = document.getElementById('customActionsStatus');
+
+            listContainer.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #a0aec0; font-size: 14px;">
+                    Loading actions from robot...
+                </div>
+            `;
+            statusEl.textContent = 'Loading...';
+
             try {
-                // First, try to load taught actions from robot
                 const robotResponse = await fetch('/api/custom_action/robot_list');
                 const robotData = await robotResponse.json();
-                
-                // Also load favorites list
-                const favResponse = await fetch('/api/custom_action/list');
-                const favData = await favResponse.json();
-                
-                const listContainer = document.getElementById('customActionsList');
-                let allActions = [];
-                
-                // Parse robot actions (format TBD - will see what robot returns)
-                if (robotData.success && robotData.data) {
-                    console.log('Robot action list:', robotData.data);
-                    // TODO: Parse robot response format when we see it
-                }
-                
-                // For now, show favorites list
-                if (favData.success && favData.actions && favData.actions.length > 0) {
-                    allActions = favData.actions;
-                }
-                
-                if (allActions.length > 0) {
-                    listContainer.innerHTML = allActions.map(action => `
-                        <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">
-                            <button onclick="playCustomAction('${action}')" 
-                                style="flex: 1; padding: 10px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; text-align: left; transition: all 0.2s;"
-                                onmouseover="this.style.transform='scale(1.02)'" 
-                                onmouseout="this.style.transform='scale(1)'">
-                                ▶️ ${action}
-                            </button>
-                            <button onclick="renameCustomAction('${action}')" 
-                                title="Rename" 
-                                style="padding: 8px 12px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                ✏️
-                            </button>
-                            <button onclick="removeCustomAction('${action}')" 
-                                title="Remove" 
-                                style="padding: 8px 12px; background: #f56565; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                🗑️
-                            </button>
+
+                if (!robotData.success) {
+                    statusEl.textContent = robotData.error || 'Failed to load from robot';
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #a0aec0; font-size: 14px;">
+                            ${robotData.error || 'No actions available'}
                         </div>
-                    `).join('');
+                    `;
+                    return;
+                }
+
+                const customActions = robotData.custom_actions || [];
+                const sortedActions = [...customActions].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+                statusEl.textContent = `Loaded ${sortedActions.length} custom action(s)`;
+
+                if (sortedActions.length > 0) {
+                    listContainer.innerHTML = sortedActions.map(action => {
+                        const name = action.name || 'unnamed';
+                        const time = action.time !== undefined ? `${action.time}s` : '';
+                        return `
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <button onclick="playCustomAction('${name}')" 
+                                    style="flex: 1; padding: 10px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; text-align: left; transition: all 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.02)'" 
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    ▶️ ${name}
+                                </button>
+                                <div style="font-size: 12px; color: #718096; min-width: 60px; text-align: right;">
+                                    ${time}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
                 } else {
                     listContainer.innerHTML = `
-                        <div style="text-align: center; padding: 30px; color: #a0aec0; font-size: 14px;">
-                            No custom actions added yet
+                        <div style="text-align: center; padding: 20px; color: #a0aec0; font-size: 14px;">
+                            No custom actions found on robot
                         </div>
                     `;
                 }
             } catch (error) {
+                statusEl.textContent = 'Failed to load actions';
                 showMessage(`Failed to load custom actions: ${error.message}`, 'error');
             }
         }

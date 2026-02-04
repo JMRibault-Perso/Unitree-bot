@@ -270,8 +270,13 @@ class RobotController:
                 logger.error(f"Error caching lowstate: {e}", exc_info=True)
         
         try:
+            # Try both possible topic names
             self.conn.datachannel.pub_sub.subscribe("rt/lowstate", on_lowstate_update)
             logger.info("✅ Subscribed to rt/lowstate for arm position reading")
+            
+            # Also try the LF prefix version (like other topics)
+            self.conn.datachannel.pub_sub.subscribe("rt/lf/lowstate", on_lowstate_update)
+            logger.info("✅ Also subscribed to rt/lf/lowstate as fallback")
         except Exception as e:
             logger.warning(f"Could not subscribe to rt/lowstate: {e}")
     
@@ -795,7 +800,7 @@ class RobotController:
         """Send raw API command to robot
         
         Args:
-            api_id: API command ID (e.g., 7109, 7110, etc.)
+            api_id: API command ID (e.g., 7106, 7107, 7108, 7113)
             parameter: Command parameters as dict
         
         Returns:
@@ -844,7 +849,7 @@ class RobotController:
         try:
             # Send low-level motor command via rt/lowcmd topic
             # This publishes directly to the DDS topic via WebRTC datachannel
-            return await self.executor.send_lowcmd_arm_command(command)
+            return self.executor.send_lowcmd_arm_command(command)
         except Exception as e:
             logger.error(f"Failed to send command: {e}", exc_info=True)
             return False

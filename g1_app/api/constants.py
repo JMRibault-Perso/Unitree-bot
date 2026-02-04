@@ -83,19 +83,11 @@ class LocoAPI(IntEnum):
 # Arm Action API IDs (Arm Service)
 # ============================================================================
 class ArmAPI(IntEnum):
-    """Arm action client API IDs"""
+    """Arm action client API IDs (from g1_arm_action_api.hpp)"""
     EXECUTE_ACTION = 7106           # Execute pre-programmed gesture
     GET_ACTION_LIST = 7107          # Retrieve available gestures
     EXECUTE_CUSTOM_ACTION = 7108    # Play teach mode recording
-    
-    # Undocumented APIs (gaps in numbering - likely recording APIs)
-    START_RECORD_ACTION = 7109      # EXPERIMENTAL: Start recording teach action
-    STOP_RECORD_ACTION = 7110       # EXPERIMENTAL: Stop recording
-    SAVE_RECORDED_ACTION = 7111     # EXPERIMENTAL: Save recording with name
-    DELETE_ACTION = 7112            # EXPERIMENTAL: Delete saved action
-    RENAME_ACTION = 7113            # EXPERIMENTAL: Rename saved action
-    
-    STOP_CUSTOM_ACTION = 7114       # Stop teach playback
+    STOP_CUSTOM_ACTION = 7113       # Stop teach playback
 
 
 # ============================================================================

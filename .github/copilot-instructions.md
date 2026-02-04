@@ -431,9 +431,13 @@ From dds-services-interface.md and arm-action-interface.md:
 - ✅ Our topic subscriptions follow correct DDS naming conventions
 - ✅ Our error handling matches documented error codes
 
-**Missing Features (Optional Enhancements):**
+**Implemented Features:**
+- ✅ Custom action management (APIs 7107-7114): Record, play, rename, delete
+- ✅ Action list retrieval (7107 GetActionList)
+- ✅ Full teach mode interface at /teach endpoint
+
+**Optional Enhancements:**
 - Service status monitoring (RobotStateClient.ServiceSwitch API)
-- Action list retrieval (API 7107 GetActionList)
 - Swing/stand height control (APIs 7004/7103, 7005/7104)
 - Balance mode control (APIs 7003/7102)
 
