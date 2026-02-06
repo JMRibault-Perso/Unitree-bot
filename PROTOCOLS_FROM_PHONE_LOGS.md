@@ -97,6 +97,82 @@ a=candidate:1 1 udp 2130706431 192.168.12.1 45168 typ host
 a=candidate:0 1 udp 2130706431 192.168.123.161 54419 typ host
 ```
 
+## Robot Hardware Information
+
+**Serial Number**: `E21D1000PAHBMB06`  
+**Model**: G1 Air  
+**Series**: G1  
+**Market**: 2 (Region code)
+
+**JWT Token Structure** (for WebRTC authentication):
+```json
+{
+  "alias": "G1_6937",
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "sn": "E21D1000PAHBMB06",
+  "series": "G1",
+  "key": "",
+  "model": "Air",
+  "market": 2
+}
+```
+
+**Decoded JWT Token**:
+```json
+{
+  "sub": "user",
+  "uid": 47442,
+  "ct": 1768947999,
+  "iss": "unitree_robot",
+  "type": "access_token",
+  "exp": 1771539999
+}
+```
+- User ID: 47442
+- Issued: 1768947999 (timestamp)
+- Expires: 1771539999 (timestamp)
+- Issuer: `unitree_robot`
+
+## Security & Error Handling
+
+### RSA Public Key (Cloud Communication)
+Robot uses RSA encryption for cloud API communication:
+```
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnOc1sgpzL4GTVp9/oQ0HD7eeAO2GJUABfjX3TitgXiXN1Ktn2WLsLrtAiIuj3OrrRogx8fCT16oxnXx/XrapBRHD/ufHZ08A2IRVw6U6vKDv8TpQH22sAEtUji4/P2AaZmeOxFsYW5FshQr37KBG+cBb7rJWLWEJpIXmCpnt37GGCtsACqRegkl7qQ8Q0OiJmtrYLPi00xSstZb+Wv1v8B0eTY3POAUXjgl357L5dc6vS99rYFkYeUCTWHaH4d51Z/KgCRYUadboDc2cgNg/z2dbO9S3HADegbIsN3fTbjDCruKfvc5ejxlFZ0Xbu6SScQbmkP8t3TPvy/DXGJAhNwIDAQAB
+```
+
+### Error Topic
+Topic: `errors`  
+Format: `{"topic":"errors","data":"[]","id":"0"}`
+
+**Error Addition**:
+```json
+{"topic":"add_error","data":"[1769616901,200,1]","id":"0"}
+```
+- `[timestamp, error_code, priority]`
+- Error code 200 observed in logs
+
+**Error Removal**:
+```json
+{"topic":"rm_error","data":"[1769616905,200,1]","id":"0"}
+```
+
+### Error Codes Observed
+
+| Code | Message | Meaning |
+|------|---------|---------|
+| 100 | SUCCESS | Command successful |
+| 1000 | App cannot access the network | WiFi disconnected or wrong network |
+| 1000 | device not online | Robot in STA-T mode (different network) |
+| 1000 | Network exception | Cloud API unreachable |
+
+### Multicast Timeout Pattern
+```
+connect :收到组播ip:timeout
+```
+- Robot attempts multicast discovery on local network
+- Timeout indicates app/robot on different subnets or AP mode active
+
 ## Protocol Pattern
 
 All commands use this format:
