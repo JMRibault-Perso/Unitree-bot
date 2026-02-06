@@ -3,6 +3,100 @@
 ## Summary
 The Android app logs reveal the complete API protocol used to communicate with the robot via DDS topics over WebRTC data channel.
 
+## Robot Discovery & Connection Protocol
+
+### Robot Identity
+- **Robot Name**: G1_6937
+- **Robot MAC Address (WiFi)**: `fe:23:cd:92:60:02`
+- **Default AP Password**: `88888888`
+
+### Discovery Mechanism
+
+**App Discovery Process:**
+1. **BLE Scan**: App searches for BLE devices with MAC `fe:23:cd:92:60:02`
+2. **BLE Handshake**: MTU negotiation → version exchange → MAC retrieval
+3. **WiFi Credentials**: App sends SSID/password via BLE
+4. **WiFi Connection**: Robot connects to specified network or stays in AP mode
+5. **WebRTC Connection**: App establishes encrypted video/audio/data channel
+
+### Network Modes
+
+**1. AP Mode (Access Point)**
+- Robot creates WiFi network `G1_6937`
+- Robot IP: `192.168.12.1`
+- App connects directly to robot's hotspot
+- Status: `{"topic":"public_network_status","data":"{\"status\":\"AP\"}"}`
+
+**2. STA-L Mode (Station - Local Network)**
+- Robot and app on same WiFi network
+- Example: Robot `192.168.86.3`, App `192.168.86.2`
+- Status: `{"topic":"public_network_status","data":"{\"status\":\"STA-L\"}"}`
+
+**3. STA-T Mode (Station - Offline/Remote)**
+- Robot on WiFi but different network than app
+- Requires cloud relay: `https://global-robot-api.unitree.com`
+- Error when unreachable: `{"code":1000,"errorMsg":"device not online"}`
+
+### BLE Pairing Protocol
+
+```
+Step 1: MTU Negotiation
+  ble :设置mtu成功：23
+
+Step 2: Version Exchange
+  Send: [111, -19, 95, 59, 18, -127, -123, -85, -81, -119, -51, -43, -9]
+  Recv: [hex=6ce65f3b1252]
+  ble :解析版本号：1
+
+Step 3: MAC Address Retrieval
+  Send: [111, -28, 89, -103]
+  Recv: [hex=6cea57c4303979a2d941]
+  ble :mac：fe:23:cd:92:60:02
+
+Step 4: WiFi Credentials (encrypted binary protocol)
+  Send: [111, -27, 93, 59, -74]
+  Send: [111, -19, 90, 59, 18, -77, -38, -99, -19, -62, -101, -121, -66]
+  Send: [111, -18, 91, 59, 18, -52, -45, -6, -29, -61, -112, -120, 109, 0]
+  Send: [111, -25, 88, 111, 64, -11, 19]
+  
+Step 5: Disconnection
+  ble :设备已断开连接
+```
+
+### Network Change Detection
+
+**WiFi Monitoring:**
+```
+WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:<router_mac>
+```
+- First BSSID = Robot's WiFi interface (`fe:23:cd:92:60:02`)
+- Second wifi = WiFi router MAC (e.g., `e0:d3:62:86:d8:f7`)
+- If `wifi:null` → Robot disconnected from WiFi
+- If `wifi:fe:23:cd:92:60:02` → Robot in AP mode
+
+**Local Network Detection:**
+```json
+{"type":"0","data":"192.168.12.1","msg":""}  // Connection success
+{"type":"1","data":"192.168.86.2","msg":""}  // Local network IP
+{"type":"2","data":"https://global-robot-api.unitree.com","msg":""}  // Cloud API
+{"type":"3","data":"192.168.12.1","msg":""}  // AP mode IP
+```
+
+### WebRTC Network Interfaces
+
+**Robot exposes 3 IP addresses in ICE candidates:**
+
+1. **169.254.x.x** - Link-local (direct device-to-device)
+2. **192.168.x.x** - LAN IP (STA-L: router IP, AP: `192.168.12.1`)
+3. **192.168.123.161** - Internal bridge (PC1 ↔ PC2, not accessible externally)
+
+**Example ICE Candidates:**
+```
+a=candidate:2 1 udp 2130706431 169.254.62.11 52165 typ host
+a=candidate:1 1 udp 2130706431 192.168.12.1 45168 typ host
+a=candidate:0 1 udp 2130706431 192.168.123.161 54419 typ host
+```
+
 ## Protocol Pattern
 
 All commands use this format:
