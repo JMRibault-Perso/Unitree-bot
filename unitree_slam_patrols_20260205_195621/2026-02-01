@@ -1,0 +1,118 @@
+2026-02-01 14:11:37.000 I/AppLog: WifiHelp :bssid:   ---  wifi:null
+2026-02-01 14:11:37.109 I/AppLog: AppState :应用回到前台
+2026-02-01 14:11:38.160 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:11:38.361 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:11:38.772 I/AppLog: connect :--------------------- 开始连接  sn:E21D1000PAHBMB06 ---------------------
+2026-02-01 14:11:38.772 I/AppLog: connect :sn更改重连:E21D1000PAHBMB06 G1 Air
+2026-02-01 14:11:39.572 I/AppLog: webJs :webServiceIsOK
+2026-02-01 14:11:39.583 I/AppLog: connect :--------------------- 开始连接  sn:E21D1000PAHBMB06 ---------------------
+2026-02-01 14:11:39.583 E/AppLog: connect :点击重连
+2026-02-01 14:11:39.584 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:11:39.588 I/AppLog: RTC_Start :{"alias":"G1_6937","token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwidWlkIjo0NzQ0MiwiY3QiOjE3Njg5NDc5OTksImlzcyI6InVuaXRyZWVfcm9ib3QiLCJ0eXBlIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzcxNTM5OTk5fQ.iUioc5CeiyOY9auL7agVz-xLgEBqFkGN_3tKuJjv9ns","sn":"E21D1000PAHBMB06","series":"G1","key":"","model":"Air","market":2}
+2026-02-01 14:11:39.699 E/AppLog: connect :收到连接状态:0
+2026-02-01 14:11:40.575 I/AppLog: appSendHttpResponse :{"requestId":"2dd6cd8b573cf2a95252c151473905dd","response":"{\"code\":100,\"data\":\"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnOc1sgpzL4GTVp9/oQ0HD7eeAO2GJUABfjX3TitgXiXN1Ktn2WLsLrtAiIuj3OrrRogx8fCT16oxnXx/XrapBRHD/ufHZ08A2IRVw6U6vKDv8TpQH22sAEtUji4/P2AaZmeOxFsYW5FshQr37KBG+cBb7rJWLWEJpIXmCpnt37GGCtsACqRegkl7qQ8Q0OiJmtrYLPi00xSstZb+Wv1v8B0eTY3POAUXjgl357L5dc6vS99rYFkYeUCTWHaH4d51Z/KgCRYUadboDc2cgNg/z2dbO9S3HADegbIsN3fTbjDCruKfvc5ejxlFZ0Xbu6SScQbmkP8t3TPvy/DXGJAhNwIDAQAB\",\"errorMsg\":\"SUCCESS\",\"tip\":\"\"}"}
+2026-02-01 14:11:40.580 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:11:40.582 E/: udp ：广播接收中
+2026-02-01 14:11:40.582 E/: udp ：发送广播
+2026-02-01 14:11:40.583 E/: udp ：发送广播
+2026-02-01 14:11:40.583 E/: udp ：发送广播
+2026-02-01 14:11:40.583 E/: udp ：发送广播
+2026-02-01 14:11:41.315 E/: udp ：{"sn": "E21D1000PAHBMB06", "key": "", "name": "unitree_dapengche", "ip": "192.168.86.4"}
+2026-02-01 14:11:41.315 I/AppLog: connect :收到组播ip:192.168.86.4
+2026-02-01 14:11:41.316 I/AppLog: appSendLocalNetwork :{"type":"1","data":"192.168.86.4","msg":""}
+2026-02-01 14:11:41.496 I/AppLog: appSendHttpResponse :{"requestId":"fc3d366ffba3f304e81ceb0099684015","response":"{\"code\":1000,\"data\":\"\",\"errorMsg\":\"App cannot access the network\"}"}
+2026-02-01 14:11:42.224 I/AppLog: appSendHttpResponse :{"requestId":"b5d9571bf04401abf1e560f24e4c2030","response":"{\"type\":\"answer\",\"sdp\":\"v=0\\r\\no=- 2031909352 2 IN IP4 127.0.0.1\\r\\ns=-\\r\\nt=0 0\\r\\na=group:BUNDLE 0 1 2\\r\\na=msid-semantic: WMS myKvsVideoStream\\r\\nm=video 9 UDP/TLS/RTP/SAVPF 119\\r\\nc=IN IP4 127.0.0.1\\r\\na=candidate:1 1 udp 2130706431 192.168.86.4 45993 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=candidate:0 1 udp 2130706431 192.168.123.161 36262 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=msid:unitreeMediaStream unitreeVideoTrack\\r\\na=ssrc:206761851 cname:mMIDag/ZkgcvjWHq\\r\\na=ssrc:206761851 msid:unitreeMediaStream unitreeVideoTrack\\r\\na=ssrc:206761851 mslabel:unitreeMediaStream\\r\\na=ssrc:206761851 label:unitreeVideoTrack\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:TENo\\r\\na=ice-pwd:/4h3B3wO7w2nPOqXQgJ+Q2tc\\r\\na=ice-options:trickle\\r\\na=fingerprint:sha-256 A5:B5:CF:1F:AF:B0:44:6B:05:17:2E:42:56:AD:E1:8C:F5:A8:77:14:61:12:33:9F:58:ED:48:A0:34:68:86:0E\\r\\na=setup:active\\r\\na=mid:0\\r\\na=sendonly\\r\\na=rtcp-mux\\r\\na=rtcp-rsize\\r\\na=rtpmap:119 H264/90000\\r\\na=fmtp:119 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\\r\\na=rtcp-fb:119 nack\\r\\na=rtcp-fb:119 goog-remb\\r\\na=rtcp-fb:119 transport-cc\\r\\nm=audio 9 UDP/TLS/RTP/SAVPF 111\\r\\nc=IN IP4 127.0.0.1\\r\\na=candidate:1 1 udp 2130706431 192.168.86.4 45993 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=candidate:0 1 udp 2130706431 192.168.123.161 36262 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=msid:unitreeMediaStream unitreeAudioTrack\\r\\na=ssrc:1084524570 cname:mMIDag/ZkgcvjWHq\\r\\na=ssrc:1084524570 msid:unitreeMediaStream unitreeAudioTrack\\r\\na=ssrc:1084524570 mslabel:unitreeMediaStream\\r\\na=ssrc:1084524570 label:unitreeAudioTrack\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:TENo\\r\\na=ice-pwd:/4h3B3wO7w2nPOqXQgJ+Q2tc\\r\\na=ice-options:trickle\\r\\na=fingerprint:sha-256 A5:B5:CF:1F:AF:B0:44:6B:05:17:2E:42:56:AD:E1:8C:F5:A8:77:14:61:12:33:9F:58:ED:48:A0:34:68:86:0E\\r\\na=setup:active\\r\\na=mid:1\\r\\na=sendrecv\\r\\na=rtcp-mux\\r\\na=rtcp-rsize\\r\\na=rtpmap:111 opus/48000/2\\r\\na=fmtp:111 minptime=10;useinbandfec=1\\r\\na=rtcp-fb:111 nack\\r\\na=rtcp-fb:111 goog-remb\\r\\na=rtcp-fb:111 transport-cc\\r\\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\\r\\nc=IN IP4 127.0.0.1\\r\\na=candidate:1 1 udp 2130706431 192.168.86.4 45993 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=candidate:0 1 udp 2130706431 192.168.123.161 36262 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:TENo\\r\\na=ice-pwd:/4h3B3wO7w2nPOqXQgJ+Q2tc\\r\\na=fingerprint:sha-256 A5:B5:CF:1F:AF:B0:44:6B:05:17:2E:42:56:AD:E1:8C:F5:A8:77:14:61:12:33:9F:58:ED:48:A0:34:68:86:0E\\r\\na=setup:active\\r\\na=mid:2\\r\\na=sctp-port:5000\\r\\n\",\"id\":\"STA_localNetwork\"}"}
+2026-02-01 14:11:42.261 E/AppLog: connect :收到连接状态:1
+2026-02-01 14:11:42.261 I/AppLog: job :开始获取版本号
+2026-02-01 14:11:42.341 I/AppLog: webSendCmdRes :{"topic":"errors","data":"[]","id":"0"}
+2026-02-01 14:11:42.349 I/AppLog: webSendCmdRes :{"topic":"public_network_status","data":"{\"status\":\"STA-L\"}","id":"0"}
+2026-02-01 14:11:45.021 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:11:52.101 I/AppLog: ble :设置mtu成功：23
+2026-02-01 14:11:52.283 I/AppLog: ble :发送成功： [111, -19, 95, 59, 18, -127, -123, -85, -81, -119, -51, -43, -9]
+2026-02-01 14:11:52.283 I/AppLog: ble :收到数据：[hex=6ce65f3b1252]
+2026-02-01 14:11:52.284 I/AppLog: ble :解析版本号：1
+2026-02-01 14:11:52.340 I/AppLog: ble :发送成功： [111, -28, 89, -103]
+2026-02-01 14:11:52.341 I/AppLog: ble :收到数据：[hex=6cea57c4303979a2d941]
+2026-02-01 14:11:52.342 I/AppLog: ble :mac：fe:23:cd:92:60:02
+2026-02-01 14:11:52.611 I/AppLog: ble :发送成功： [111, -28, 92, -110]
+2026-02-01 14:11:52.611 I/AppLog: ble :收到数据：[hex=6cf45c3b11b1d9f39fca9880658906ce4c872538]
+2026-02-01 14:11:52.612 I/AppLog: ble :收到数据：[hex=6ce85c3811c4ddf9]
+2026-02-01 14:11:55.777 I/AppLog: ble :设备已断开连接
+2026-02-01 14:11:57.647 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:11:57.652 I/AppLog: appSendCmdToGo2 :{"api_id":1001,"data":"","id":1,"priority":false,"topic":"rt/api/motion_switcher/request"}
+2026-02-01 14:11:57.755 I/AppLog: webSendCmdRes :{"id":1,"api_id":1001,"topic":"rt/api/motion_switcher/response","code":0,"data":"{\"form\":\"0\",\"name\":\"ai\"}"}
+2026-02-01 14:12:03.072 I/AppLog: AppState :应用进入后台
+2026-02-01 14:22:39.585 I/AppLog: WifiHelp :bssid:   ---  wifi:null
+2026-02-01 14:22:39.700 I/AppLog: AppState :应用回到前台
+2026-02-01 14:22:40.763 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:22:40.958 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:22:41.896 I/AppLog: connect :--------------------- 开始连接  sn:E21D1000PAHBMB06 ---------------------
+2026-02-01 14:22:41.896 I/AppLog: connect :sn更改重连:E21D1000PAHBMB06 G1 Air
+2026-02-01 14:22:41.897 I/AppLog: RTC_Start :{"alias":"G1_6937","token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwidWlkIjo0NzQ0MiwiY3QiOjE3Njg5NDc5OTksImlzcyI6InVuaXRyZWVfcm9ib3QiLCJ0eXBlIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzcxNTM5OTk5fQ.iUioc5CeiyOY9auL7agVz-xLgEBqFkGN_3tKuJjv9ns","sn":"E21D1000PAHBMB06","series":"G1","key":"","model":"Air","market":2}
+2026-02-01 14:22:42.115 I/AppLog: webJs :webServiceIsOK
+2026-02-01 14:22:42.121 I/AppLog: connect :--------------------- 开始连接  sn:E21D1000PAHBMB06 ---------------------
+2026-02-01 14:22:42.121 E/AppLog: connect :点击重连
+2026-02-01 14:22:42.124 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:22:42.126 I/AppLog: RTC_Start :{"alias":"G1_6937","token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwidWlkIjo0NzQ0MiwiY3QiOjE3Njg5NDc5OTksImlzcyI6InVuaXRyZWVfcm9ib3QiLCJ0eXBlIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzcxNTM5OTk5fQ.iUioc5CeiyOY9auL7agVz-xLgEBqFkGN_3tKuJjv9ns","sn":"E21D1000PAHBMB06","series":"G1","key":"","model":"Air","market":2}
+2026-02-01 14:22:42.315 E/AppLog: connect :收到连接状态:0
+2026-02-01 14:22:43.009 I/AppLog: appSendHttpResponse :{"requestId":"27c0addb8f4f420ee11f3c9fc8c67342","response":"{\"code\":100,\"data\":\"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnOc1sgpzL4GTVp9/oQ0HD7eeAO2GJUABfjX3TitgXiXN1Ktn2WLsLrtAiIuj3OrrRogx8fCT16oxnXx/XrapBRHD/ufHZ08A2IRVw6U6vKDv8TpQH22sAEtUji4/P2AaZmeOxFsYW5FshQr37KBG+cBb7rJWLWEJpIXmCpnt37GGCtsACqRegkl7qQ8Q0OiJmtrYLPi00xSstZb+Wv1v8B0eTY3POAUXjgl357L5dc6vS99rYFkYeUCTWHaH4d51Z/KgCRYUadboDc2cgNg/z2dbO9S3HADegbIsN3fTbjDCruKfvc5ejxlFZ0Xbu6SScQbmkP8t3TPvy/DXGJAhNwIDAQAB\",\"errorMsg\":\"SUCCESS\",\"tip\":\"\"}"}
+2026-02-01 14:22:43.017 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:22:43.020 E/: udp ：广播接收中
+2026-02-01 14:22:43.021 E/: udp ：发送广播
+2026-02-01 14:22:43.022 E/: udp ：发送广播
+2026-02-01 14:22:43.022 E/: udp ：发送广播
+2026-02-01 14:22:43.022 E/: udp ：发送广播
+2026-02-01 14:22:43.412 E/: udp ：{"sn": "E21D1000PAHBMB06", "key": "", "name": "unitree_dapengche", "ip": "192.168.86.4"}
+2026-02-01 14:22:43.415 I/AppLog: connect :收到组播ip:192.168.86.4
+2026-02-01 14:22:43.417 I/AppLog: appSendLocalNetwork :{"type":"1","data":"192.168.86.4","msg":""}
+2026-02-01 14:22:43.440 I/AppLog: appSendHttpResponse :{"requestId":"514236db7a77efe8ea254b7a716c76fe","response":"{\"code\":1000,\"data\":\"\",\"errorMsg\":\"App cannot access the network\"}"}
+2026-02-01 14:22:44.329 I/AppLog: appSendHttpResponse :{"requestId":"e0308f6b4f9cdd698b602ba6e8f8d59a","response":"{\"type\":\"answer\",\"sdp\":\"v=0\\r\\no=- 1835612202 2 IN IP4 127.0.0.1\\r\\ns=-\\r\\nt=0 0\\r\\na=group:BUNDLE 0 1 2\\r\\na=msid-semantic: WMS myKvsVideoStream\\r\\nm=video 9 UDP/TLS/RTP/SAVPF 119\\r\\nc=IN IP4 127.0.0.1\\r\\na=candidate:1 1 udp 2130706431 192.168.86.4 35495 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=candidate:0 1 udp 2130706431 192.168.123.161 46792 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=msid:unitreeMediaStream unitreeVideoTrack\\r\\na=ssrc:161506704 cname:knOXdWwXCG/opg+Y\\r\\na=ssrc:161506704 msid:unitreeMediaStream unitreeVideoTrack\\r\\na=ssrc:161506704 mslabel:unitreeMediaStream\\r\\na=ssrc:161506704 label:unitreeVideoTrack\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:or7P\\r\\na=ice-pwd:wiMTcZhCkx8lU92PLdhe8T3q\\r\\na=ice-options:trickle\\r\\na=fingerprint:sha-256 2B:C2:E2:C2:79:48:76:6E:14:FE:24:76:13:DD:AB:67:77:A0:B7:4F:D9:BC:0C:7C:F4:83:62:0C:F0:E9:1D:30\\r\\na=setup:active\\r\\na=mid:0\\r\\na=sendonly\\r\\na=rtcp-mux\\r\\na=rtcp-rsize\\r\\na=rtpmap:119 H264/90000\\r\\na=fmtp:119 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\\r\\na=rtcp-fb:119 nack\\r\\na=rtcp-fb:119 goog-remb\\r\\na=rtcp-fb:119 transport-cc\\r\\nm=audio 9 UDP/TLS/RTP/SAVPF 111\\r\\nc=IN IP4 127.0.0.1\\r\\na=candidate:1 1 udp 2130706431 192.168.86.4 35495 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=candidate:0 1 udp 2130706431 192.168.123.161 46792 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=msid:unitreeMediaStream unitreeAudioTrack\\r\\na=ssrc:1766733013 cname:knOXdWwXCG/opg+Y\\r\\na=ssrc:1766733013 msid:unitreeMediaStream unitreeAudioTrack\\r\\na=ssrc:1766733013 mslabel:unitreeMediaStream\\r\\na=ssrc:1766733013 label:unitreeAudioTrack\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:or7P\\r\\na=ice-pwd:wiMTcZhCkx8lU92PLdhe8T3q\\r\\na=ice-options:trickle\\r\\na=fingerprint:sha-256 2B:C2:E2:C2:79:48:76:6E:14:FE:24:76:13:DD:AB:67:77:A0:B7:4F:D9:BC:0C:7C:F4:83:62:0C:F0:E9:1D:30\\r\\na=setup:active\\r\\na=mid:1\\r\\na=sendrecv\\r\\na=rtcp-mux\\r\\na=rtcp-rsize\\r\\na=rtpmap:111 opus/48000/2\\r\\na=fmtp:111 minptime=10;useinbandfec=1\\r\\na=rtcp-fb:111 nack\\r\\na=rtcp-fb:111 goog-remb\\r\\na=rtcp-fb:111 transport-cc\\r\\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\\r\\nc=IN IP4 127.0.0.1\\r\\na=candidate:1 1 udp 2130706431 192.168.86.4 35495 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=candidate:0 1 udp 2130706431 192.168.123.161 46792 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:or7P\\r\\na=ice-pwd:wiMTcZhCkx8lU92PLdhe8T3q\\r\\na=fingerprint:sha-256 2B:C2:E2:C2:79:48:76:6E:14:FE:24:76:13:DD:AB:67:77:A0:B7:4F:D9:BC:0C:7C:F4:83:62:0C:F0:E9:1D:30\\r\\na=setup:active\\r\\na=mid:2\\r\\na=sctp-port:5000\\r\\n\",\"id\":\"STA_localNetwork\"}"}
+2026-02-01 14:22:44.356 E/AppLog: connect :收到连接状态:1
+2026-02-01 14:22:44.356 I/AppLog: job :开始获取版本号
+2026-02-01 14:22:44.437 I/AppLog: webSendCmdRes :{"topic":"errors","data":"[]","id":"0"}
+2026-02-01 14:22:44.447 I/AppLog: webSendCmdRes :{"topic":"public_network_status","data":"{\"status\":\"STA-L\"}","id":"0"}
+2026-02-01 14:22:45.697 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:22:45.770 I/AppLog: 跳转web参数 :{"url":"/operation","from":"","language":"en","mode":"air","userid":"47442","debugger":"0","sn":"E21D1000PAHBMB06","sportmode":"ai","series":"G1","pid":"0","topLeft":48.5}
+2026-02-01 14:22:52.447 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:22:52.455 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:22:52.460 I/AppLog: appSendCmdToGo2 :{"api_id":1001,"data":"","id":1,"priority":false,"topic":"rt/api/motion_switcher/request"}
+2026-02-01 14:22:52.775 I/AppLog: webSendHideBackBtn :{"data":true}
+2026-02-01 14:22:52.783 I/AppLog: 跳转web参数 :{"url":"/newSlam","from":"","language":"en","mode":"air","userid":"47442","debugger":"0","sn":"E21D1000PAHBMB06","sportmode":"ai","series":"G1","pid":"0","topLeft":25.0}
+2026-02-01 14:22:52.882 I/AppLog: webSendCmdRes :{"id":1,"api_id":1001,"topic":"rt/api/motion_switcher/response","code":0,"data":"{\"form\":\"0\",\"name\":\"ai\"}"}
+2026-02-01 14:23:18.887 I/AppLog: webSendHideBackBtn :{"data":false}
+2026-02-01 14:23:20.137 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f7
+2026-02-01 14:23:20.140 I/AppLog: appSendCmdToGo2 :{"api_id":1001,"data":"","id":2,"priority":false,"topic":"rt/api/motion_switcher/request"}
+2026-02-01 14:23:20.172 I/AppLog: webSendCmdRes :{"id":2,"api_id":1001,"topic":"rt/api/motion_switcher/response","code":0,"data":"{\"form\":\"0\",\"name\":\"ai\"}"}
+2026-02-01 14:23:23.837 I/AppLog: AppState :应用进入后台
+2026-02-01 17:35:00.204 I/AppLog: WifiHelp :bssid:   ---  wifi:null
+2026-02-01 17:35:00.309 I/AppLog: AppState :应用回到前台
+2026-02-01 17:35:01.382 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f6
+2026-02-01 17:35:01.613 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f6
+2026-02-01 17:35:02.727 I/AppLog: connect :--------------------- 开始连接  sn:E21D1000PAHBMB06 ---------------------
+2026-02-01 17:35:02.727 I/AppLog: connect :sn更改重连:E21D1000PAHBMB06 G1 Air
+2026-02-01 17:35:02.728 I/AppLog: RTC_Start :{"alias":"G1_6937","token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwidWlkIjo0NzQ0MiwiY3QiOjE3Njg5NDc5OTksImlzcyI6InVuaXRyZWVfcm9ib3QiLCJ0eXBlIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzcxNTM5OTk5fQ.iUioc5CeiyOY9auL7agVz-xLgEBqFkGN_3tKuJjv9ns","sn":"E21D1000PAHBMB06","series":"G1","key":"","model":"Air","market":2}
+2026-02-01 17:35:03.006 I/AppLog: webJs :webServiceIsOK
+2026-02-01 17:35:03.015 I/AppLog: connect :--------------------- 开始连接  sn:E21D1000PAHBMB06 ---------------------
+2026-02-01 17:35:03.015 E/AppLog: connect :点击重连
+2026-02-01 17:35:03.016 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f6
+2026-02-01 17:35:03.018 I/AppLog: RTC_Start :{"alias":"G1_6937","token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwidWlkIjo0NzQ0MiwiY3QiOjE3Njg5NDc5OTksImlzcyI6InVuaXRyZWVfcm9ib3QiLCJ0eXBlIjoiYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzcxNTM5OTk5fQ.iUioc5CeiyOY9auL7agVz-xLgEBqFkGN_3tKuJjv9ns","sn":"E21D1000PAHBMB06","series":"G1","key":"","model":"Air","market":2}
+2026-02-01 17:35:03.223 E/AppLog: connect :收到连接状态:0
+2026-02-01 17:35:03.743 I/AppLog: appSendHttpResponse :{"requestId":"930b49d7a6e36fec2154b82918e0b0aa","response":"{\"code\":100,\"data\":\"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnOc1sgpzL4GTVp9/oQ0HD7eeAO2GJUABfjX3TitgXiXN1Ktn2WLsLrtAiIuj3OrrRogx8fCT16oxnXx/XrapBRHD/ufHZ08A2IRVw6U6vKDv8TpQH22sAEtUji4/P2AaZmeOxFsYW5FshQr37KBG+cBb7rJWLWEJpIXmCpnt37GGCtsACqRegkl7qQ8Q0OiJmtrYLPi00xSstZb+Wv1v8B0eTY3POAUXjgl357L5dc6vS99rYFkYeUCTWHaH4d51Z/KgCRYUadboDc2cgNg/z2dbO9S3HADegbIsN3fTbjDCruKfvc5ejxlFZ0Xbu6SScQbmkP8t3TPvy/DXGJAhNwIDAQAB\",\"errorMsg\":\"SUCCESS\",\"tip\":\"\"}"}
+2026-02-01 17:35:03.749 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f6
+2026-02-01 17:35:03.751 E/: udp ：发送广播
+2026-02-01 17:35:03.752 E/: udp ：发送广播
+2026-02-01 17:35:03.752 E/: udp ：发送广播
+2026-02-01 17:35:03.752 E/: udp ：发送广播
+2026-02-01 17:35:03.753 E/: udp ：广播接收中
+2026-02-01 17:35:04.753 E/: udp ：发送广播
+2026-02-01 17:35:04.753 E/: udp ：发送广播
+2026-02-01 17:35:04.754 E/: udp ：发送广播
+2026-02-01 17:35:04.754 E/: udp ：发送广播
+2026-02-01 17:35:05.752 I/AppLog: connect :收到组播ip:timeout
+2026-02-01 17:35:05.753 I/AppLog: appSendLocalNetwork :{"type":"2","data":"https://global-robot-api.unitree.com","msg":""}
+2026-02-01 17:35:06.063 I/AppLog: appSendHttpResponse :{"requestId":"3b492bea09e8dd715fd7d80133261f90","response":"{\"code\":100,\"data\":\"ru8O+ltR7K73jKwxsjunBsB5sGJo1fFcfr2/F9lR1rUvcxjlyug7oZ6lij+4lAZb7WYtC5IRk8qm0l8GusOoPWZGOayWwfjHJ3LqZtHZgGjHir0adM1LkkuB+Qa8MlZ7LFJ2K4kajcYnd0yvjav89BdFkX/hZLTHGPIQbWZe5dk=\",\"errorMsg\":\"SUCCESS\",\"tip\":\"\"}"}
+2026-02-01 17:35:07.044 I/AppLog: appSendHttpResponse :{"requestId":"d94b434324f32c12fff40eee3c4f8add","response":"{\"code\":1000,\"errorMsg\":\"device not online\",\"tip\":\"\"}"}
+2026-02-01 17:35:07.048 E/AppLog: connect :收到连接状态:-1
+2026-02-01 17:35:07.174 I/AppLog: WifiHelp :bssid: fe:23:cd:92:60:02  ---  wifi:e0:d3:62:86:d8:f6
+2026-02-01 17:35:10.054 I/AppLog: AppState :应用进入后台
+2026-02-01 21:09:40.079 I/AppLog: WifiHelp :bssid:   ---  wifi:null
