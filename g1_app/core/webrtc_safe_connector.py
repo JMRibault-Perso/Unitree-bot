@@ -36,8 +36,10 @@ from pathlib import Path
 # Add WebRTC library paths (Linux and Windows)
 project_root = r'{project_root}'
 webrtc_paths = [
-    '/root/G1/go2_webrtc_connect',  # Linux
-    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows
+    '/root/G1/g1_webrtc_connect',  # Linux
+    '/root/G1/go2_webrtc_connect',  # Linux (fallback)
+    str(Path(project_root) / 'libs' / 'g1_webrtc_connect'),  # Windows
+    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows (fallback)
 ]
 for path in webrtc_paths:
     if os.path.exists(path) and path not in sys.path:

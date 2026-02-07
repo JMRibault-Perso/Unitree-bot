@@ -5,7 +5,7 @@
 - Python 3.8+
 - Linux system (tested on Ubuntu)
 - Network access to G1 robot
-- go2_webrtc_connect library (git submodule at `deps/go2_webrtc_connect`)
+- g1_webrtc_connect library (git submodule at `deps/g1_webrtc_connect`)
 
 ## Installation Steps
 
@@ -51,10 +51,10 @@ Or edit the defaults in `g1_app/utils/config.py`.
 
 ### 3. Verify WebRTC Library
 
-The application uses the go2_webrtc_connect library. Verify it's available:
+The application uses the g1_webrtc_connect library. Verify it's available:
 
 ```bash
-python3 -c "import sys; sys.path.insert(0, './deps/go2_webrtc_connect'); import unitree_webrtc_connect; print('OK')"
+python3 -c "import sys; sys.path.insert(0, './deps/g1_webrtc_connect'); import unitree_webrtc_connect; print('OK')"
 ```
 
 ### 4. Test Connection
@@ -92,7 +92,7 @@ The robot must be on the same WiFi network as your PC:
    ```
 
 3. **Check WebRTC ports**:
-   The go2_webrtc_connect library handles WebRTC negotiation automatically over WiFi.
+   The g1_webrtc_connect library handles WebRTC negotiation automatically over WiFi.
 
 ### Troubleshooting Network Issues
 
@@ -157,7 +157,7 @@ After setup, your directory should look like:
 ├── deps/
 │   ├── unitree_sdk2/            # External SDK (pulled)
 │   ├── unitree_sdk2_python/     # External Python SDK (pulled)
-│   └── go2_webrtc_connect/      # WebRTC library (pulled)
+│   └── g1_webrtc_connect/       # WebRTC library (submodule)
 ```
 
 ## Testing the Installation
@@ -238,12 +238,12 @@ The WebRTC library path may not be set. Fix:
 ```python
 # Add to your scripts before imports:
 import sys
-sys.path.insert(0, './deps/go2_webrtc_connect')
+sys.path.insert(0, './deps/g1_webrtc_connect')
 ```
 
 Or set PYTHONPATH:
 ```bash
-export PYTHONPATH=./deps/go2_webrtc_connect:$PYTHONPATH
+export PYTHONPATH=./deps/g1_webrtc_connect:$PYTHONPATH
 ```
 
 ### "Connection timeout" or "Failed to connect"

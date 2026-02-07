@@ -39,7 +39,7 @@ libs/
 
 # External dependencies pulled locally
 deps/*
-!deps/go2_webrtc_connect/
+!deps/g1_webrtc_connect/
 
 # Temporary files
 *.tmp

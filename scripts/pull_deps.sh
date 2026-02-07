@@ -24,6 +24,6 @@ clone_or_pull "$UNITREE_SDK2_URL" "$DEPS_DIR/unitree_sdk2"
 clone_or_pull "$UNITREE_SDK2_PY_URL" "$DEPS_DIR/unitree_sdk2_python"
 
 if [ -f "$ROOT_DIR/.gitmodules" ]; then
-  echo "go2_webrtc_connect is tracked as a git submodule."
+  echo "g1_webrtc_connect is tracked as a git submodule."
   echo "Run: git submodule update --init --recursive"
 fi
