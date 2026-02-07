@@ -38,7 +38,8 @@ test_*.py
 libs/
 
 # External dependencies pulled locally
-deps/
+deps/*
+!deps/go2_webrtc_connect/
 
 # Temporary files
 *.tmp

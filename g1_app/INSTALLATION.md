@@ -5,7 +5,7 @@
 - Python 3.8+
 - Linux system (tested on Ubuntu)
 - Network access to G1 robot
-- go2_webrtc_connect library (pulled via `scripts/pull_deps.sh` into `deps/go2_webrtc_connect`)
+- go2_webrtc_connect library (git submodule at `deps/go2_webrtc_connect`)
 
 ## Installation Steps
 
@@ -14,10 +14,8 @@
 ```bash
 cd /path/to/your/repo
 
-# Optional: set GO2_WEBRTC_URL if you have a source repo for it
-export GO2_WEBRTC_URL=<your_go2_webrtc_connect_repo>
-
 ./scripts/pull_deps.sh
+git submodule update --init --recursive
 ```
 
 ### 1. Install Python Dependencies
