@@ -6,7 +6,7 @@ You now have a complete testing infrastructure to verify SLAM relocation (positi
 ## What's Been Added
 
 ### 1. Relocation Test Script
-**File:** `G1_tests/slam/test_relocation.py`
+**File:** `g1_tests/slam/test_relocation.py`
 
 A complete script that:
 - Loads room.pcd map
@@ -17,7 +17,7 @@ A complete script that:
 
 **Usage:**
 ```bash
-cd /root/G1/unitree_sdk2/G1_tests/slam
+cd /root/G1/unitree_sdk2/g1_tests/slam
 python3 test_relocation.py
 ```
 
@@ -27,7 +27,7 @@ python3 test_relocation.py
 ```
 
 ### 2. Topics Monitoring Script
-**File:** `G1_tests/slam/check_slam_topics.py`
+**File:** `g1_tests/slam/check_slam_topics.py`
 
 Checks which SLAM topics are publishing:
 - rt/unitree/slam_mapping/odom (mapping phase)
@@ -92,14 +92,14 @@ Complete guide with:
 
 ### Step 1: Check Topics Are Publishing
 ```bash
-python3 G1_tests/slam/check_slam_topics.py
+python3 g1_tests/slam/check_slam_topics.py
 ```
 
 **Expected:** See updates for `rt/unitree/slam_relocation/odom`
 
 ### Step 2: Run Relocation Test
 ```bash
-python3 G1_tests/slam/test_relocation.py
+python3 g1_tests/slam/test_relocation.py
 ```
 
 **During 60 seconds:**
@@ -193,7 +193,7 @@ Web API /api/slam/current_position (accessible from UI/curl)
 
 ```
 /root/G1/unitree_sdk2/
-├── G1_tests/slam/
+├── g1_tests/slam/
 │   ├── test_relocation.py          ← Main relocation test
 │   ├── check_slam_topics.py        ← Topic monitoring  
 │   ├── simple_map_build.py         ← Reference map builder
@@ -264,4 +264,4 @@ Once relocation is verified:
 
 **Status:** ✅ Complete. Ready to test SLAM relocation with room.pcd map.
 
-Run: `python3 G1_tests/slam/test_relocation.py`
+Run: `python3 g1_tests/slam/test_relocation.py`

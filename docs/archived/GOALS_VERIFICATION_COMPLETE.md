@@ -140,7 +140,7 @@
 │   ├── core/
 │   ├── ui/
 │   └── sensors/
-├── G1_tests/
+├── g1_tests/
 │   └── slam/
 ├── maps/                    (NEW: for waypoint files)
 └── sessions/                (NEW: for session persistence)

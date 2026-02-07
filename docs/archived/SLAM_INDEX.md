@@ -55,7 +55,7 @@
 
 ### Test Relocation
 ```bash
-cd /root/G1/unitree_sdk2/G1_tests/slam
+cd /root/G1/unitree_sdk2/g1_tests/slam
 python3 test_relocation.py
 ```
 
@@ -80,7 +80,7 @@ curl http://192.168.86.2:8080/api/slam/current_position | jq .position
 
 ### Test Scripts
 ```
-G1_tests/slam/
+g1_tests/slam/
 ├── test_relocation.py           ← Load map + monitor position (60 sec)
 ├── check_slam_topics.py         ← Verify relocation topics publishing
 ├── simple_map_build.py          ← Build reusable room map
@@ -114,14 +114,14 @@ SLAM_POSITION_WIDGET.html        ← Real-time position display widget
 
 ### Step 1: Mapping (✅ DONE)
 ```bash
-python3 G1_tests/slam/simple_map_build.py
+python3 g1_tests/slam/simple_map_build.py
 # Creates room.pcd in 60 seconds of automatic driving
 # Robot walks around, LiDAR captures environment
 ```
 
 ### Step 2: Relocation Testing (← YOU ARE HERE)
 ```bash
-python3 G1_tests/slam/test_relocation.py
+python3 g1_tests/slam/test_relocation.py
 # Load room.pcd map
 # Monitor position as you move robot manually
 # Verify X, Y, Z, Heading update in real-time

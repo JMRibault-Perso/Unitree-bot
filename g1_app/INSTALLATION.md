@@ -158,6 +158,7 @@ After setup, your directory should look like:
 │   └── INSTALLATION.md       # Installation guide
 ├── deps/
 │   ├── unitree_sdk2/            # External SDK (pulled)
+│   ├── unitree_sdk2_python/     # External Python SDK (pulled)
 │   └── go2_webrtc_connect/      # WebRTC library (pulled)
 ```
 

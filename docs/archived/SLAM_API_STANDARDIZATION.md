@@ -50,14 +50,14 @@ input("Press Enter...")  # Breaks WebRTC connection!
 ### Core SLAM Tests (✅ All standardized)
 | File | Status | Key Change |
 |------|--------|-----------|
-| `G1_tests/slam/simple_map_build.py` | ✅ | Reference implementation - no changes needed |
-| `G1_tests/slam/simple_slam_test.py` | ✅ | Replaced G1_SLAM_IMPLEMENTATION + raw calls with RobotTestConnection |
-| `G1_tests/slam/start_mapping.py` | ✅ | Already using RobotTestConnection |
-| `G1_tests/slam/save_map.py` | ✅ | Already using RobotTestConnection |
-| `G1_tests/slam/load_map.py` | ✅ | Already using RobotTestConnection |
-| `G1_tests/slam/stop_slam_v2.py` | ✅ | Already using RobotTestConnection |
-| `G1_tests/slam/cancel_navigation_v2.py` | ✅ | Already using RobotTestConnection |
-| `G1_tests/slam/test_navigation_v2.py` | ✅ | Already using RobotTestConnection |
+| `g1_tests/slam/simple_map_build.py` | ✅ | Reference implementation - no changes needed |
+| `g1_tests/slam/simple_slam_test.py` | ✅ | Replaced G1_SLAM_IMPLEMENTATION + raw calls with RobotTestConnection |
+| `g1_tests/slam/start_mapping.py` | ✅ | Already using RobotTestConnection |
+| `g1_tests/slam/save_map.py` | ✅ | Already using RobotTestConnection |
+| `g1_tests/slam/load_map.py` | ✅ | Already using RobotTestConnection |
+| `g1_tests/slam/stop_slam_v2.py` | ✅ | Already using RobotTestConnection |
+| `g1_tests/slam/cancel_navigation_v2.py` | ✅ | Already using RobotTestConnection |
+| `g1_tests/slam/test_navigation_v2.py` | ✅ | Already using RobotTestConnection |
 
 ### Workspace-level SLAM Tests (✅ All standardized)
 | File | Status | Key Changes |
@@ -165,7 +165,7 @@ Run any of these to verify standardization:
 
 ```bash
 # Reference implementation (guaranteed to work)
-cd /root/G1/unitree_sdk2/G1_tests/slam && python3 simple_map_build.py
+cd /root/G1/unitree_sdk2/g1_tests/slam && python3 simple_map_build.py
 
 # Other standardized files
 python3 simple_slam_test.py

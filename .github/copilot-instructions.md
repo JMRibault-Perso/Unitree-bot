@@ -373,8 +373,8 @@ export CYCLONEDDS_URI=file://$(pwd)/cyclonedds.xml
 export LD_LIBRARY_PATH=$(pwd)/thirdparty/lib/x86_64:$LD_LIBRARY_PATH
 ./build/bin/test_subscriber  # Should show DDS topics
 
-# Run robot tests (from G1_tests directory)
-cd G1_tests
+# Run robot tests (from g1_tests directory)
+cd g1_tests
 python3 test_slam_topics_realtime.py
 python3 test_relocation_detection.py
 

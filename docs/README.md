@@ -98,7 +98,7 @@ async with RobotTestConnection() as robot:
 ### Test Suites
 - **[Testing Guide](guides/testing-guide.md)** - Overview of test infrastructure
 - **[SLAM Tests](guides/slam-testing.md)** - Navigation and mapping tests
-- **[Robot Tests](../G1_tests/README.md)** - Motion and gesture tests
+- **[Robot Tests](../g1_tests/README.md)** - Motion and gesture tests
 
 ### Quick Tests
 ```bash
@@ -106,10 +106,10 @@ async with RobotTestConnection() as robot:
 python3 -c "from g1_app.utils.robot_discovery import discover_robot; print(discover_robot())"
 
 # Test SLAM topics
-cd G1_tests && python3 test_slam_topics_realtime.py
+cd g1_tests && python3 test_slam_topics_realtime.py
 
 # Test gestures
-cd G1_tests && python3 watch_gesture_simple.py
+cd g1_tests && python3 watch_gesture_simple.py
 ```
 
 ## 🗂️ Documentation Index
@@ -173,7 +173,7 @@ When adding new documentation:
 
 - **Issues**: Check [Troubleshooting Guide](guides/troubleshooting.md)
 - **Examples**: See [Examples Directory](../example/)
-- **Tests**: See [G1_tests/](../G1_tests/)
+- **Tests**: See [g1_tests/](../g1_tests/)
 
 ---
 

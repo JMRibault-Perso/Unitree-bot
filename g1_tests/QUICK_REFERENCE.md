@@ -3,7 +3,7 @@
 ## 🏃 Quick Start
 
 ```bash
-cd /path/to/your/repo/G1_tests
+cd /path/to/your/repo/g1_tests
 ./run_all_tests.sh            # See all available tests
 ```
 
@@ -146,7 +146,7 @@ HELLO (1016) ← command 'h'
 
 4. **Check available tests:**
    ```bash
-    cd /path/to/your/repo/G1_tests
+    cd /path/to/your/repo/g1_tests
    ./run_all_tests.sh
    ```
 

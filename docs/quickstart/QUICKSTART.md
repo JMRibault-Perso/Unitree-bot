@@ -8,7 +8,7 @@ Your workspace is now **clean and organized**. All test files are properly organ
 
 ```bash
 # 1. Navigate to test directory
-cd /root/G1/unitree_sdk2/G1_tests/slam
+cd /root/G1/unitree_sdk2/g1_tests/slam
 
 # 2. Run the test
 python3 simple_slam_test.py

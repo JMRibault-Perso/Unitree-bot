@@ -5,7 +5,7 @@ Organized test suite for G1 robot development and validation.
 ## 📁 Directory Structure
 
 ```
-G1_tests/
+g1_tests/
 ├── slam/           # SLAM mapping and navigation tests
 ├── motion/         # Motion control and FSM tests
 ├── arm/            # Arm control and teach mode tests
@@ -28,7 +28,7 @@ All tests follow the standardized pattern defined in `../TEST_SCRIPT_STANDARDS.m
 
 ```bash
 # Navigate to specific test category
-cd G1_tests/slam/
+cd g1_tests/slam/
 
 # Run a test
 python3 test_navigation_v2.py
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
 ### Running Multiple Tests
 ```bash
-# From G1_tests/
+# From g1_tests/
 for test in slam/test_*.py; do
     echo "Running $test"
     python3 "$test"

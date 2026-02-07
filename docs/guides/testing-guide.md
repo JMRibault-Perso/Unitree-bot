@@ -8,11 +8,11 @@ This guide covers testing infrastructure, writing tests, and running test suites
 
 ### Test Helpers
 
-All test scripts should use `G1_tests/robot_test_helpers.py` for common utilities:
+All test scripts should use `g1_tests/robot_test_helpers.py` for common utilities:
 
 ```python
 import sys
-sys.path.insert(0, '/root/G1/unitree_sdk2/G1_tests')
+sys.path.insert(0, '/root/G1/unitree_sdk2/g1_tests')
 from robot_test_helpers import RobotTestConnection, simple_connect_robot
 
 # Method 1: Context manager (auto-discovery and cleanup)
@@ -30,7 +30,7 @@ Test robot discovery functionality:
 
 ```bash
 # Monitor discovery state changes in real-time
-cd G1_tests && python3 test_discovery_monitor.py
+cd g1_tests && python3 test_discovery_monitor.py
 
 # Test centralized discovery API
 python3 -c "from g1_app.utils.robot_discovery import discover_robot; import asyncio; print(asyncio.run(discover_robot()))"
@@ -59,13 +59,13 @@ Test components working together:
 
 ```bash
 # Test SLAM relocation
-cd G1_tests && python3 test_relocation_detection.py
+cd g1_tests && python3 test_relocation_detection.py
 
 # Test map building with joystick
-cd G1_tests && python3 test_map_build_with_joystick.py
+cd g1_tests && python3 test_map_build_with_joystick.py
 
 # Test SLAM topics real-time
-cd G1_tests && python3 test_slam_topics_realtime.py
+cd g1_tests && python3 test_slam_topics_realtime.py
 ```
 
 ### API Tests
@@ -74,10 +74,10 @@ Test specific robot APIs:
 
 ```bash
 # Test heading API (1102)
-cd G1_tests && python3 test_api_1102_heading.py
+cd g1_tests && python3 test_api_1102_heading.py
 
 # Test custom actions
-cd G1_tests && python3 test_custom_actions.py
+cd g1_tests && python3 test_custom_actions.py
 ```
 
 ## Writing New Tests
@@ -92,7 +92,7 @@ Purpose: <What this validates>
 """
 import asyncio
 import sys
-sys.path.insert(0, '/root/G1/unitree_sdk2/G1_tests')
+sys.path.insert(0, '/root/G1/unitree_sdk2/g1_tests')
 from robot_test_helpers import RobotTestConnection
 
 async def main():
@@ -163,7 +163,7 @@ python3 test_map_build_with_joystick.py
 Monitor robot online/offline state changes:
 
 ```bash
-cd G1_tests && python3 test_discovery_monitor.py
+cd g1_tests && python3 test_discovery_monitor.py
 ```
 
 Output shows:
@@ -177,7 +177,7 @@ Output shows:
 Monitor SLAM topics in real-time:
 
 ```bash
-cd G1_tests && python3 test_slam_topics_realtime.py
+cd g1_tests && python3 test_slam_topics_realtime.py
 ```
 
 Shows:
@@ -219,7 +219,7 @@ For tests that don't need real robot:
 
 ```python
 # Use mock relocation data
-cd G1_tests && python3 test_relocation_detection_mock.py
+cd g1_tests && python3 test_relocation_detection_mock.py
 ```
 
 ### Test Maps

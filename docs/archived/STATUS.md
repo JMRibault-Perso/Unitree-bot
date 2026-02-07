@@ -34,7 +34,7 @@
 
 ### Supporting Documentation
 - SDK docs in `unitree_docs/` (pristine, don't touch)
-- Test scripts in `G1_tests/` (organized by function)
+- Test scripts in `g1_tests/` (organized by function)
 
 ---
 
@@ -50,7 +50,7 @@
 
 ### Test Suite Organization (Feb 4)
 - ✅ Cleaned up 91 scattered test files
-- ✅ Organized into `G1_tests/` with 6 categories
+- ✅ Organized into `g1_tests/` with 6 categories
 - ✅ Created 14 standardized test scripts
 - ✅ `robot_test_helpers.py` as standard connection module
 
@@ -84,7 +84,7 @@ await conn.datachannel.pub_sub.publish_request_new(
 | CLOSE_SLAM | 1901 | slam_close() | ✅ Working |
 
 ### Test Script Created
-- ✅ `/root/G1/unitree_sdk2/G1_tests/slam/simple_slam_test.py`
+- ✅ `/root/G1/unitree_sdk2/g1_tests/slam/simple_slam_test.py`
 - ✅ Uses VERIFIED format from Feb 3 (test_slam_save_load.py)
 - ✅ 6-phase workflow: START → SAVE → LOAD → MONITOR → NAVIGATE → CLOSE
 
@@ -93,7 +93,7 @@ await conn.datachannel.pub_sub.publish_request_new(
 ## 🔄 IN PROGRESS
 
 ### SLAM Mapping Workflow Test
-- **File**: `G1_tests/slam/simple_slam_test.py`
+- **File**: `g1_tests/slam/simple_slam_test.py`
 - **Status**: Ready to run
 - **Next**: Execute test with robot ready
 
@@ -136,7 +136,7 @@ await conn.datachannel.pub_sub.publish_request_new(
 
 2. **Run SLAM test**
    ```bash
-   cd /root/G1/unitree_sdk2/G1_tests/slam
+   cd /root/G1/unitree_sdk2/g1_tests/slam
    python3 simple_slam_test.py
    ```
 
@@ -196,7 +196,7 @@ payload = {
 ├── 📄 G1_WEBRTC_PROTOCOL.md           ← Architecture & protocol guide
 ├── 📄 robot_test_helpers.py           ← Connection helper module
 │
-├── 📂 G1_tests/                       ← All test scripts
+├── 📂 g1_tests/                       ← All test scripts
 │   ├── slam/
 │   │   ├── simple_slam_test.py       ✅ READY TO RUN
 │   │   └── [other slam tests]
@@ -224,7 +224,7 @@ payload = {
 
 **Key Points:**
 - Only 14 files in root (clean!)
-- All test files organized in G1_tests/
+- All test files organized in g1_tests/
 - All old documentation archived
 - SDK directories remain untouched
 - Single source of truth: STATUS.md + G1_WEBRTC_PROTOCOL.md

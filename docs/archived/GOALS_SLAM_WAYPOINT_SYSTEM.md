@@ -180,7 +180,7 @@ Without heading, waypoint navigation is incomplete:
 │   │   ├── web_server.py              ← REST API endpoints
 │   │   └── index.html                 ← Web interface
 │   └── ...
-├── G1_tests/
+├── g1_tests/
 │   ├── slam/
 │   │   ├── simple_slam_test.py        ← Main test file
 │   │   └── test_complete_slam_workflow.py

@@ -220,7 +220,7 @@ rotate_to_heading(heading=45.0)     # Then rotate (need API ID)
 │   │   ├── web_server.py               ← REST endpoints
 │   │   └── index.html                  ← Web UI
 │   └── ...
-├── G1_tests/
+├── g1_tests/
 │   └── slam/
 │       └── simple_slam_test.py         ← Main test
 ├── maps/                               ← NEW: Store waypoint files

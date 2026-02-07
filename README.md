@@ -34,10 +34,10 @@ python3 web_server.py
 python3 -c "from g1_app.utils.robot_discovery import discover_robot; print(discover_robot())"
 
 # SLAM navigation
-cd G1_tests && python3 test_slam_topics_realtime.py
+cd g1_tests && python3 test_slam_topics_realtime.py
 
 # Custom gestures
-cd G1_tests && python3 watch_gesture_simple.py
+cd g1_tests && python3 watch_gesture_simple.py
 ```
 
 ## 🎯 Features
@@ -81,7 +81,7 @@ python3 -c "from g1_app.utils.robot_discovery import discover_robot; print(disco
 
 ### Project Structure
 - `g1_app/` - Web controller and utilities
-- `G1_tests/` - Test scripts and examples
+- `g1_tests/` - Test scripts and examples
 - `docs/` - All documentation
 - `example/` - Official SDK examples
 - `unitree_docs/` - Official Unitree documentation

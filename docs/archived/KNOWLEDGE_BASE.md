@@ -146,8 +146,8 @@ request = {
   - Navigation: navigate_to() with obstacle avoidance
   - Motion: get_fsm_mode(), set_fsm_mode()
   - Actions: get_action_list(), execute_action()
-- **Main Test**: `G1_tests/slam/simple_slam_test.py` (uses consolidated functions)
-- **Original Working**: `G1_tests/test_slam_save_load.py` (Feb 3 baseline)
+- **Main Test**: `g1_tests/slam/simple_slam_test.py` (uses consolidated functions)
+- **Original Working**: `g1_tests/test_slam_save_load.py` (Feb 3 baseline)
 
 ### Key Functions (from G1_SLAM_IMPLEMENTATION.py)
 ```python
@@ -260,12 +260,12 @@ Waypoints are stored persistently per map to enable shutdown/restart navigation:
 
 **DO NOT recreate - use these:**
 1. `G1_SLAM_IMPLEMENTATION.py` - Reference implementation (MASTER)
-2. `G1_tests/slam/simple_slam_test.py` - Main test using reference
-3. `G1_tests/test_slam_save_load.py` - Original Feb 3 baseline
+2. `g1_tests/slam/simple_slam_test.py` - Main test using reference
+3. `g1_tests/test_slam_save_load.py` - Original Feb 3 baseline
 4. `g1_app/core/robot_discovery.py` - Dynamic robot discovery
 
 **OBSOLETE - Do not use:**
-- All files in `G1_tests/obsolete/` directory
+- All files in `g1_tests/obsolete/` directory
 - Any hardcoded IP address implementations
 - Old WebRTC connection files
 
@@ -283,7 +283,7 @@ Waypoints are stored persistently per map to enable shutdown/restart navigation:
 
 **RULE**: Before creating ANY new test/feature:
 1. Check `G1_SLAM_IMPLEMENTATION.py` for reference function
-2. Check `G1_tests/` folder for existing similar test
+2. Check `g1_tests/` folder for existing similar test
 3. Reuse functions from consolidated implementation
 4. Only create NEW files for genuinely new features (not re-tests)
 

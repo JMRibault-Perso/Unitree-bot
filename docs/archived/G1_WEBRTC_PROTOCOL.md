@@ -301,7 +301,7 @@ When things don't work:
 │   │   └── command_executor.py  ⚠️  Some code needs fixing
 │   └── ui/web_server.py
 │
-├── G1_tests/
+├── g1_tests/
 │   ├── slam/
 │   │   └── simple_slam_test.py  ✅ Ready to run
 │   └── [other test categories]
@@ -316,7 +316,7 @@ When things don't work:
 
 ## 🚀 Next Steps
 
-1. **Run the test**: `python3 G1_tests/slam/simple_slam_test.py`
+1. **Run the test**: `python3 g1_tests/slam/simple_slam_test.py`
 2. **Verify success**: Check map file at `/home/unitree/test_simple.pcd`
 3. **Understand results**: Compare output with expected behavior above
 4. **Extend functionality**: Use this protocol for your own features

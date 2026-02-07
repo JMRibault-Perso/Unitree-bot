@@ -13,23 +13,23 @@ fi
 echo "  ✅ PASSED: No test files in root"
 echo ""
 
-# Check 2: All test files in G1_tests
-echo "✓ Check 2: All test files in G1_tests/"
-TEST_COUNT=$(find G1_tests -maxdepth 1 -name "test_*.py" | wc -l)
+# Check 2: All test files in g1_tests
+echo "✓ Check 2: All test files in g1_tests/"
+TEST_COUNT=$(find g1_tests -maxdepth 1 -name "test_*.py" | wc -l)
 if [ "$TEST_COUNT" -lt 10 ]; then
     echo "  ❌ FAILED: Expected 10+ test files, found $TEST_COUNT"
     exit 1
 fi
-echo "  ✅ PASSED: Found $TEST_COUNT test files in G1_tests/"
+echo "  ✅ PASSED: Found $TEST_COUNT test files in g1_tests/"
 echo ""
 
-# Check 3: robot_test_helpers.py in G1_tests
+# Check 3: robot_test_helpers.py in g1_tests
 echo "✓ Check 3: robot_test_helpers.py location"
-if [ ! -f "G1_tests/robot_test_helpers.py" ]; then
-    echo "  ❌ FAILED: robot_test_helpers.py not found in G1_tests/"
+if [ ! -f "g1_tests/robot_test_helpers.py" ]; then
+    echo "  ❌ FAILED: robot_test_helpers.py not found in g1_tests/"
     exit 1
 fi
-echo "  ✅ PASSED: robot_test_helpers.py in G1_tests/"
+echo "  ✅ PASSED: robot_test_helpers.py in g1_tests/"
 echo ""
 
 # Check 4: Documentation structure
@@ -41,7 +41,7 @@ REQUIRED_DIRS=(
     "docs/reference"
     "docs/archived"
     "g1_app"
-    "G1_tests"
+    "g1_tests"
     "slam_example"
 )
 for dir in "${REQUIRED_DIRS[@]}"; do
@@ -129,7 +129,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "📍 Key Locations:"
 echo "   • Documentation:     docs/README.md"
-echo "   • Tests:             G1_tests/test_*.py"
+echo "   • Tests:             g1_tests/test_*.py"
 echo "   • Discovery API:     g1_app/utils/robot_discovery.py"
 echo "   • Web Server:        g1_app/ui/web_server.py (port 3000)"
 echo "   • SLAM Examples:     slam_example/"

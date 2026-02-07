@@ -12,17 +12,17 @@ unitree_sdk2/
 ├── README_NAVIGATION_SYSTEM.md        ← Moved to docs/guides/
 ├── G1_SLAM_IMPLEMENTATION.py          ← Moved to slam_example/
 ├── build_room_map.py                  ← Moved to slam_example/
-├── test_api_1102_heading.py           ← Moved to G1_tests/
-├── test_discovery_monitor.py          ← Moved to G1_tests/
-├── test_enhanced_discovery.py         ← Moved to G1_tests/
-├── test_map_build_with_joystick.py    ← Moved to G1_tests/
-├── test_relocation_detection.py       ← Moved to G1_tests/
-├── test_relocation_detection_mock.py  ← Moved to G1_tests/
-├── test_slam_save_load.py             ← Moved to G1_tests/
-├── test_slam_topics_realtime.py       ← Moved to G1_tests/
-├── test_slam_workflow.py              ← Moved to G1_tests/
-├── test_teaching_action_list.py       ← Moved to G1_tests/
-├── robot_test_helpers.py              ← Moved to G1_tests/
+├── test_api_1102_heading.py           ← Moved to g1_tests/
+├── test_discovery_monitor.py          ← Moved to g1_tests/
+├── test_enhanced_discovery.py         ← Moved to g1_tests/
+├── test_map_build_with_joystick.py    ← Moved to g1_tests/
+├── test_relocation_detection.py       ← Moved to g1_tests/
+├── test_relocation_detection_mock.py  ← Moved to g1_tests/
+├── test_slam_save_load.py             ← Moved to g1_tests/
+├── test_slam_topics_realtime.py       ← Moved to g1_tests/
+├── test_slam_workflow.py              ← Moved to g1_tests/
+├── test_teaching_action_list.py       ← Moved to g1_tests/
+├── robot_test_helpers.py              ← Moved to g1_tests/
 ├── ... (other files)
 ```
 
@@ -33,7 +33,7 @@ unitree_sdk2/
 ├── README.md                 (kept)
 ├── docs/                     (organized)
 ├── g1_app/                   (unchanged)
-├── G1_tests/                 (all tests here now)
+├── g1_tests/                 (all tests here now)
 ├── slam_example/             (all SLAM code here now)
 ├── ... (other directories)
 ```
@@ -42,7 +42,7 @@ unitree_sdk2/
 
 | Source | Destination | Count | Files |
 |--------|-------------|-------|-------|
-| Root | `G1_tests/` | 11 | test_*.py + robot_test_helpers.py |
+| Root | `g1_tests/` | 11 | test_*.py + robot_test_helpers.py |
 | Root | `slam_example/` | 2 | G1_SLAM_IMPLEMENTATION.py, build_room_map.py |
 | Root | `docs/guides/` | 2 | 3D_VIEWER_*.md, README_NAVIGATION_*.md |
 
@@ -60,8 +60,8 @@ unitree_sdk2/
 
 ```
 ✅ Check 1: No test files in root directory
-✅ Check 2: Found 10 test files in G1_tests/
-✅ Check 3: robot_test_helpers.py in G1_tests/
+✅ Check 2: Found 10 test files in g1_tests/
+✅ Check 3: robot_test_helpers.py in g1_tests/
 ✅ Check 4: All required directories present
 ✅ Check 5: All key documentation present
 ✅ Check 6: Centralized discovery API present
@@ -74,9 +74,9 @@ unitree_sdk2/
 
 ### Tests
 ```bash
-cd G1_tests && python3 test_slam_topics_realtime.py
-cd G1_tests && python3 test_relocation_detection.py
-cd G1_tests && python3 test_discovery_monitor.py
+cd g1_tests && python3 test_slam_topics_realtime.py
+cd g1_tests && python3 test_relocation_detection.py
+cd g1_tests && python3 test_discovery_monitor.py
 ```
 
 ### SLAM Implementation
@@ -123,7 +123,7 @@ unitree_sdk2/
 │   ├── ui/web_server.py               # FastAPI (port 3000)
 │   └── ...
 │
-├── G1_tests/                          # 🧪 All test scripts
+├── g1_tests/                          # 🧪 All test scripts
 │   ├── robot_test_helpers.py          # Shared utilities
 │   ├── test_api_1102_heading.py
 │   ├── test_discovery_monitor.py
@@ -146,14 +146,14 @@ unitree_sdk2/
 
 ### For Developers
 1. Read: `docs/README.md`
-2. Run tests: `cd G1_tests && python3 test_*.py`
+2. Run tests: `cd g1_tests && python3 test_*.py`
 3. Run SLAM: `cd slam_example && python3 build_room_map.py`
 4. Web UI: `cd g1_app/ui && python3 web_server.py`
 
 ### For AI Agents
 1. Start: `/docs/README.md`
 2. Discovery: `g1_app/utils/robot_discovery.py`
-3. All tests: `G1_tests/test_*.py`
+3. All tests: `g1_tests/test_*.py`
 4. SLAM guides: `docs/guides/`
 
 ### Documentation Hierarchy

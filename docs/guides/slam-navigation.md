@@ -21,7 +21,7 @@ cd slam_example && python3 build_room_map.py
 
 ```bash
 # Test relocation detection
-cd G1_tests && python3 test_relocation_detection.py
+cd g1_tests && python3 test_relocation_detection.py
 ```
 
 The robot must relocate (determine its position within the map) before navigating.

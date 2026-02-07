@@ -12,7 +12,7 @@
 ## Run the Test
 
 ```bash
-cd /root/G1/unitree_sdk2/G1_tests/slam
+cd /root/G1/unitree_sdk2/g1_tests/slam
 python3 test_relocation.py
 ```
 
@@ -85,4 +85,4 @@ Once relocation is verified:
 
 ---
 
-**Ready to test?** Run: `python3 G1_tests/slam/test_relocation.py`
+**Ready to test?** Run: `python3 g1_tests/slam/test_relocation.py`

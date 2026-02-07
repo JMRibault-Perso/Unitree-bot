@@ -38,7 +38,7 @@ unitree_sdk2/
 │   │   └── templates/              # HTML templates
 │   └── server.py                   # FastAPI web server (port 3000)
 │
-├── G1_tests/                       # 🧪 All test scripts
+├── g1_tests/                       # 🧪 All test scripts
 │   ├── robot_test_helpers.py       # Test utilities (ALL TESTS USE THIS)
 │   │   └── RobotTestConnection     # Auto-discovery context manager
 │   ├── test_discovery_monitor.py   # Discovery state monitoring
@@ -122,14 +122,14 @@ unitree_sdk2/
 
 **Architecture**: WebRTC + HTTP/WebSocket (not DDS SDK).
 
-### Test Helpers (`G1_tests/robot_test_helpers.py`)
+### Test Helpers (`g1_tests/robot_test_helpers.py`)
 
 **Purpose**: Common utilities for all test scripts.
 
 **Usage**:
 ```python
 import sys
-sys.path.insert(0, '/root/G1/unitree_sdk2/G1_tests')
+sys.path.insert(0, '/root/G1/unitree_sdk2/g1_tests')
 from robot_test_helpers import RobotTestConnection
 
 async with RobotTestConnection() as robot:
@@ -139,7 +139,7 @@ async with RobotTestConnection() as robot:
 
 **All test scripts should use this** - don't hardcode IPs.
 
-### Test Scripts (`G1_tests/test_*.py`)
+### Test Scripts (`g1_tests/test_*.py`)
 
 **Purpose**: Validation and testing of robot features.
 
@@ -149,7 +149,7 @@ async with RobotTestConnection() as robot:
 - `test_api_*.py` - API-specific tests
 - `test_relocation_*.py` - Relocation tests
 
-**Run from G1_tests directory** with `cd G1_tests && python3 test_<name>.py`.
+**Run from g1_tests directory** with `cd g1_tests && python3 test_<name>.py`.
 
 ### SLAM Examples (`slam_example/`)
 

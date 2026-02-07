@@ -29,7 +29,7 @@ async def main():
         print("Next steps:")
         print(f"  1. Verify connection: ping {robot_ip}")
         print("  2. Test WebRTC: python3 verify_connection.py")
-        print("  3. Run tests from G1_tests/ directories\n")
+        print("  3. Run tests from g1_tests/ directories\n")
         return 0
     else:
         print("❌ Robot not found on network\n")

@@ -17,25 +17,25 @@ If you need functionality from an obsolete test, use the standardized version:
 ### Old Tests → New Standardized Tests
 
 **Motion Control:**
-- `../g1_simple_control.py` → `G1_tests/motion/simple_control.py`
-- `../g1_quick_control.py` → `G1_tests/motion/simple_control.py`
+- `../g1_simple_control.py` → `g1_tests/motion/simple_control.py`
+- `../g1_quick_control.py` → `g1_tests/motion/simple_control.py`
 - `../g1_controller.py` → Use `simple_control.py` + standardized helpers
 
 **SLAM:**
-- `../test_navigation.py` → `G1_tests/slam/test_navigation_v2.py`
-- `../stop_slam.py` → `G1_tests/slam/stop_slam_v2.py`
-- `../cancel_navigation.py` → `G1_tests/slam/cancel_navigation_v2.py`
-- `../slam_mapper.py` → `G1_tests/slam/start_mapping.py`
+- `../test_navigation.py` → `g1_tests/slam/test_navigation_v2.py`
+- `../stop_slam.py` → `g1_tests/slam/stop_slam_v2.py`
+- `../cancel_navigation.py` → `g1_tests/slam/cancel_navigation_v2.py`
+- `../slam_mapper.py` → `g1_tests/slam/start_mapping.py`
 
 **Arm Control:**
-- `../enable_teach_mode.py` → `G1_tests/arm/enable_teach_mode.py`
-- `../show_available_actions.py` → `G1_tests/arm/list_actions.py`
-- `../test_arm_*.py` → Consolidated into `G1_tests/arm/` directory
+- `../enable_teach_mode.py` → `g1_tests/arm/enable_teach_mode.py`
+- `../show_available_actions.py` → `g1_tests/arm/list_actions.py`
+- `../test_arm_*.py` → Consolidated into `g1_tests/arm/` directory
 
 **Utilities:**
-- `../discover_robot.py` → `G1_tests/utilities/discover_robot.py`
-- `../list_available_topics.py` → `G1_tests/utilities/list_topics.py`
-- `../listen_all_topics.py` → `G1_tests/sensors/listen_all.py`
+- `../discover_robot.py` → `g1_tests/utilities/discover_robot.py`
+- `../list_available_topics.py` → `g1_tests/utilities/list_topics.py`
+- `../listen_all_topics.py` → `g1_tests/sensors/listen_all.py`
 
 ## 🔧 Why Obsolete?
 

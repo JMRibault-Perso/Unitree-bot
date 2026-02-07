@@ -48,7 +48,7 @@ Returns current position as JSON (usable from web UI or curl)
 
 ### Step 1: Verify Topics Publishing
 ```bash
-cd /root/G1/unitree_sdk2/G1_tests/slam
+cd /root/G1/unitree_sdk2/g1_tests/slam
 python3 check_slam_topics.py
 ```
 
@@ -133,7 +133,7 @@ Web UI: SLAM_POSITION_WIDGET.html (displays live)
 
 ```
 /root/G1/unitree_sdk2/
-├── G1_tests/slam/
+├── g1_tests/slam/
 │   ├── test_relocation.py              ← Main test script
 │   ├── check_slam_topics.py            ← Diagnostic tool
 │   ├── simple_map_build.py             ← Reference (map builder)
@@ -286,7 +286,7 @@ python3 check_slam_topics.py  # Should show updates on relocation_odom
 - Web API endpoint available
 - HTML widget available for UI integration
 
-**Next action:** Run `python3 G1_tests/slam/test_relocation.py` and move your robot!
+**Next action:** Run `python3 g1_tests/slam/test_relocation.py` and move your robot!
 
 ---
 
@@ -301,5 +301,5 @@ python3 check_slam_topics.py  # Should show updates on relocation_odom
 - ✅ g1_app/ui/web_server.py (API endpoint)
 
 **Test Scripts Created:**
-- ✅ G1_tests/slam/test_relocation.py (60-sec monitor)
-- ✅ G1_tests/slam/check_slam_topics.py (diagnostic)
+- ✅ g1_tests/slam/test_relocation.py (60-sec monitor)
+- ✅ g1_tests/slam/check_slam_topics.py (diagnostic)

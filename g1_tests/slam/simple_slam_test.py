@@ -12,7 +12,7 @@ import math
 
 # Add parent directories to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))  # /root/G1/unitree_sdk2
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))      # /root/G1/unitree_sdk2/G1_tests
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))      # /root/G1/unitree_sdk2/g1_tests
 from robot_test_helpers import RobotTestConnection, SLAM_API, check_slam_response
 
 

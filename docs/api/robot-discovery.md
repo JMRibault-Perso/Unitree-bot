@@ -110,7 +110,7 @@ if robot and robot['online']:
 **Core Discovery**:
 - ✅ `g1_app/utils/robot_discovery.py` - **SINGLE SOURCE OF TRUTH**
 - ✅ `g1_app/core/robot_discovery.py` - Web server uses this
-- ✅ `G1_tests/robot_test_helpers.py` - All test scripts use this
+- ✅ `g1_tests/robot_test_helpers.py` - All test scripts use this
 
 **Deprecated** (kept for reference):
 - ⚠️ `g1_app/utils/arp_discovery.py` - Legacy, use only for low-level functions
@@ -130,7 +130,7 @@ print(f'Robot: {robot}')
 
 Monitor real-time discovery:
 ```bash
-cd G1_tests && python3 test_discovery_monitor.py
+cd g1_tests && python3 test_discovery_monitor.py
 ```
 
 ## Troubleshooting

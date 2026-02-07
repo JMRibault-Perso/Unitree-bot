@@ -7,7 +7,7 @@ Now that you have a reusable room.pcd map, we can test the relocation system. Re
 
 ### Step 1: Check if relocation topics are active
 ```bash
-cd /root/G1/unitree_sdk2/G1_tests/slam
+cd /root/G1/unitree_sdk2/g1_tests/slam
 python3 check_slam_topics.py
 ```
 

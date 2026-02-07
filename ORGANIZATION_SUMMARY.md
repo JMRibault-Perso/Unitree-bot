@@ -27,7 +27,7 @@ unitree_sdk2/
 │   ├── server.py                   # FastAPI (port 3000)
 │   └── ...
 │
-├── G1_tests/                       # 🧪 All test scripts
+├── g1_tests/                       # 🧪 All test scripts
 │   ├── robot_test_helpers.py       # Test utilities
 │   ├── test_discovery_monitor.py
 │   ├── test_slam_*.py
@@ -46,7 +46,7 @@ unitree_sdk2/
 ## 🔄 Changes Made
 
 ### 1. Test File Organization
-**Moved to `G1_tests/`**:
+**Moved to `g1_tests/`**:
 - ✅ `test_api_1102_heading.py`
 - ✅ `test_discovery_monitor.py`
 - ✅ `test_enhanced_discovery.py`
@@ -88,9 +88,9 @@ robot = discover_robot()  # {ip, mac, mode, online}
 ```
 
 ### Testing
-All tests now in: `G1_tests/test_*.py`
+All tests now in: `g1_tests/test_*.py`
 
-All imports: `from G1_tests.robot_test_helpers import RobotTestConnection`
+All imports: `from g1_tests.robot_test_helpers import RobotTestConnection`
 
 ### Documentation
 Start here: `docs/README.md`
@@ -100,7 +100,7 @@ Start here: `docs/README.md`
 ### Running Tests
 ```bash
 # From project root
-cd G1_tests
+cd g1_tests
 
 # Run any test
 python3 test_slam_topics_realtime.py
@@ -119,13 +119,13 @@ from robot_test_helpers import ...
 **New way** (✅ USE THIS):
 ```python
 import sys
-sys.path.insert(0, '/root/G1/unitree_sdk2/G1_tests')
+sys.path.insert(0, '/root/G1/unitree_sdk2/g1_tests')
 from robot_test_helpers import RobotTestConnection
 ```
 
-Or run from within `G1_tests/`:
+Or run from within `g1_tests/`:
 ```bash
-cd G1_tests && python3 your_test.py
+cd g1_tests && python3 your_test.py
 ```
 
 ## ✅ Verification
@@ -135,12 +135,12 @@ cd G1_tests && python3 your_test.py
 find /root/G1/unitree_sdk2 -maxdepth 1 -name "test_*.py" -o -name "robot_test_helpers.py"
 # Result: (empty - all moved)
 
-# Verify files in G1_tests
-ls /root/G1/unitree_sdk2/G1_tests/test_*.py
+# Verify files in g1_tests
+ls /root/G1/unitree_sdk2/g1_tests/test_*.py
 # Result: 11 test files present
 
 # Verify robot_test_helpers.py
-ls /root/G1/unitree_sdk2/G1_tests/robot_test_helpers.py
+ls /root/G1/unitree_sdk2/g1_tests/robot_test_helpers.py
 # Result: present
 ```
 
@@ -150,7 +150,7 @@ When working with this project:
 
 1. **Start with**: `docs/README.md`
 2. **Discovery API**: `g1_app/utils/robot_discovery.py` (SINGLE SOURCE OF TRUTH)
-3. **All tests**: In `G1_tests/` directory
+3. **All tests**: In `g1_tests/` directory
 4. **Web controller**: `g1_app/` with server on port 3000
 5. **SLAM code**: `slam_example/` and `g1_app/slam/`
 
