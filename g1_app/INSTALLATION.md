@@ -9,7 +9,15 @@
 
 ## Installation Steps
 
-### 0. Pull External Dependencies
+### 0. Bootstrap (recommended)
+
+```bash
+cd /path/to/your/repo
+./scripts/bootstrap.sh
+source .venv/bin/activate
+```
+
+### 1. Pull External Dependencies
 
 ```bash
 cd /path/to/your/repo
@@ -18,20 +26,16 @@ cd /path/to/your/repo
 git submodule update --init --recursive
 ```
 
-### 1. Install Python Dependencies
+### 2. Install Python Dependencies
 
 ```bash
 cd /path/to/your/repo
 
 # Install required packages
-pip3 install asyncio
-
-# Optional: For advanced features
-pip3 install numpy  # For LiDAR processing
-pip3 install opencv-python  # For video processing
+pip3 install -r requirements.txt
 ```
 
-### 2. Configure Robot Connection
+### 3. Configure Robot Connection
 
 Create a `.env` file or export environment variables:
 
@@ -49,7 +53,7 @@ export G1_ENABLE_VIDEO=true
 
 Or edit the defaults in `g1_app/utils/config.py`.
 
-### 3. Verify WebRTC Library
+### 4. Verify WebRTC Library
 
 The application uses the g1_webrtc_connect library. Verify it's available:
 
@@ -57,7 +61,7 @@ The application uses the g1_webrtc_connect library. Verify it's available:
 python3 -c "import sys; sys.path.insert(0, './deps/g1_webrtc_connect'); import unitree_webrtc_connect; print('OK')"
 ```
 
-### 4. Test Connection
+### 5. Test Connection
 
 Run the CLI test interface:
 

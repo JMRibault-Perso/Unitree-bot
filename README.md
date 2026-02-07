@@ -14,6 +14,12 @@ All documentation is now centralized in the `docs/` directory:
 
 ## 🚀 Quick Start
 
+### 0. Bootstrap (recommended)
+```bash
+./scripts/bootstrap.sh
+source .venv/bin/activate
+```
+
 ### 1. Discover Your Robot
 ```python
 from g1_app.utils.robot_discovery import discover_robot
@@ -72,8 +78,9 @@ docs/
 
 ### Setup
 ```bash
-# Install dependencies
-pip install -r requirements.txt  # If available
+# Install dependencies + submodules
+./scripts/bootstrap.sh
+source .venv/bin/activate
 
 # Test robot connection
 python3 -c "from g1_app.utils.robot_discovery import discover_robot; print(discover_robot())"

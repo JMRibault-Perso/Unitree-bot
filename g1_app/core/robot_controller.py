@@ -434,7 +434,7 @@ class RobotController:
                     point_count = 0
                     
                     # Try BOTH message formats (like the working slam_mapper.py):
-                    # Format 1: Direct 'points' at root (from lidar_decoder_patch)
+                    # Format 1: Direct 'points' at root (legacy decoder output)
                     if 'points' in data:
                         points_array = data['points']
                         point_count = data.get('point_count', 0)

@@ -1,9 +1,3 @@
-"""
-Runtime patches for WebRTC library to handle G1-specific quirks
-"""
-
-# Import patches to apply them
-# Temporarily disabled - causes import errors on Windows
-# from .lidar_decoder_patch import *
+"""Runtime patches (currently unused)."""
 
 __all__ = []
