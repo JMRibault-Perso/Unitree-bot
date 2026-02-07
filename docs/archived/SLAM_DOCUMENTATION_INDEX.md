@@ -163,7 +163,7 @@ rt/lf/odommodestate - Robot position
 ### File Locations
 ```
 Maps:           /home/unitree/*.pcd
-Waypoints:      /root/G1/unitree_sdk2/maps/{map_name}_waypoints.json
+Waypoints:      data/maps/{map_name}_waypoints.json
 Session:        /root/G1/unitree_sdk2/sessions/latest_session.json
 Code Reference: /root/G1/unitree_sdk2/G1_SLAM_IMPLEMENTATION.py
 ```

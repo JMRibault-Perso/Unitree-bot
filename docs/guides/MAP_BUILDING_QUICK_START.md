@@ -150,7 +150,7 @@ After successful map building:
 
 ```
 /home/unitree/my_room.pcd    # On robot
-~/maps/my_room.pcd           # Local copy (if accessible)
+~/data/maps/my_room.pcd           # Local copy (if accessible)
 ```
 
 You can:

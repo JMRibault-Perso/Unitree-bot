@@ -203,7 +203,7 @@ Web API /api/slam/current_position (accessible from UI/curl)
 │   │   └── robot_controller.py     ← Position tracking added
 │   └── ui/
 │       └── web_server.py           ← Position API endpoint added
-├── test_maps/
+├── data/test_data/maps/
 │   ├── room.pcd                    ← Your map file
 │   └── room_relocation.json        ← Test data (generated)
 └── SLAM_RELOCATION_TESTING.md      ← Full testing guide

@@ -164,7 +164,7 @@ Session 2 (Feb 5, 5pm):
     - `DELETE /api/slam/maps/{map_name}/waypoints/{name}` - Delete waypoint
 
 **Data Storage**:
-- File location: `/root/G1/unitree_sdk2/maps/{map_name}_waypoints.json`
+- File location: `data/maps/{map_name}_waypoints.json`
 - Format:
   ```json
   {

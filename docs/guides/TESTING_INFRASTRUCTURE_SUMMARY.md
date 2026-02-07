@@ -165,7 +165,7 @@ After Test 1 succeeds:
 - `/home/unitree/my_room.pcd` - Your SLAM map file
 
 **Locally (if accessible):**
-- `~/maps/my_room.pcd` - Local copy of map
+- `~/data/maps/my_room.pcd` - Local copy of map
 
 This map file is reusable for all future tests and Phase A-E implementation!
 

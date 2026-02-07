@@ -143,7 +143,7 @@ Web UI: SLAM_POSITION_WIDGET.html (displays live)
 │   │   └── robot_controller.py         ← Position tracking added (lines 73-75)
 │   └── ui/
 │       └── web_server.py               ← Position endpoint added (lines 1820-1845)
-├── test_maps/
+├── data/test_data/maps/
 │   ├── room.pcd                        ← Your map (on robot at /home/unitree/room.pcd)
 │   └── room_relocation.json            ← Test data (generated after each run)
 ├── SLAM_POSITION_WIDGET.html           ← Web UI widget

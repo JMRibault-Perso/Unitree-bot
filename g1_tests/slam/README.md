@@ -46,7 +46,7 @@ python3 stop_slam_v2.py
 
 ## 🚨 Important Notes
 
-- **Map files**: Stored in `../../test_maps/`
+- **Map files**: Stored in `../../data/test_maps/`
 - **Distance limit**: Navigation targets must be <10m
 - **Obstacle detection**: LiDAR detects obstacles ≥50cm height
 - **Prerequisites**: Robot must be in DAMP/READY/RUN FSM state

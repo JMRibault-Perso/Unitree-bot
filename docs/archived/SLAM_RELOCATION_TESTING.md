@@ -189,7 +189,7 @@ Once relocation is working, you can:
 
 ## Data Collection
 
-The test saves data to: `/root/G1/unitree_sdk2/test_maps/room_relocation.json`
+The test saves data to: `/root/G1/unitree_sdk2/data/test_data/maps/room_relocation.json`
 
 Contains:
 - All position samples (timestamp, x, y, z, heading)

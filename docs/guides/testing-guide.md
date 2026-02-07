@@ -148,7 +148,7 @@ Tests:
 
 ```bash
 # Run all SLAM tests
-./test_maps/run_all_tests.sh  # If exists
+./data/test_data/maps/run_all_tests.sh  # If exists
 
 # Or manually:
 python3 test_slam_topics_realtime.py
@@ -224,7 +224,7 @@ cd g1_tests && python3 test_relocation_detection_mock.py
 
 ### Test Maps
 
-Sample maps in `test_maps/` directory:
+Sample maps in `data/test_data/maps/` directory:
 - `test_room.pgm` - Small test room
 - `large_space.pgm` - Larger area for navigation tests
 

@@ -208,7 +208,7 @@ payload = {
 │   │   └── command_executor.py       ⚠️  Some code needs fixes
 │   └── ui/web_server.py
 │
-├── 📂 _scripts/                       ← Utility shell scripts
+├── 📂 scripts/legacy/                       ← Utility shell scripts
 ├── 📂 _analysis/                      ← Research & analysis code
 ├── 📂 _archived_docs/                 ← Old documentation (76 files)
 ├── 📂 _old_files/                     ← Legacy logs & captures

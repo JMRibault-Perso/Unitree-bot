@@ -86,7 +86,7 @@
    - `/home/unitree/my_room.pcd` ← On robot
 
 2. **Waypoint files** (NEW to implement)
-   - `/root/G1/unitree_sdk2/maps/my_room_waypoints.json` ← On PC
+   - `%s/data/maps/my_room_waypoints.json` ← On PC
    - Contains all waypoints for that map
 
 3. **Session file** (NEW to implement)
@@ -223,7 +223,7 @@ rotate_to_heading(heading=45.0)     # Then rotate (need API ID)
 ├── g1_tests/
 │   └── slam/
 │       └── simple_slam_test.py         ← Main test
-├── maps/                               ← NEW: Store waypoint files
+├── data/maps/                               ← NEW: Store waypoint files
 │   └── my_room_waypoints.json
 └── sessions/                           ← NEW: Session persistence
     └── latest_session.json

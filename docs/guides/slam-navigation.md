@@ -58,7 +58,7 @@ await builder.save_map("my_room")
 
 ### Map File Format
 
-Maps are saved in `maps/` directory with:
+Maps are saved in `data/maps/` directory with:
 - `map_name.pgm` - Occupancy grid image
 - `map_name.yaml` - Map metadata (resolution, origin)
 - `map_name.json` - Waypoint data

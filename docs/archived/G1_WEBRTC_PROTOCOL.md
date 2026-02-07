@@ -306,7 +306,7 @@ When things don't work:
 │   │   └── simple_slam_test.py  ✅ Ready to run
 │   └── [other test categories]
 │
-├── _scripts/                    ← Old shell scripts
+├── scripts/legacy/                    ← Old shell scripts
 ├── _analysis/                   ← Research code
 ├── _archived_docs/              ← Old documentation
 └── _old_files/                  ← Old logs/captures

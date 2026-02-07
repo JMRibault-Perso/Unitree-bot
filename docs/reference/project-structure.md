@@ -51,15 +51,15 @@ unitree_sdk2/
 │   ├── navigate_waypoint.py        # Navigation examples
 │   └── ...
 │
-├── maps/                           # 🗺️ Saved SLAM maps
-│   └── [map_name]/                 # Per-map directory
-│       ├── map.pgm                 # Occupancy grid
-│       ├── map.yaml                # Map metadata
-│       └── waypoints.json          # Waypoint data
+├── data/                           # 🗂️ Local data and logs (not source)
+│   ├── data/maps/                       # 🗺️ Saved SLAM maps
+│   ├── test_data/maps/                  # 🧪 Sample/test maps
+│   ├── logs/                       # 📜 SLAM/teach run logs
+│   └── maps_config.json            # Map config metadata
 │
-├── _scripts/                       # Utility scripts
-│   ├── diagnose_dds.sh             # DDS diagnostics (EDU only)
-│   └── quick_test.sh               # Quick connectivity test
+├── scripts/                        # Utility scripts
+│   ├── legacy/                     # Legacy scripts (archived)
+│   └── run_relocation_test.sh      # Relocation test runner
 │
 ├── example/                        # SDK examples (C++)
 │   ├── g1/                         # G1-specific examples
@@ -160,13 +160,13 @@ async with RobotTestConnection() as robot:
 - `build_room_map.py` - Interactive map building script
 - `navigate_waypoint.py` - Navigation examples
 
-### SLAM Maps (`maps/`)
+### SLAM Maps (`data/maps/`)
 
 **Purpose**: Persistent storage of built maps and waypoints.
 
 **Structure**:
 ```
-maps/
+data/maps/
   my_room/
     map.pgm         # Occupancy grid (PGM image)
     map.yaml        # Metadata (resolution, origin)
@@ -234,7 +234,7 @@ client.Init();
 ### `cyclonedds.xml`
 DDS configuration for EDU models. Not used by G1 Air.
 
-### `maps_config.json`
+### `data/maps_config.json`
 SLAM maps metadata and configuration.
 
 ### `.github/copilot-instructions.md`

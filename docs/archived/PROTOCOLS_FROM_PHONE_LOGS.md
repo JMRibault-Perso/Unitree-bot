@@ -549,7 +549,7 @@ Then the logs would show the actual API calls with your map names in the "addres
 You've already pulled:
 - `unitree_app.apk` (202 MB) - Decompile and search for SLAM APIs
 - `unitree_full_pull/cache/log/*` - App logs with protocol messages
-- `phone_logs_commands.txt` - Extracted command history
+- `docs/notes/phone_logs_commands.txt` - Extracted command history
 
 Next step: Decompile the APK and search for:
 - Class names: `SlamMap`, `MapManager`, `NavigationController`

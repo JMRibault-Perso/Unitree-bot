@@ -103,7 +103,7 @@ SLAM_POSITION_WIDGET.html        ← Real-time position display widget
 
 ### Maps Storage
 ```
-/root/G1/unitree_sdk2/test_maps/
+/root/G1/unitree_sdk2/data/test_data/maps/
 ├── room.pcd                      ← Your map (local copy)
 └── room_relocation.json          ← Test results (generated)
 ```
@@ -144,7 +144,7 @@ python3 g1_tests/slam/test_relocation.py
 - [ ] Run `test_relocation.py` - load map and move robot
 - [ ] Observe position changing (X, Y, Z, Heading)
 - [ ] Check update count > 100 (good) or > 500 (excellent)
-- [ ] Review saved test data: `cat test_maps/room_relocation.json`
+- [ ] Review saved test data: `cat data/test_data/maps/room_relocation.json`
 - [ ] Test API endpoint: `curl /api/slam/current_position`
 
 ---

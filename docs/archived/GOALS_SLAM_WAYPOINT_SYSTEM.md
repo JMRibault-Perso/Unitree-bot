@@ -185,7 +185,7 @@ Without heading, waypoint navigation is incomplete:
 │   │   ├── simple_slam_test.py        ← Main test file
 │   │   └── test_complete_slam_workflow.py
 │   └── ...
-├── maps/                              ← Local map files
+├── data/maps/                              ← Local map files
 │   └── [map_name]_waypoints.json      ← Waypoint storage
 └── sessions/                          ← Session persistence
     └── latest_session.json

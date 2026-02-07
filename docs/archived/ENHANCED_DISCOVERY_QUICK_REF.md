@@ -108,7 +108,7 @@ All existing test scripts work unchanged - they automatically use the new faster
 
 Analysis of Android app protocol from:
 - `PROTOCOLS_FROM_PHONE_LOGS.md` - Complete protocol documentation
-- `phone_logs_commands.txt` - Raw app communication logs
+- `docs/notes/phone_logs_commands.txt` - Raw app communication logs
 
 Key insights:
 - Multicast group: `231.1.1.2:7400`

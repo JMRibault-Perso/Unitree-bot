@@ -142,7 +142,7 @@
 │   └── sensors/
 ├── g1_tests/
 │   └── slam/
-├── maps/                    (NEW: for waypoint files)
+├── data/maps/                    (NEW: for waypoint files)
 └── sessions/                (NEW: for session persistence)
 ```
 

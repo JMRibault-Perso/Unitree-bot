@@ -240,7 +240,7 @@ Waypoints are stored persistently per map to enable shutdown/restart navigation:
 ```
 
 ### Storage Location
-- **Path**: `/root/G1/unitree_sdk2/maps/{map_name}_waypoints.json`
+- **Path**: `data/maps/{map_name}_waypoints.json`
 - **Lifecycle**: Persistent across shutdown/restart
 - **Linked to Map**: One waypoint file per SLAM map
 

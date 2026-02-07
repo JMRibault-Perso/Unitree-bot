@@ -4,7 +4,7 @@ Simple 3D SLAM map viewer (PCD) using Three.js.
 Serves a local HTML UI and a PCD file over HTTP.
 
 Usage:
-  python3 slam_map_viewer.py --map ./test_maps/slam_map_latest.pcd --port 8000
+  python3 slam_map_viewer.py --map ./data/test_maps/slam_map_latest.pcd --port 8000
 """
 
 import argparse
@@ -167,7 +167,7 @@ class MapHandler(http.server.SimpleHTTPRequestHandler):
 
 def main():
     parser = argparse.ArgumentParser(description="3D SLAM Map Viewer (PCD)")
-    parser.add_argument("--map", default="./test_maps/slam_map_latest.pcd", help="Path to PCD map file")
+    parser.add_argument("--map", default="./data/test_maps/slam_map_latest.pcd", help="Path to PCD map file")
     parser.add_argument("--port", type=int, default=8000, help="HTTP port")
     args = parser.parse_args()
 
