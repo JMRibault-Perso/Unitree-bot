@@ -24,8 +24,8 @@ from typing import Dict, Optional, List, Tuple
 import numpy as np
 from collections import deque
 
-# Add SDK paths
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+repo_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(repo_root / 'deps' / 'g1_webrtc_connect'))
 from unitree_webrtc_connect.webrtc_driver import UnitreeWebRTCConnection, WebRTCConnectionMethod
 
 # Optional: for visualization and map saving
@@ -356,7 +356,7 @@ async def main():
     )
     
     # Apply decoder patch
-    from g1_app.patches import lidar_decoder_patch
+    # Decoder now lives in g1_webrtc_connect submodule
     logger.info("🔧 Applying decoder patch...")
     
     # Connect to robot

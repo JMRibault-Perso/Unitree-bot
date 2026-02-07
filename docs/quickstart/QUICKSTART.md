@@ -1,23 +1,26 @@
 # QUICK START - Run SLAM Test
 
-## ✅ Everything is Ready
+## ✅ Setup Once
 
-Your workspace is now **clean and organized**. All test files are properly organized, old documentation archived, and SDK remains pristine.
+```bash
+./scripts/bootstrap.sh
+source .venv/bin/activate
+```
 
 ## 🚀 Run the SLAM Test Now
 
 ```bash
 # 1. Navigate to test directory
-cd /root/G1/unitree_sdk2/g1_tests/slam
+cd g1_tests/slam
 
 # 2. Run the test
 python3 simple_slam_test.py
 ```
 
-## 📖 Reference Docs (In Root)
+## 📖 Reference Docs
 
-- **[STATUS.md](STATUS.md)** - Current work progress
-- **[G1_WEBRTC_PROTOCOL.md](G1_WEBRTC_PROTOCOL.md)** - How G1 works with WebRTC
+- **[Main Docs Index](../README.md)**
+- **[Web UI Guide](../../g1_app/ui/WEB_UI_GUIDE.md)**
 
 ## 🔧 What the Test Does
 
@@ -61,8 +64,8 @@ pkill -f "python3 g1_app"
 ## 📚 Learn More
 
 Once the test works:
-1. Read [G1_WEBRTC_PROTOCOL.md](G1_WEBRTC_PROTOCOL.md) to understand the protocol
-2. Check [STATUS.md](STATUS.md) for what's done and what's next
+1. Read [docs/README.md](../README.md) to understand the system
+2. Check [docs/guides/](../guides/) for workflows and testing
 3. Modify test for your own experiments (change coordinates, etc.)
 
 ---

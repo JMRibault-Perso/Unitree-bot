@@ -19,11 +19,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
-sys.path.insert(0, '.')
-from g1_app.patches import lidar_decoder_patch  # Apply decoder patch
-from g1_app.utils.arp_discovery import discover_robot_ip
+repo_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(repo_root))
+sys.path.insert(0, str(repo_root / 'deps' / 'g1_webrtc_connect'))
 
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+from g1_app.utils.arp_discovery import discover_robot_ip
 from unitree_webrtc_connect.webrtc_driver import UnitreeWebRTCConnection, WebRTCConnectionMethod
 
 logging.basicConfig(
