@@ -31,7 +31,7 @@ class SDKVerifier:
         """Check Python SDK structure"""
         print("\n📦 Python SDK Check...")
         
-        sdk_path = self.project_root / "sdk2_python"
+        sdk_path = self.project_root / "examples" / "sdk2_python"
         checks = {
             "SDK Directory": sdk_path.exists(),
             "unitree_sdk2py module": (sdk_path / "unitree_sdk2py").exists(),
@@ -104,7 +104,7 @@ class SDKVerifier:
         """Check teach mode implementation readiness"""
         print("\n🎓 Teach Mode Readiness Check...")
         
-        sdk_path = self.project_root / "sdk2_python"
+        sdk_path = self.project_root / "examples" / "sdk2_python"
         
         # Check for API IDs in Python SDK
         if (sdk_path / "unitree_sdk2py/g1/arm/g1_arm_action_api.py").exists():
@@ -166,7 +166,7 @@ class SDKVerifier:
         print(f"  📖 Documentation: {self.project_root}/SDK_INTEGRATION_SUMMARY.md")
         print(f"  🎓 Teach Mode: {self.project_root}/TEACH_MODE_REFERENCE.md")
         print(f"  📱 Android App: {self.project_root}/android_app_decompiled/README.md")
-        print(f"  🐍 Python SDK: {self.project_root}/sdk2_python/README.md")
+        print(f"  🐍 Python SDK: {self.project_root}/examples/sdk2_python/README.md")
 
 if __name__ == "__main__":
     verifier = SDKVerifier()

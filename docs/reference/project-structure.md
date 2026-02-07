@@ -68,6 +68,9 @@ unitree_sdk2/
 │   ├── go2/, h1/, b2/              # Other robot examples
 │   └── ...
 │
+├── examples/                       # Python SDK examples (submodule)
+│   └── sdk2_python/
+│
 ├── include/                        # C++ SDK headers
 │   └── unitree/
 │       ├── robot/                  # High-level clients

@@ -159,9 +159,9 @@ After setup, your directory should look like:
 │   ├── DEVELOPMENT_GUIDE.md  # This guide
 │   └── INSTALLATION.md       # Installation guide
 ├── deps/
-│   ├── unitree_sdk2/            # External SDK (pulled)
-│   ├── unitree_sdk2_python/     # External Python SDK (pulled)
 │   └── g1_webrtc_connect/       # WebRTC library (submodule)
+├── examples/
+│   └── sdk2_python/             # External Python SDK (submodule)
 ```
 
 ## Testing the Installation

@@ -1,3 +1,6 @@
 [submodule "deps/g1_webrtc_connect"]
 	path = deps/g1_webrtc_connect
 	url = https://github.com/JMRibault-Perso/g1_webrtc_repo.git
+[submodule "examples/sdk2_python"]
+	path = examples/sdk2_python
+	url = https://github.com/unitreerobotics/unitree_sdk2_python.git
