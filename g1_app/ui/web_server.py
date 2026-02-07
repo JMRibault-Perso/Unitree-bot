@@ -29,9 +29,6 @@ for path in webrtc_paths:
     if os.path.exists(path) and path not in sys.path:
         sys.path.insert(0, path)
 
-# Apply patches BEFORE importing anything that uses WebRTC
-from g1_app.patches import lidar_decoder_patch
-
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
