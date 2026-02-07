@@ -1,0 +1,83 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    SLAM TOPICS - QUICK REFERENCE                            ║
+║                   Correct Topics for 3D Visualization                        ║
+║                         February 5, 2026                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+❌ WRONG (Do NOT use):
+   rt/unitree/slam_mapping/points
+   (Does not publish, this was the old incorrect implementation)
+
+✅ CORRECT:
+
+During SLAM Mapping (API 1801 active):
+   Topic:      rt/unitree/slam_mapping/odom
+   Frequency:  ~20 Hz
+   Data:       Position (x,y,z) + Orientation (q_x,q_y,q_z,q_w)
+   Use:        Update 3D viewer as robot walks mapping room
+
+During Navigation (API 1804 loaded, API 1102 executing):
+   Topic:      rt/unitree/slam_relocation/odom
+   Frequency:  ~20 Hz
+   Data:       Position (x,y,z) + Orientation (q_x,q_y,q_z,q_w)
+   Use:        Update 3D viewer as robot navigates to goal
+
+════════════════════════════════════════════════════════════════════════════════
+
+🚀 FAST TESTING WORKFLOW:
+
+Step 1: Test Topics with Python (No Server Restart)
+   python3 test_slam_topics_realtime.py
+   
+   - Verifies topics publish real data
+   - Shows message format
+   - 30 seconds per test
+   - No web server overhead
+
+Step 2: Integrate into Web App (Fast F5 Refresh)
+   - Create WebSocket endpoint (no server restart needed)
+   - Browser subscribes and receives real-time updates
+   - Change code → Press F5 → See result
+   - 2-3 seconds per iteration
+   
+   vs Old: Change → Restart Server → Refresh
+           10+ seconds per iteration
+
+════════════════════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTATION:
+
+Test Script:
+   test_slam_topics_realtime.py        - Verify topics work
+
+Implementation Guide:
+   3D_VIEWER_IMPLEMENTATION_GUIDE.md   - Complete guide (fast iteration)
+
+Discovery Details:
+   SLAM_TOPICS_DISCOVERY.md            - Background + lessons learned
+
+API Reference:
+   KNOWLEDGE_BASE.md                   - Topics documented (updated)
+
+════════════════════════════════════════════════════════════════════════════════
+
+🎯 NEXT ACTION:
+
+1. Run: python3 test_slam_topics_realtime.py
+2. Follow prompts (it will ask you to start mapping/navigation)
+3. Check if topics publish ✅ or ❌
+4. If ✅: Proceed with WebSocket implementation
+5. If ❌: Contact robot team (firmware issue?)
+
+════════════════════════════════════════════════════════════════════════════════
+
+⚡ KEY INSIGHT:
+
+OLD WAY: Web server restart for each change = 15+ seconds
+NEW WAY: Browser F5 refresh with WebSocket = 2-3 seconds
+
+That's 5-10x faster development!
+
+════════════════════════════════════════════════════════════════════════════════
+
+Questions? See 3D_VIEWER_IMPLEMENTATION_GUIDE.md

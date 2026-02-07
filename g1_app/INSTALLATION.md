@@ -5,14 +5,25 @@
 - Python 3.8+
 - Linux system (tested on Ubuntu)
 - Network access to G1 robot
-- go2_webrtc_connect library (already installed at `/root/G1/go2_webrtc_connect`)
+- go2_webrtc_connect library (pulled via `scripts/pull_deps.sh` into `deps/go2_webrtc_connect`)
 
 ## Installation Steps
+
+### 0. Pull External Dependencies
+
+```bash
+cd /path/to/your/repo
+
+# Optional: set GO2_WEBRTC_URL if you have a source repo for it
+export GO2_WEBRTC_URL=<your_go2_webrtc_connect_repo>
+
+./scripts/pull_deps.sh
+```
 
 ### 1. Install Python Dependencies
 
 ```bash
-cd /root/G1/unitree_sdk2
+cd /path/to/your/repo
 
 # Install required packages
 pip3 install asyncio
@@ -45,7 +56,7 @@ Or edit the defaults in `g1_app/utils/config.py`.
 The application uses the go2_webrtc_connect library. Verify it's available:
 
 ```bash
-python3 -c "import sys; sys.path.insert(0, '/root/G1/go2_webrtc_connect'); import unitree_webrtc_connect; print('OK')"
+python3 -c "import sys; sys.path.insert(0, './deps/go2_webrtc_connect'); import unitree_webrtc_connect; print('OK')"
 ```
 
 ### 4. Test Connection
@@ -53,7 +64,7 @@ python3 -c "import sys; sys.path.insert(0, '/root/G1/go2_webrtc_connect'); impor
 Run the CLI test interface:
 
 ```bash
-cd /root/G1/unitree_sdk2
+cd /path/to/your/repo
 python3 -m g1_app.cli_test
 ```
 
@@ -116,7 +127,7 @@ If connection fails:
 After setup, your directory should look like:
 
 ```
-/root/G1/unitree_sdk2/
+/path/to/your/repo/
 ├── g1_controller.py          # Original test script
 ├── G1_AIR_CONTROL_GUIDE.md   # Discovery documentation
 ├── QUICK_REFERENCE.md         # Quick reference
@@ -145,7 +156,9 @@ After setup, your directory should look like:
 │   ├── README.md             # Architecture overview
 │   ├── DEVELOPMENT_GUIDE.md  # This guide
 │   └── INSTALLATION.md       # Installation guide
-└── /root/G1/go2_webrtc_connect/  # WebRTC library
+├── deps/
+│   ├── unitree_sdk2/            # External SDK (pulled)
+│   └── go2_webrtc_connect/      # WebRTC library (pulled)
 ```
 
 ## Testing the Installation
@@ -226,12 +239,12 @@ The WebRTC library path may not be set. Fix:
 ```python
 # Add to your scripts before imports:
 import sys
-sys.path.insert(0, '/root/G1/go2_webrtc_connect')
+sys.path.insert(0, './deps/go2_webrtc_connect')
 ```
 
 Or set PYTHONPATH:
 ```bash
-export PYTHONPATH=/root/G1/go2_webrtc_connect:$PYTHONPATH
+export PYTHONPATH=./deps/go2_webrtc_connect:$PYTHONPATH
 ```
 
 ### "Connection timeout" or "Failed to connect"

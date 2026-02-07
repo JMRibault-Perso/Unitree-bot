@@ -8,14 +8,11 @@ import logging
 import struct
 import os
 from typing import Optional
-from pathlib import Path
+
+from ..utils.pathing import get_webrtc_paths
 
 # Add WebRTC library paths (Linux and Windows)
-project_root = str(Path(__file__).parent.parent.parent)
-webrtc_paths = [
-    '/root/G1/go2_webrtc_connect',  # Linux
-    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows
-]
+webrtc_paths = get_webrtc_paths()
 for path in webrtc_paths:
     if os.path.exists(path) and path not in sys.path:
         sys.path.insert(0, path)
@@ -76,6 +73,8 @@ class RobotController:
         self.navigation_active = False
         self.loaded_map = None
         self.navigation_goal = None
+        self.current_position = {'x': 0.0, 'y': 0.0, 'z': 0.0, 'heading': 0.0, 'timestamp': 0.0}
+        self.current_position_updates = 0  # Track how many position updates received
         
         # Register callback to update latest_lidar_points when new data arrives
         def on_point_cloud_update(binary_data: bytes, metadata: dict):
@@ -98,7 +97,7 @@ class RobotController:
         logger.info(f"Initialized RobotController for {robot_sn} @ {robot_ip}")
     
     async def connect(self) -> None:
-        """Establish WebRTC connection to robot"""
+        """Establish WebRTC connection to robot (no auto-subscriptions)"""
         if self.connected:
             logger.warning("Already connected")
             return
@@ -122,33 +121,6 @@ class RobotController:
             # Create command executor
             self.executor = CommandExecutor(self.conn.datachannel)
             
-            # Subscribe to robot state topic
-            self._subscribe_to_state()
-            
-            # Subscribe to low-level state (motor positions, IMU, etc.)
-            self._subscribe_to_lowstate()
-            
-            # Subscribe to battery updates
-            self._subscribe_to_battery()
-            
-            # Subscribe to video frames
-            self._subscribe_to_video()
-            
-            # Subscribe to SLAM feedback topics
-            self._subscribe_to_slam_feedback()
-            
-            # DEBUG: Subscribe to ALL topics to see what's available
-            self._debug_all_topics()
-            
-            # COMPREHENSIVE MESSAGE LOGGING - catch EVERYTHING
-            self._log_all_datachannel_messages()
-            
-            # Subscribe to LiDAR point cloud
-            self._subscribe_to_lidar()
-            
-            # Enable LiDAR driver service (required for LiDAR data to publish)
-            await self._enable_lidar_service()
-            
             # NOTE: GET_FSM_ID and GET_FSM_MODE APIs don't return reliable state
             # API 7001 returns unknown values (e.g., 801)
             # API 7002 returns mode (0) not actual FSM state
@@ -164,6 +136,58 @@ class RobotController:
             logger.error(f"Connection failed: {e}")
             EventBus.emit(Events.CONNECTION_CHANGED, {"connected": False, "error": str(e)})
             raise
+
+    async def initialize_subscriptions(
+        self,
+        *,
+        include_state: bool = True,
+        include_lowstate: bool = True,
+        include_battery: bool = True,
+        include_video: bool = True,
+        include_slam: bool = True,
+        include_debug: bool = True,
+        include_lidar: bool = True,
+        enable_lidar_service: bool = True,
+    ) -> None:
+        """Subscribe to default topics and enable supporting services."""
+        if not self.conn or not self.executor:
+            raise RuntimeError("Not connected")
+
+        # Subscribe to robot state topic
+        if include_state:
+            self._subscribe_to_state()
+
+        # Subscribe to low-level state (motor positions, IMU, etc.)
+        if include_lowstate:
+            self._subscribe_to_lowstate()
+
+        # Subscribe to battery updates
+        if include_battery:
+            self._subscribe_to_battery()
+
+        # Subscribe to video frames
+        if include_video:
+            self._subscribe_to_video()
+
+        # Subscribe to SLAM feedback topics
+        if include_slam:
+            self._subscribe_to_slam_feedback()
+
+        # DEBUG: Subscribe to ALL topics to see what's available
+        if include_debug:
+            self._debug_all_topics()
+
+        # COMPREHENSIVE MESSAGE LOGGING - catch EVERYTHING
+        if include_debug:
+            self._log_all_datachannel_messages()
+
+        # Subscribe to LiDAR point cloud
+        if include_lidar:
+            self._subscribe_to_lidar()
+
+        # Enable LiDAR driver service (required for LiDAR data to publish)
+        if enable_lidar_service:
+            await self._enable_lidar_service()
     
     async def disconnect(self) -> None:
         """Close connection to robot"""
@@ -352,6 +376,7 @@ class RobotController:
             import cv2
             import asyncio
             from aiortc import MediaStreamTrack
+            from aiortc.mediastreams import MediaStreamError
             
             # Check if WebRTC connection has video support
             if not hasattr(self.conn, 'video'):
@@ -377,6 +402,10 @@ class RobotController:
                         _, buffer = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
                         self.latest_frame = buffer.tobytes()
                         
+                    except MediaStreamError:
+                        # Normal when track ends or restarts; avoid crashing app
+                        logger.warning("📹 Video track ended (MediaStreamError); stopping recv loop")
+                        break
                     except Exception as e:
                         logger.error(f"Error receiving video frame: {e}")
                         break
@@ -391,89 +420,164 @@ class RobotController:
             traceback.print_exc()
     
     def _subscribe_to_lidar(self) -> None:
-        """Subscribe to SLAM mapping point clouds during active mapping
+        """Subscribe to SLAM point cloud AND odometry topics
         
-        Point clouds ONLY available during active SLAM mapping:
-        1. Start mapping: API 1801 (START_MAPPING)
-        2. Subscribe to rt/unitree/slam_mapping/points for real-time point clouds
-        3. Subscribe to rt/unitree/slam_mapping/odom for odometry
-        4. End mapping: API 1802 (END_MAPPING) to save map
+        CRITICAL: Point cloud comes from rt/unitree/slam_mapping/points (binary data)
+        Position comes from odometry topics (only during active operations)
         """
         try:
-            # Enable LibVoxel decoder (patched to bypass for G1 SLAM)
-            self.conn.datachannel.set_decoder(decoder_type='libvoxel')
-            logger.info("✅ LibVoxel decoder enabled (with G1 SLAM bypass patch)")
-            
+            # Handler for point cloud binary data
             def on_slam_point_cloud(data: dict):
-                """Handle SLAM mapping point cloud messages
+                """Handle SLAM point cloud from rt/unitree/slam_mapping/points"""
+                try:
+                    points_array = None
+                    point_count = 0
+                    
+                    # Try BOTH message formats (like the working slam_mapper.py):
+                    # Format 1: Direct 'points' at root (from lidar_decoder_patch)
+                    if 'points' in data:
+                        points_array = data['points']
+                        point_count = data.get('point_count', 0)
+                    # Format 2: Nested in 'data' -> 'data' -> 'points'
+                    elif 'data' in data and isinstance(data.get('data'), dict):
+                        inner = data['data']
+                        if 'points' in inner:
+                            points_array = inner['points']
+                            point_count = inner.get('point_count', 0)
+                        elif 'data' in inner and isinstance(inner.get('data'), dict):
+                            # One more level deep
+                            points_array = inner['data'].get('points')
+                            point_count = inner['data'].get('point_count', 0)
+                    
+                    # Convert and store points
+                    if points_array is not None and hasattr(points_array, '__len__') and len(points_array) > 0:
+                        # Convert numpy array to list for JSON serialization
+                        if hasattr(points_array, 'tolist'):
+                            points_list = points_array[::10].tolist()  # Downsample
+                        else:
+                            points_list = points_array[::10] if isinstance(points_array, list) else list(points_array[::10])
+                        
+                        self.latest_lidar_points = points_list
+                        
+                        # Emit event
+                        EventBus.emit(Events.LIDAR_CLOUD, {'points': points_list})
+                        
+                        logger.info(f"📊 Point cloud: {point_count} points -> {len(points_list)} downsampled")
                 
-                PointCloud2 decoder sets message['data']['data'] = decoded_data
-                So the callback receives message['data'] which contains:
+                except Exception as e:
+                    logger.error(f"Error processing point cloud: {e}", exc_info=True)
+            
+            def on_slam_mapping_odom(data: dict):
+                """Handle SLAM mapping odometry (real-time position during map building)
+                
+                Odometry message contains:
                 {
-                    'header': {...},         # Original ROS2 header
-                    'xmin', 'xmax', etc.,   # Bounding box
-                    'data': {                # ← Decoded PointCloud2 data
-                        'point_count': int,
-                        'points': [[x,y,z], ...],
-                        'format': 'g1_slam_int16_12byte',
-                        'metadata': {...}
-                    }
+                    'header': {...},
+                    'pose': {'position': {'x': ..., 'y': ..., 'z': ...}, 'orientation': {...}},
+                    'twist': {...}
                 }
                 """
                 try:
-                    # The message structure is TRIPLE-nested:
-                    # data = {'type': 'msg', 'topic': '...', 'data': {...}}
-                    # data['data'] = {'header': ..., 'xmin': ..., 'data': {...}}
-                    # data['data']['data'] = {point_count, points, ...} ← DECODED POINTCLOUD
-                    
                     if isinstance(data, dict) and 'data' in data:
-                        outer_data = data['data']  # Has header, bounds, and nested 'data'
+                        odom_data = data['data']
                         
-                        if isinstance(outer_data, dict) and 'data' in outer_data:
-                            # THIS is the decoded point cloud!
-                            pointcloud = outer_data['data']
+                        if isinstance(odom_data, dict) and 'pose' in odom_data:
+                            pose = odom_data['pose']
+                            position = pose.get('position', {})
                             
-                            if isinstance(pointcloud, dict) and 'point_count' in pointcloud:
-                                point_count = pointcloud['point_count']
-                                points = pointcloud.get('points', [])
-                                
-                                logger.info(f"🎯 Received {point_count} points from SLAM")
-                                
-                                EventBus.emit(Events.LIDAR_DATA_RECEIVED, {
-                                    'point_count': point_count,
-                                    'points': points,
-                                    'format': pointcloud.get('format', 'unknown'),
-                                    'metadata': pointcloud.get('metadata', {})
-                                })
-                            else:
-                                logger.warning(f"⚠️  point_count not found. Keys: {list(pointcloud.keys()) if isinstance(pointcloud, dict) else type(pointcloud)}")
-                        else:
-                            logger.warning(f"⚠️  No nested 'data' in outer_data")
-                    else:
-                        logger.warning(f"⚠️  No 'data' key in callback data")
+                            x = position.get('x', 0.0)
+                            y = position.get('y', 0.0)
+                            z = position.get('z', 0.0)
+                            
+                            # Update current position
+                            self.current_position = {
+                                'x': x,
+                                'y': y,
+                                'z': z,
+                                'heading': 0.0,  # Calculate from quaternion if needed
+                                'timestamp': asyncio.get_event_loop().time()
+                            }
+                            self.current_position_updates += 1
+                            
+                            # Add to trajectory for visualization
+                            self.slam_trajectory.append({
+                                'x': x,
+                                'y': y,
+                                'z': z,
+                                'timestamp': self.current_position['timestamp']
+                            })
+                            
+                            # Emit event for UI updates
+                            EventBus.emit(Events.SLAM_POSITION_UPDATED, {
+                                'x': x,
+                                'y': y,
+                                'z': z,
+                                'source': 'mapping'
+                            })
+                            
+                            logger.debug(f"🗺️ SLAM Mapping Position: ({x:.2f}, {y:.2f}, {z:.2f})")
                         
                 except Exception as e:
-                    logger.error(f"❌ Error processing SLAM point cloud: {e}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.error(f"Error processing mapping odometry: {e}")
             
-            def on_slam_odometry(data: dict):
-                """Handle SLAM odometry updates"""
+            def on_slam_relocation_odom(data: dict):
+                """Handle SLAM relocation odometry (real-time position during navigation)
+                
+                Odometry message contains same structure as mapping odom
+                """
                 try:
-                    logger.debug(f"🧭 SLAM odometry update: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+                    if isinstance(data, dict) and 'data' in data:
+                        odom_data = data['data']
+                        
+                        if isinstance(odom_data, dict) and 'pose' in odom_data:
+                            pose = odom_data['pose']
+                            position = pose.get('position', {})
+                            
+                            x = position.get('x', 0.0)
+                            y = position.get('y', 0.0)
+                            z = position.get('z', 0.0)
+                            
+                            # Update current position
+                            self.current_position = {
+                                'x': x,
+                                'y': y,
+                                'z': z,
+                                'heading': 0.0,
+                                'timestamp': asyncio.get_event_loop().time()
+                            }
+                            self.current_position_updates += 1
+                            
+                            # Emit event for UI updates
+                            EventBus.emit(Events.SLAM_POSITION_UPDATED, {
+                                'x': x,
+                                'y': y,
+                                'z': z,
+                                'source': 'navigation'
+                            })
+                            
+                            logger.debug(f"🧭 Navigation Position: ({x:.2f}, {y:.2f}, {z:.2f})")
+                        
                 except Exception as e:
-                    logger.error(f"Error processing odometry: {e}")
+                    logger.error(f"Error processing relocation odometry: {e}")
             
-            # Subscribe to SLAM mapping topics
-            # NOTE: These topics only publish data during ACTIVE SLAM mapping (API 1801)
-            self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_mapping/points", on_slam_point_cloud)
-            self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_mapping/odom", on_slam_odometry)
+            # DO NOT subscribe to odometry topics here!
+            # rt/unitree/slam_mapping/odom ONLY publishes during ACTIVE SLAM mapping (API 1801)
+            # rt/unitree/slam_relocation/odom ONLY publishes when navigating (API 1804 + 1102)
+            # Subscribe to them dynamically when SLAM/navigation starts (see _subscribe_to_slam_odom)
             
-            logger.info("📡 Subscribed to SLAM mapping topics (rt/unitree/slam_mapping/*)")
-            logger.info("ℹ️  Point clouds will only flow during active SLAM mapping (use /api/slam/start)")
+            # CRITICAL: Subscribe to point cloud topic (binary data)
+            # This provides the 3D visualization data that shows walls, obstacles, etc.
+            try:
+                self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_mapping/points", on_slam_point_cloud)
+                logger.info("📡 Subscribed to SLAM point cloud: rt/unitree/slam_mapping/points")
+                logger.info("   ⚠️  Requires LibVoxel decoder patch to work!")
+            except Exception as sub_err:
+                logger.warning(f"Could not subscribe to point cloud: {sub_err}")
             
+            logger.info("ℹ️  SLAM odometry will only flow during active mapping (API 1801) or navigation (API 1804+1102)")
+        
         except Exception as e:
-            logger.warning(f"Could not subscribe to SLAM mapping topics: {e}")
+            logger.warning(f"Could not subscribe to SLAM odometry topics: {e}")
             import traceback
             traceback.print_exc()
 
@@ -481,6 +585,10 @@ class RobotController:
     def _subscribe_to_slam_feedback(self) -> None:
         """Subscribe to SLAM feedback topics to monitor SLAM status"""
         try:
+            import json
+            import math
+            import time
+            
             # Initialize trajectory storage
             self.slam_trajectory = []  # List of {x, y, z, timestamp} pose points
             self.slam_active = False
@@ -490,9 +598,27 @@ class RobotController:
             def slam_info_callback(data: dict):
                 try:
                     if isinstance(data, dict) and 'data' in data:
-                        import json
-                        import math
                         slam_data = json.loads(data['data']) if isinstance(data['data'], str) else data['data']
+                        
+                        # LOG WHAT WE'RE ACTUALLY RECEIVING
+                        msg_type = slam_data.get('type', 'UNKNOWN')
+                        logger.info(f"🔍 rt/slam_info TYPE: {msg_type}, keys: {list(slam_data.keys()) if isinstance(slam_data, dict) else 'not dict'}")
+                        
+                        # Extract point cloud if present in slam_info (different from mapping mode)
+                        # rt/slam_info can contain: pointcloud, mapping_info, or pos_info depending on context
+                        if slam_data.get('type') == 'pointcloud':
+                            # Point cloud format: {'type': 'pointcloud', 'data': {...cloud data...}}
+                            cloud_data = slam_data.get('data', {})
+                            if isinstance(cloud_data, dict):
+                                points = cloud_data.get('points', [])
+                                if points and len(points) > 0:
+                                    # Points are already in XYZ format from slam_info
+                                    downsampled = points[::10] if len(points) > 100 else points
+                                    self.latest_lidar_points = downsampled
+                                    logger.debug(f"📊 SLAM Info point cloud: {len(points)} points -> {len(downsampled)} downsampled")
+                                    
+                                    # Emit event for real-time UI updates
+                                    event_bus.emit(Events.LIDAR_CLOUD, {'points': downsampled})
                         
                         # Collect trajectory points during mapping (with deduplication)
                         if slam_data.get('type') in ['mapping_info', 'pos_info']:
@@ -525,9 +651,39 @@ class RobotController:
                 except Exception as e:
                     logger.error(f"Error processing SLAM info: {e}")
             
+            # Subscribe to relocation odometry for position tracking
+            def relocation_odom_callback(data: dict):
+                """Handle relocation odometry (rt/unitree/slam_relocation/odom)"""
+                try:
+                    if isinstance(data, dict) and 'data' in data:
+                        odom_data = json.loads(data['data']) if isinstance(data['data'], str) else data['data']
+                        
+                        if 'position' in odom_data and 'orientation' in odom_data:
+                            pos = odom_data['position']
+                            orient = odom_data['orientation']
+                            
+                            # Update current position
+                            self.current_position = {
+                                'x': float(pos.get('x', 0)),
+                                'y': float(pos.get('y', 0)),
+                                'z': float(pos.get('z', 0)),
+                                'heading': math.atan2(2.0 * (orient.get('w', 1) * orient.get('z', 0) + orient.get('x', 0) * orient.get('y', 0)), 
+                                                     1.0 - 2.0 * (orient.get('y', 0) ** 2 + orient.get('z', 0) ** 2)),
+                                'timestamp': time.time()
+                            }
+                            self.current_position['heading'] = math.degrees(self.current_position['heading'])
+                            # Apply angle correction: Convert from math convention to navigation convention
+                            # Math: 0°=+X (East), 90°=+Y (North)
+                            # Navigation: 0°=+Y (North), 90°=+X (East)
+                            self.current_position['heading'] = self.current_position['heading'] - 90
+                            self.current_position_updates += 1
+                            
+                            logger.debug(f"📍 Position update #{self.current_position_updates}: ({self.current_position['x']:.3f}, {self.current_position['y']:.3f}, {self.current_position['heading']:.1f}°)")
+                except Exception as e:
+                    logger.debug(f"Error processing relocation odometry: {e}")
+            
             # rt/slam_key_info - Execution status feedback (task results)
             def slam_key_info_callback(data: dict):
-                import json
                 logger.info(f"🗺️  SLAM KEY INFO FULL: {json.dumps(data, indent=2)[:5000]}")
             
             # rt/api/slam_operate/response - API responses
@@ -553,8 +709,9 @@ class RobotController:
             self.conn.datachannel.pub_sub.subscribe("rt/slam_info", slam_info_callback)
             self.conn.datachannel.pub_sub.subscribe("rt/slam_key_info", slam_key_info_callback)
             self.conn.datachannel.pub_sub.subscribe("rt/api/slam_operate/response", slam_api_response_callback)
+            self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_relocation/odom", relocation_odom_callback)
             
-            logger.info("📡 Subscribed to SLAM feedback topics")
+            logger.info("📡 Subscribed to SLAM feedback topics (including relocation odometry)")
             
         except Exception as e:
             logger.warning(f"Could not subscribe to SLAM feedback: {e}")

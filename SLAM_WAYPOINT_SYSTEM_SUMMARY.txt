@@ -1,0 +1,97 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                   SLAM NAVIGATION GOALS - FINAL CLARITY                   ║
+║                         February 5, 2026                                  ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+📋 COMPLETE GOAL DEFINITION:
+════════════════════════════════════════════════════════════════════════════
+
+✅ USER CAPABILITY 1: Store Room Maps
+   - User walks robot around room while SLAM captures 3D map
+   - Map saved as "my_living_room.pcd" on robot storage
+   - Status: WORKING (APIs 1801, 1802 verified)
+
+✅ USER CAPABILITY 2: Mark Waypoints in Map  
+   - User clicks on 3D point cloud → "Save as KITCHEN"
+   - Each waypoint stores: name, x, y, z, HEADING (orientation), description
+   - Waypoints saved persistently (survives shutdown/restart)
+   - Status: NEEDS IMPLEMENTATION
+
+✅ USER CAPABILITY 3: Navigate Between Waypoints
+   - User selects: Start waypoint + Destination waypoint + Click "Go"
+   - Robot: Loads map → Sets initial pose → Navigates → Rotates to heading
+   - Works with arbitrary robot starting position
+   - Status: NEEDS IMPLEMENTATION (depends on API 1102 heading support)
+
+✅ USER CAPABILITY 4: Persistent Waypoints Across Shutdown
+   - Shutdown robot → Restart → Same map + waypoints still there
+   - Robot estimates current position using odometry
+   - Can navigate from anywhere to any waypoint
+   - Status: NEEDS IMPLEMENTATION
+
+════════════════════════════════════════════════════════════════════════════
+
+🔑 CRITICAL: API KNOWLEDGE THAT MUST NOT BE LOST:
+
+SLAM APIs (VERIFIED WORKING):
+  • API 1801: START_MAPPING → {"succeed": true, "info": "..."}
+  • API 1802: SAVE_MAP → {"succeed": true, "info": "Save pcd successfully"}
+  • API 1804: LOAD_MAP + set pose → {"succeed": true, "info": "..."}
+
+Navigation API (NEEDS VERIFICATION):
+  • API 1102: NAVIGATE_TO with heading (x, y, z, q_x, q_y, q_z, q_w)
+  • Question: Does API 1102 rotate robot to specified heading?
+  • See: API_1102_HEADING_VERIFICATION.md
+
+State Topics (VERIFIED):
+  • rt/lf/sportmodestate: FSM state (fsm_id, fsm_mode)
+  • rt/lf/odommodestate: Robot position estimate (x, y, z, heading)
+
+════════════════════════════════════════════════════════════════════════════
+
+📁 DOCUMENTATION FILES (DO NOT REORGANIZE):
+
+SLAM_GOALS_COMPLETE_CLARIFICATION.md  ← Start here (this explains everything)
+GOALS_SLAM_WAYPOINT_SYSTEM.md         ← Detailed breakdown with code examples
+TEST_PLAN_SLAM_NAVIGATION.md          ← Implementation phases A, B, C, D, E
+API_1102_HEADING_VERIFICATION.md      ← Critical verification needed
+G1_SLAM_IMPLEMENTATION.py             ← Authoritative code reference
+KNOWLEDGE_BASE.md                     ← API reference (updated with waypoints)
+
+════════════════════════════════════════════════════════════════════════════
+
+⭐ CRITICAL DECISION POINT:
+
+Before starting implementation, MUST test API 1102 to verify:
+  Q: Does API 1102 accept heading/quaternion parameter?
+  Q: Does robot rotate to specified heading at destination?
+  
+If YES → Straightforward implementation
+If NO  → Need workaround (separate rotation command)
+
+See API_1102_HEADING_VERIFICATION.md for testing procedure.
+
+════════════════════════════════════════════════════════════════════════════
+
+✅ KNOWLEDGE PRESERVATION RULE:
+
+Rule: Every API discovery → Document in KNOWLEDGE_BASE.md
+
+This prevents daily rediscovery. If you can't find an API in:
+  1. G1_SLAM_IMPLEMENTATION.py
+  2. KNOWLEDGE_BASE.md
+  3. One of the SLAM documentation files
+
+Then it hasn't been properly documented, and WILL be lost next time someone
+restarts or switches context.
+
+════════════════════════════════════════════════════════════════════════════
+
+🚀 NEXT STEPS:
+
+1. Review SLAM_GOALS_COMPLETE_CLARIFICATION.md
+2. Run API 1102 heading verification test
+3. Report results (does heading work or need workaround?)
+4. Start Phase A implementation (waypoint backend)
+
+════════════════════════════════════════════════════════════════════════════

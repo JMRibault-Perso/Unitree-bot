@@ -4,11 +4,13 @@ Analyze the JavaScript button logic to identify issues
 """
 
 import re
+from pathlib import Path
 
 def analyze_javascript():
     """Read and analyze the JavaScript code"""
     
-    with open('/root/G1/unitree_sdk2/g1_app/ui/index.html', 'r') as f:
+    index_path = Path(__file__).resolve().parent / 'ui' / 'index.html'
+    with open(index_path, 'r') as f:
         content = f.read()
     
     print("=" * 60)

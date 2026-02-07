@@ -37,6 +37,9 @@ test_*.py
 # Libraries (embedded git repos should be submodules)
 libs/
 
+# External dependencies pulled locally
+deps/
+
 # Temporary files
 *.tmp
 *.bak

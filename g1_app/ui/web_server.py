@@ -20,23 +20,20 @@ project_root = str(Path(__file__).parent.parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from g1_app.utils.pathing import get_webrtc_paths
+
 # Add WebRTC library paths (Linux and Windows)
-webrtc_paths = [
-    '/root/G1/go2_webrtc_connect',  # Linux path
-    '/root/G1/unitree_sdk2',  # Linux path
-    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows path
-]
+webrtc_paths = get_webrtc_paths()
 
 for path in webrtc_paths:
     if os.path.exists(path) and path not in sys.path:
         sys.path.insert(0, path)
 
 # Apply patches BEFORE importing anything that uses WebRTC
-# Temporarily disabled - causes import errors on Windows
-# from g1_app.patches import lidar_decoder_patch
+from g1_app.patches import lidar_decoder_patch
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import re
@@ -67,6 +64,32 @@ arm_controller: Optional[ArmController] = None
 connect_lock = asyncio.Lock()
 connected_clients = []
 
+# Robot management
+ROBOTS_FILE = Path(__file__).parent / "robots.json"
+
+def load_robots():
+    """Load robots from JSON file"""
+    if ROBOTS_FILE.exists():
+        try:
+            with open(ROBOTS_FILE) as f:
+                data = json.load(f)
+                return data.get('robots', [])
+        except Exception as e:
+            logger.error(f"Failed to load robots: {e}")
+    return []
+
+def save_robots(robots):
+    """Save robots to JSON file"""
+    try:
+        with open(ROBOTS_FILE, 'w') as f:
+            json.dump({'robots': robots}, f, indent=2)
+        logger.info(f"✅ Saved {len(robots)} robots to {ROBOTS_FILE}")
+    except Exception as e:
+        logger.error(f"Failed to save robots: {e}")
+
+def generate_robot_id(nickname):
+    """Generate a unique ID from nickname"""
+    return nickname.lower().replace(' ', '_')
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -276,7 +299,8 @@ async def discover_robots_endpoint():
                     "ip": r.ip,
                     "is_bound": True,  # All robots from get_robots() are bound
                     "is_online": r.is_online,
-                    "last_seen": r.last_seen.isoformat() if r.last_seen else None
+                    "last_seen": r.last_seen.isoformat() if r.last_seen else None,
+                    "network_mode": getattr(r, 'network_mode', None)  # AP/STA-L/STA-T from enhanced discovery
                 }
                 for r in all_robots
             ],
@@ -363,8 +387,81 @@ async def get_index():
         return HTMLResponse(content="<h1>Error: index.html not found</h1>", status_code=404)
 
 
+@app.get("/favicon.ico")
+async def favicon():
+    """Return empty favicon to prevent 404 errors"""
+    return Response(content="", media_type="image/x-icon")
+
+
+# ===== ROBOT MANAGEMENT ENDPOINTS =====
+
+@app.get("/api/robots")
+async def get_robots():
+    """Get list of all saved robots"""
+    robots = load_robots()
+    return {"robots": robots}
+
+
+@app.get("/api/discover")
+async def discover_robot_ip(mac: str):
+    """Discover robot IP address by MAC address"""
+    try:
+        from g1_app.utils.robot_discovery import discover_robot
+        robot = discover_robot(target_mac=mac)
+        if robot and robot['online']:
+            return {"ip": robot['ip'], "mac": robot['mac'], "online": True}
+        elif robot:
+            return {"ip": robot['ip'], "mac": robot['mac'], "online": False}
+        else:
+            return {"ip": None, "mac": mac, "online": False, "error": "Robot not found"}
+    except Exception as e:
+        logger.error(f"Discovery error: {e}")
+        return {"ip": None, "mac": mac, "online": False, "error": str(e)}
+
+
+@app.post("/api/add_robot")
+async def add_robot(request: Request):
+    """Add a new robot to the configuration"""
+    try:
+        data = await request.json()
+        nickname = data.get('nickname', '').strip()
+        mac = data.get('mac', '').strip()
+        serial_number = data.get('serial_number', '').strip()
+
+        if not nickname or not mac or not serial_number:
+            return {"success": False, "error": "Missing required fields"}
+
+        # Validate MAC format
+        if not re.match(r'^([0-9a-fA-F]{2}:){5}([0-9a-fA-F]{2})$', mac):
+            return {"success": False, "error": "Invalid MAC address format"}
+
+        robots = load_robots()
+        
+        # Check for duplicates
+        if any(r['mac'].lower() == mac.lower() for r in robots):
+            return {"success": False, "error": "Robot with this MAC already exists"}
+
+        # Create new robot entry
+        robot_id = generate_robot_id(nickname)
+        new_robot = {
+            'id': robot_id,
+            'nickname': nickname,
+            'mac': mac.lower(),
+            'serial_number': serial_number
+        }
+        
+        robots.append(new_robot)
+        save_robots(robots)
+        
+        logger.info(f"✅ Added new robot: {nickname} ({mac})")
+        return {"success": True, "robot": new_robot}
+    except Exception as e:
+        logger.error(f"Failed to add robot: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/api/connect")
-async def connect_robot(ip: str, serial_number: str):
+async def connect_robot(mac: str, serial_number: str):
     """Connect to robot"""
     global robot
     
@@ -385,6 +482,11 @@ async def connect_robot(ip: str, serial_number: str):
 
             return {
                 "success": True,
+                "robot": {
+                    "mac": mac,
+                    "serial_number": serial_number,
+                    "ip": robot.robot_ip
+                },
                 "state": {
                     "fsm_state": state.fsm_state.name,
                     "fsm_state_value": state.fsm_state.value,
@@ -398,9 +500,19 @@ async def connect_robot(ip: str, serial_number: str):
             return {"success": False, "error": "Robot already connected. Disconnect first."}
         
         async with connect_lock:
-            logger.info(f"Connecting to robot at {ip} (SN: {serial_number})")
+            # Discover IP from MAC address
+            logger.info(f"Discovering robot IP for MAC {mac}...")
+            from g1_app.utils.robot_discovery import discover_robot
+            discovered = discover_robot(target_mac=mac)
             
-            # First check if robot is reachable
+            if not discovered:
+                logger.error(f"Robot with MAC {mac} not found on network")
+                return {"success": False, "error": f"Robot not found on network. Check if robot is powered on and on same network."}
+            
+            ip = discovered['ip']
+            logger.info(f"Discovered robot at {ip} (SN: {serial_number})")
+            
+            # Check if robot is reachable
             import subprocess
             import platform
             param = '-n' if platform.system().lower() == "windows" else '-c'
@@ -408,11 +520,12 @@ async def connect_robot(ip: str, serial_number: str):
                                   capture_output=True, text=True, timeout=3)
             if result.returncode != 0:
                 logger.error(f"Robot at {ip} is not reachable on network")
-                return {"success": False, "error": f"Robot at {ip} is not reachable. Check if robot is powered on and on same network."}
+                return {"success": False, "error": f"Robot at {ip} is not reachable. Check if robot is powered on."}
             
             try:
                 robot = RobotController(ip, serial_number)
                 await robot.connect()
+                await robot.initialize_subscriptions()
             except Exception as e:
                 logger.error(f"Failed to connect to robot: {e}")
                 import traceback
@@ -432,6 +545,11 @@ async def connect_robot(ip: str, serial_number: str):
 
         return {
             "success": True,
+            "robot": {
+                "mac": mac,
+                "serial_number": serial_number,
+                "ip": robot.robot_ip
+            },
             "state": {
                 "fsm_state": state.fsm_state.name,
                 "fsm_state_value": state.fsm_state.value,
@@ -550,6 +668,22 @@ async def move_robot(data: dict):
             }
     except Exception as e:
         logger.error(f"Move command failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/stop")
+async def stop_robot():
+    """Stop robot movement (set all velocities to zero)"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    try:
+        success = await robot.set_velocity(0.0, 0.0, 0.0)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"Stop command failed: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -1810,6 +1944,41 @@ async def get_navigation_status():
             "trajectory_points": len(getattr(robot, 'slam_trajectory', [])),
             "latest_pose": robot.slam_trajectory[-1] if getattr(robot, 'slam_trajectory', []) else None
         }
+    }
+
+
+@app.get("/api/slam/current_position")
+async def get_current_position():
+    """Get current robot position from SLAM relocation odometry
+    
+    Returns:
+    {
+        "success": true,
+        "position": {
+            "x": 1.234,        # Position in meters
+            "y": 0.567,
+            "z": 0.000,
+            "heading": 45.2    # Heading in degrees
+        },
+        "updates_received": 120,  # Number of position updates
+        "has_relocation": true,   # Whether relocation is active
+        "timestamp": 1707123456.789
+    }
+    """
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+    
+    position = getattr(robot, 'current_position', {})
+    updates = getattr(robot, 'current_position_updates', 0)
+    
+    return {
+        "success": True,
+        "position": position,
+        "updates_received": updates,
+        "has_relocation": updates > 0,
+        "timestamp": position.get('timestamp', 0)
     }
 
 

@@ -5,9 +5,11 @@ echo "=================================="
 echo "🧪 MOCK ROBOT TEST SUITE"
 echo "=================================="
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # Start mock server in background
 echo "Starting mock server on port 8080..."
-cd /root/G1/unitree_sdk2/g1_app
+cd "$ROOT_DIR/g1_app"
 nohup python3 test_mock_server.py > /tmp/mock_server.log 2>&1 &
 MOCK_PID=$!
 
@@ -147,7 +149,7 @@ echo "=================================="
 echo "All API tests completed!"
 echo ""
 echo "🌐 UI Test:"
-echo "1. Copy /root/G1/unitree_sdk2/g1_app/ui/index.html to /root/G1/unitree_sdk2/g1_app/ui/test_index.html"
+echo "1. Copy $ROOT_DIR/g1_app/ui/index.html to $ROOT_DIR/g1_app/ui/test_index.html"
 echo "2. Edit line with localhost:8000 to localhost:8080"
 echo "3. Open http://localhost:8080 in browser"
 echo "4. Test state transitions with buttons"

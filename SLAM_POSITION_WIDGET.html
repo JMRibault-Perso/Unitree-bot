@@ -1,0 +1,191 @@
+<!-- SLAM Position Monitor Widget
+     Display real-time robot position from relocation odometry
+     Can be embedded in web UI dashboard
+-->
+<div id="slam-position-monitor" style="padding: 20px; border: 2px solid #4CAF50; border-radius: 8px; background-color: #f9f9f9; font-family: monospace;">
+    <h3 style="margin-top: 0; color: #2196F3;">📍 Current Position (SLAM Relocation)</h3>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+        <!-- Position Display -->
+        <div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 5px;">X Position (meters)</div>
+            <div id="slam-x" style="font-size: 24px; font-weight: bold; color: #2196F3;">0.000</div>
+        </div>
+        
+        <div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Y Position (meters)</div>
+            <div id="slam-y" style="font-size: 24px; font-weight: bold; color: #2196F3;">0.000</div>
+        </div>
+        
+        <div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Z Position (meters)</div>
+            <div id="slam-z" style="font-size: 24px; font-weight: bold; color: #2196F3;">0.000</div>
+        </div>
+        
+        <div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Heading (degrees)</div>
+            <div id="slam-heading" style="font-size: 24px; font-weight: bold; color: #FF9800;">0.0°</div>
+        </div>
+    </div>
+    
+    <!-- Status Indicator -->
+    <div style="margin: 15px 0; padding: 10px; background-color: #fff3cd; border-radius: 4px;">
+        <span id="slam-status" style="color: #856404;">🔴 No relocation data</span>
+        <span style="float: right; font-size: 12px; color: #666;">
+            Updates: <span id="slam-updates">0</span>
+        </span>
+    </div>
+    
+    <!-- Visual Heading Indicator -->
+    <div style="margin: 15px 0; text-align: center;">
+        <div style="position: relative; width: 120px; height: 120px; margin: 0 auto; background-color: #e0e0e0; border-radius: 50%; border: 2px solid #999;">
+            <!-- Compass circle -->
+            <div style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                <div style="font-size: 12px; color: #666;">
+                    <div>↑ N</div>
+                    <div>← E →</div>
+                    <div>↓ S</div>
+                </div>
+            </div>
+            
+            <!-- Robot heading arrow -->
+            <div id="slam-arrow" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; transform: rotate(0deg); transition: transform 0.3s ease;">
+                <div style="font-size: 32px; color: #FF5722;">🤖</div>
+            </div>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">Robot Heading</div>
+    </div>
+    
+    <!-- Update Rate -->
+    <div style="margin-top: 15px; padding: 10px; background-color: #e3f2fd; border-radius: 4px; font-size: 12px;">
+        <div>Update frequency: <span id="slam-frequency">0</span> Hz</div>
+        <div>Last update: <span id="slam-last-update">never</span></div>
+    </div>
+</div>
+
+<script>
+// SLAM Position Monitor - Real-time position updates
+class SLAMPositionMonitor {
+    constructor() {
+        this.updateInterval = null;
+        this.lastUpdateTime = 0;
+        this.updateCount = 0;
+        this.updateFrequency = 0;
+        this.lastHeading = 0;
+    }
+    
+    async fetchPosition() {
+        try {
+            const response = await fetch('/api/slam/current_position');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.updateDisplay(data);
+            } else {
+                this.showError(data.error || 'Failed to get position');
+            }
+        } catch (error) {
+            this.showError('Connection error: ' + error.message);
+        }
+    }
+    
+    updateDisplay(data) {
+        const pos = data.position;
+        
+        // Update position values
+        document.getElementById('slam-x').textContent = pos.x.toFixed(3);
+        document.getElementById('slam-y').textContent = pos.y.toFixed(3);
+        document.getElementById('slam-z').textContent = pos.z.toFixed(3);
+        document.getElementById('slam-heading').textContent = pos.heading.toFixed(1) + '°';
+        
+        // Update heading visual
+        this.updateHeadingIndicator(pos.heading);
+        
+        // Update status
+        if (data.has_relocation) {
+            document.getElementById('slam-status').innerHTML = '🟢 Relocation active';
+            document.getElementById('slam-status').style.color = '#155724';
+            document.getElementById('slam-status').parentElement.style.backgroundColor = '#d4edda';
+        } else {
+            document.getElementById('slam-status').innerHTML = '🔴 No relocation data';
+            document.getElementById('slam-status').style.color = '#721c24';
+            document.getElementById('slam-status').parentElement.style.backgroundColor = '#f8d7da';
+        }
+        
+        // Update statistics
+        document.getElementById('slam-updates').textContent = data.updates_received;
+        
+        // Update frequency calculation
+        const now = Date.now();
+        if (this.lastUpdateTime > 0) {
+            const timeDiff = (now - this.lastUpdateTime) / 1000;
+            this.updateFrequency = (1 / timeDiff).toFixed(1);
+        }
+        this.lastUpdateTime = now;
+        document.getElementById('slam-frequency').textContent = this.updateFrequency;
+        
+        // Last update time
+        const lastUpdate = new Date(data.timestamp * 1000);
+        document.getElementById('slam-last-update').textContent = lastUpdate.toLocaleTimeString();
+    }
+    
+    updateHeadingIndicator(heading) {
+        // Apply angle correction: Convert from math convention (0°=East) to navigation convention (0°=North)
+        // Math convention: 0°=+X, 90°=+Y
+        // Navigation: 0°=+Y (North), 90°=+X (East)
+        // Correction: subtract 90° to align with navigation convention
+        const correctedHeading = heading - 90;
+        
+        // Smooth animation of robot arrow
+        const arrow = document.getElementById('slam-arrow');
+        arrow.style.transform = `rotate(${correctedHeading}deg)`;
+    }
+    
+    showError(message) {
+        document.getElementById('slam-status').innerHTML = '❌ ' + message;
+        document.getElementById('slam-status').style.color = '#721c24';
+        document.getElementById('slam-status').parentElement.style.backgroundColor = '#f8d7da';
+    }
+    
+    start() {
+        // Initial fetch
+        this.fetchPosition();
+        
+        // Poll every 500ms (2 Hz polling for 20 Hz position updates)
+        this.updateInterval = setInterval(() => {
+            this.fetchPosition();
+        }, 500);
+    }
+    
+    stop() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
+    }
+}
+
+// Initialize monitor when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    const monitor = new SLAMPositionMonitor();
+    monitor.start();
+    
+    // Stop polling when page unloads
+    window.addEventListener('beforeunload', () => {
+        monitor.stop();
+    });
+});
+</script>
+
+<style>
+/* Additional responsive styles */
+@media (max-width: 768px) {
+    #slam-position-monitor {
+        padding: 15px;
+    }
+    
+    #slam-position-monitor > div[style*="grid"] {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+}
+</style>

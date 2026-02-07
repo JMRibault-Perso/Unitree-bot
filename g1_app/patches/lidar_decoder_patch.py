@@ -14,14 +14,11 @@ import logging
 import struct
 import json
 import os
-from pathlib import Path
+
+from g1_app.utils.pathing import get_webrtc_paths
 
 # Add WebRTC library paths (Linux and Windows)
-project_root = str(Path(__file__).parent.parent.parent)
-webrtc_paths = [
-    '/root/G1/go2_webrtc_connect',  # Linux
-    str(Path(project_root) / 'libs' / 'go2_webrtc_connect'),  # Windows
-]
+webrtc_paths = get_webrtc_paths()
 for path in webrtc_paths:
     if os.path.exists(path) and path not in sys.path:
         sys.path.insert(0, path)

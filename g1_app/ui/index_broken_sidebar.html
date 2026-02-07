@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G1 Robot Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f1419;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            background: linear-gradient(180deg, #1a1f2e 0%, #16192a 100%);
+            border-right: 1px solid #2d3748;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #2d3748;
+            text-align: center;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.2em;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .robot-status-mini {
+            font-size: 12px;
+            color: #a0aec0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f56565;
+        }
+
+        .status-dot.online {
+            background: #48bb78;
+            box-shadow: 0 0 6px #48bb78;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-section {
+            margin-bottom: 20px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #718096;
+            text-transform: uppercase;
+            padding: 8px 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-btn {
+            padding: 12px 16px;
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 6px;
+            color: #cbd5e0;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn:hover {
+            background: #4a5568;
+            border-color: #667eea;
+            color: #e0e0e0;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-btn-icon {
+            font-size: 16px;
+            min-width: 20px;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            display: grid;
+            grid-template-rows: 80px 1fr;
+            background: #0f1419;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            background: linear-gradient(90deg, #1a1f2e 0%, #16192a 100%);
+            border-bottom: 1px solid #2d3748;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .robot-title {
+            font-size: 1.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .quick-status {
+            display: flex;
+            gap: 30px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .status-label {
+            color: #a0aec0;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .status-value {
+            color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        .battery-bar {
+            display: inline-block;
+            width: 50px;
+            height: 20px;
+            border: 1px solid #48bb78;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .battery-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+            width: 80%;
+            transition: width 0.3s;
+        }
+
+        .battery-fill.critical {
+            background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%);
+        }
+
+        .battery-fill.warning {
+            background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .connection-btn {
+            padding: 10px 20px;
+            background: #48bb78;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .connection-btn:hover {
+            background: #38a169;
+            box-shadow: 0 0 10px rgba(72, 187, 120, 0.3);
+        }
+
+        .connection-btn.connecting {
+            background: #ed8936;
+        }
+
+        .connection-btn.disconnect {
+            background: #f56565;
+        }
+
+        .connection-btn.disconnect:hover {
+            background: #e53e3e;
+        }
+
+        /* ===== CONTENT AREA ===== */
+        .content {
+            overflow-y: auto;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        .content-panel {
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .panel-title {
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #2d3748;
+            padding-bottom: 12px;
+        }
+
+        .panel-hidden {
+            display: none !important;
+        }
+
+        /* ===== MOVEMENT CONTROLS (Always visible on right) ===== */
+        .movement-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .video-stream {
+            background: #16192a;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .video-stream video {
+            width: 100%;
+            height: auto;
+            background: #000;
+            border-radius: 6px;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #0f1419;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .fsm-states {
+            background: #16192a;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .fsm-states-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #a0aec0;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .state-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .state-btn {
+            padding: 10px;
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 6px;
+            color: #cbd5e0;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .state-btn:hover:not(:disabled) {
+            background: #4a5568;
+            border-color: #667eea;
+        }
+
+        .state-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .state-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ===== WASD/QE CONTROLS ===== */
+        .keyboard-controls {
+            background: #16192a;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .controls-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #a0aec0;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .control-btn {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2d3748;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .control-btn:hover {
+            background: #4a5568;
+            border-color: #667eea;
+        }
+
+        .control-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.6);
+        }
+
+        .rotation-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .rotation-btn {
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2d3748;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .rotation-btn:hover {
+            background: #4a5568;
+            border-color: #667eea;
+        }
+
+        .rotation-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.6);
+        }
+
+        .stop-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #f56565 0%, #c53030 100%);
+            border: 1px solid #c53030;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .stop-btn:hover {
+            box-shadow: 0 0 12px rgba(245, 101, 101, 0.4);
+        }
+
+        /* ===== GESTURE BUTTONS ===== */
+        .gesture-btn {
+            padding: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid #2d3748;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .gesture-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .gesture-btn:active {
+            transform: scale(0.95);
+        }
+
+        .gesture-btn:disabled {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* ===== MODAL ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e0;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .form-group input[readonly] {
+            background: #1a1f2e;
+            cursor: not-allowed;
+            color: #718096;
+            border-color: #4a5568;
+        }
+
+        .form-group input[readonly]:focus {
+            border-color: #4a5568;
+            box-shadow: none;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 6px;
+            color: #cbd5e0;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+            border-color: #667eea;
+        }
+
+        /* ===== MESSAGES ===== */
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            border-left: 4px solid;
+        }
+
+        .message.success {
+            background: rgba(72, 187, 120, 0.1);
+            color: #48bb78;
+            border-color: #48bb78;
+        }
+
+        .message.error {
+            background: rgba(245, 101, 101, 0.1);
+            color: #f56565;
+            border-color: #f56565;
+        }
+
+        .message.info {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border-color: #667eea;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #16192a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #667eea;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>G1 Controller</h2>
+                <div class="robot-status-mini">
+                    <span class="status-dot"></span>
+                    <span id="sidebarStatus">Disconnected</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <!-- Movement Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Movement</div>
+                    <button class="nav-btn active" onclick="switchView('movement')">
+                        <span class="nav-btn-icon">🚶</span>
+                        <span>Movement Control</span>
+                    </button>
+                </div>
+
+                <!-- SLAM Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">SLAM & Navigation</div>
+                    <button class="nav-btn" onclick="switchView('slam-teach')">
+                        <span class="nav-btn-icon">🗺️</span>
+                        <span>Teach Map</span>
+                    </button>
+                    <button class="nav-btn" onclick="switchView('slam-navigate')">
+                        <span class="nav-btn-icon">🧭</span>
+                        <span>Navigate</span>
+                    </button>
+                </div>
+
+                <!-- Actions Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Actions</div>
+                    <button class="nav-btn" onclick="switchView('teach-action')">
+                        <span class="nav-btn-icon">🎓</span>
+                        <span>Teach Action</span>
+                    </button>
+                    <button class="nav-btn" onclick="switchView('gestures')">
+                        <span class="nav-btn-icon">👋</span>
+                        <span>Gestures</span>
+                    </button>
+                </div>
+
+                <!-- Settings Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Settings</div>
+                    <button class="nav-btn" onclick="switchView('status')">
+                        <span class="nav-btn-icon">📊</span>
+                        <span>Robot Status</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- TOP BAR -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <div class="robot-title" id="topRobotName">G1 Robot</div>
+                    <div class="quick-status">
+                        <div class="status-item">
+                            <div class="status-label">FSM State</div>
+                            <div class="status-value" id="topFsmState">-</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Battery</div>
+                            <div class="status-value">
+                                <div class="battery-bar">
+                                    <div id="topBatteryFill" class="battery-fill" style="width: 80%;"></div>
+                                </div>
+                                <span id="topBatteryText">80%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="connection-btn" id="topConnectBtn" onclick="toggleConnection()">
+                    Connect
+                </button>
+            </div>
+
+            <!-- CONTENT AREA -->
+            <div class="content">
+                <!-- LEFT PANEL: Views -->
+                <div>
+                    <!-- Movement View -->
+                    <div id="view-movement" class="content-panel">
+                        <h3 class="panel-title">🚶 Movement Control</h3>
+                        <p style="color: #a0aec0; margin-bottom: 20px;">Use WASD to move, QE to rotate, Space to stop</p>
+                        <div id="velocityStateWarning" style="padding: 15px; margin-bottom: 15px; background: #fed7d7; color: #742a2a; border-radius: 8px; border-left: 4px solid #f56565; display: none;">
+                            ⚠️ <strong>Movement disabled:</strong> Robot must be in WALK (500), or RUN (801) mode.
+                        </div>
+                        
+                        <!-- Keyboard Controls Visualization -->
+                        <div style="margin-bottom: 30px;">
+                            <div class="controls-title" style="margin-bottom: 15px;">Keyboard Controls</div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 400px; margin: 0 auto;">
+                                <div></div>
+                                <button class="control-btn" id="move-btn-w" data-key="w" title="W - Forward">⬆️ W</button>
+                                <div></div>
+                                <button class="control-btn" id="move-btn-a" data-key="a" title="A - Strafe Left">⬅️ A</button>
+                                <button class="control-btn stop-btn" style="padding: 15px; font-size: 18px; font-weight: bold;" title="Space - Stop">STOP</button>
+                                <button class="control-btn" id="move-btn-d" data-key="d" title="D - Strafe Right">➡️ D</button>
+                                <div></div>
+                                <button class="control-btn" id="move-btn-s" data-key="s" title="S - Backward">⬇️ S</button>
+                                <div></div>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 15px; max-width: 400px; margin: 15px auto 0;">
+                                <button class="rotation-btn" id="move-btn-q" data-key="q" title="Q - Rotate Left">⟲ Q - Rotate Left</button>
+                                <button class="rotation-btn" id="move-btn-e" data-key="e" title="E - Rotate Right">Rotate Right - E ⟳</button>
+                            </div>
+                        </div>
+
+                        <!-- Speed Control -->
+                        <div style="padding: 20px; background: #1a202c; border-radius: 8px; border: 1px solid #2d3748;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <label style="font-weight: bold; color: #a0aec0;">Speed Scale:</label>
+                                <span id="velocityScaleValue" style="font-size: 18px; font-weight: bold; color: #667eea;">1.0x</span>
+                            </div>
+                            <input type="range" id="velocityScale" min="0.1" max="3.0" step="0.1" value="1.0" 
+                                style="width: 100%; height: 8px; background: linear-gradient(to right, #48bb78, #667eea, #f56565); border-radius: 5px; outline: none;"
+                                oninput="updateVelocityScale(this.value)">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
+                                <span>0.1x (Slow)</span>
+                                <span>1.0x (Default)</span>
+                                <span>3.0x (Fast)</span>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 12px; color: #a0aec0;">
+                                Base speeds: Forward ±0.3 m/s, Strafe ±0.6 m/s, Turn ±0.5 rad/s
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SLAM Teach View -->
+                    <div id="view-slam-teach" class="content-panel panel-hidden">
+                        <h3 class="panel-title">🗺️ Teach Map (SLAM)</h3>
+                        <p style="color: #a0aec0; margin-bottom: 20px;">Record a new map of your environment</p>
+                        <div class="form-group">
+                            <label>Map Name</label>
+                            <input type="text" id="mapName" placeholder="e.g., living_room">
+                        </div>
+                        <div class="form-group">
+                            <label>SLAM Type</label>
+                            <select id="slamType">
+                                <option value="indoor">Indoor</option>
+                                <option value="outdoor">Outdoor</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" style="width: 100%; margin-top: 15px;" onclick="startMapping()">
+                            Start Mapping
+                        </button>
+                        <button class="btn-secondary" style="width: 100%; margin-top: 10px;" onclick="stopMapping()">
+                            Stop & Save Map
+                        </button>
+                    </div>
+
+                    <!-- SLAM Navigate View -->
+                    <div id="view-slam-navigate" class="content-panel panel-hidden">
+                        <h3 class="panel-title">🧭 Navigate</h3>
+                        <p style="color: #a0aec0; margin-bottom: 20px;">Navigate to waypoints in saved maps</p>
+                        <div class="form-group">
+                            <label>Select Map</label>
+                            <select id="mapSelect">
+                                <option value="">-- Loading maps --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Waypoint or Coordinates</label>
+                            <input type="text" id="waypoint" placeholder="e.g., kitchen or 2.5 1.3">
+                        </div>
+                        <button class="btn-primary" style="width: 100%; margin-top: 15px;" onclick="navigateTo()">
+                            Navigate
+                        </button>
+                    </div>
+
+                    <!-- Teach Action View -->
+                    <div id="view-teach-action" class="content-panel panel-hidden">
+                        <h3 class="panel-title">🎓 Teach Action</h3>
+                        <p style="color: #a0aec0; margin-bottom: 20px;">Record custom robot actions</p>
+                        <div class="form-group">
+                            <label>Action Name</label>
+                            <input type="text" id="actionName" placeholder="e.g., wave_hello">
+                        </div>
+                        <button class="btn-primary" style="width: 100%; margin-top: 15px;" onclick="startTeaching()">
+                            🔴 Start Recording
+                        </button>
+                        <button class="btn-secondary" style="width: 100%; margin-top: 10px;" onclick="stopTeaching()">
+                            ⏹️ Stop Recording
+                        </button>
+                    </div>
+
+                    <!-- Gestures View -->
+                    <div id="view-gestures" class="content-panel panel-hidden">
+                        <h3 class="panel-title">👋 Gestures & Animations</h3>
+                        <p style="color: #a0aec0; margin-bottom: 15px;">Pre-programmed arm gestures (WALK/RUN modes only)</p>
+                        
+                        <div id="gesturesAvailableWarning" style="display: none; padding: 15px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; margin-bottom: 15px; color: #92400e;">
+                            ⚠️ <strong>Gestures disabled:</strong> Robot must be in WALK (500) or RUN (801) mode.
+                            <br><small>Note: In RUN mode (801), gestures require FSM sub-mode 0 or 3.</small>
+                        </div>
+
+                        <!-- Basic Gestures -->
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="color: #a0aec0; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #2d3748; padding-bottom: 5px;">Basic Gestures</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <button class="gesture-btn" onclick="executeGesture('FACE_WAVE')" title="Wave hand at face level">👋 Face Wave</button>
+                                <button class="gesture-btn" onclick="executeGesture('HIGH_WAVE')" title="Wave hand high">🙋 High Wave</button>
+                                <button class="gesture-btn" onclick="executeGesture('SHAKE_HAND')" title="Shake hand">🤝 Shake Hand</button>
+                                <button class="gesture-btn" onclick="executeGesture('HIGH_FIVE')" title="High five">🖐️ High Five</button>
+                            </div>
+                        </div>
+
+                        <!-- Complex Gestures -->
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="color: #a0aec0; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #2d3748; padding-bottom: 5px;">Complex Gestures</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <button class="gesture-btn" onclick="executeGesture('TWO_HAND_KISS')" title="Two hand kiss">😘 Two Hand Kiss</button>
+                                <button class="gesture-btn" onclick="executeGesture('HANDS_UP')" title="Hands up">🙌 Hands Up</button>
+                                <button class="gesture-btn" onclick="executeGesture('CLAP')" title="Clap hands">👏 Clap</button>
+                                <button class="gesture-btn" onclick="executeGesture('HUG')" title="Hug gesture">🤗 Hug</button>
+                                <button class="gesture-btn" onclick="executeGesture('HEART')" title="Heart with both hands">❤️ Heart</button>
+                                <button class="gesture-btn" onclick="executeGesture('RIGHT_HEART')" title="Heart with right hand">💜 Right Heart</button>
+                                <button class="gesture-btn" onclick="executeGesture('REJECT')" title="Reject gesture">🙅 Reject</button>
+                                <button class="gesture-btn" onclick="executeGesture('RIGHT_HAND_UP')" title="Right hand up">✋ Right Hand Up</button>
+                                <button class="gesture-btn" onclick="executeGesture('X_RAY')" title="X-Ray gesture">🔬 X-Ray</button>
+                            </div>
+                        </div>
+
+                        <!-- Utility Actions -->
+                        <div>
+                            <h4 style="color: #a0aec0; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #2d3748; padding-bottom: 5px;">Utility</h4>
+                            <button class="gesture-btn" onclick="executeGesture('RELEASE_ARM')" style="width: 100%; background: #e53e3e;" title="Release arms to natural position">🔓 Release Arms</button>
+                        </div>
+                    </div>
+
+                    <!-- Status View -->
+                    <div id="view-status" class="content-panel panel-hidden">
+                        <h3 class="panel-title">📊 Robot Status</h3>
+                        <div id="statusDetail"></div>
+                    </div>
+                </div>
+
+                <!-- RIGHT PANEL: Always-visible Controls -->
+                <div class="movement-panel">
+                    <!-- Video Stream -->
+                    <div class="video-stream">
+                        <div class="controls-title">Video Stream</div>
+                        <div class="video-placeholder" id="videoContainer">
+                            No video stream
+                        </div>
+                    </div>
+
+                    <!-- FSM States -->
+                    <div class="fsm-states">
+                        <div class="fsm-states-title">FSM States</div>
+                        <div class="state-grid">
+                            <button class="state-btn" id="btn-state-0" data-state="ZERO_TORQUE" data-id="0" onclick="setFsmState('ZERO_TORQUE', 0)">Zero Torque</button>
+                            <button class="state-btn" id="btn-state-1" data-state="DAMP" data-id="1" onclick="setFsmState('DAMP', 1)">Damp</button>
+                            <button class="state-btn" id="btn-state-2" data-state="SQUAT" data-id="2" onclick="setFsmState('SQUAT', 2)">Squat</button>
+                            <button class="state-btn" id="btn-state-3" data-state="SIT" data-id="3" onclick="setFsmState('SIT', 3)">Sit</button>
+                            <button class="state-btn" id="btn-state-4" data-state="LOCK_STANDING" data-id="4" onclick="setFsmState('LOCK_STANDING', 4)">Lock Standing</button>
+                            <button class="state-btn" id="btn-state-200" data-state="START" data-id="200" onclick="setFsmState('START', 200)">Start</button>
+                            <button class="state-btn" id="btn-state-500" data-state="LOCK_STAND" data-id="500" onclick="setFsmState('LOCK_STAND', 500)">Walk Mode</button>
+                            <button class="state-btn" id="btn-state-702" data-state="STAND_UP" data-id="702" onclick="setFsmState('STAND_UP', 702)">Stand Up</button>
+                            <button class="state-btn" id="btn-state-706" data-state="SQUAT_TO_STAND" data-id="706" onclick="setFsmState('SQUAT_TO_STAND', 706)">Squat↔Stand</button>
+                            <button class="state-btn" id="btn-state-801" data-state="RUN" data-id="801" onclick="setFsmState('RUN', 801)">Run Mode</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="connectModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Connect to Robot</h3>
+            <div class="form-group">
+                <label>Robot IP Address</label>
+                <input type="text" id="robotIp" placeholder="192.168.86.2" value="192.168.86.2" readonly>
+            </div>
+            <div class="form-group">
+                <label>Serial Number</label>
+                <input type="text" id="robotSerial" placeholder="E21D1000PAHBMB06">
+            </div>
+            <div id="connectMessage" class="message" style="display: none;"></div>
+            <div class="modal-buttons">
+                <button class="btn-primary" onclick="connectRobot()">Connect</button>
+                <button class="btn-secondary" onclick="closeModal('connectModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let connectedRobot = null;
+        let wsConnection = null;
+        let keysPressed = {};
+
+        // ===== MODAL FUNCTIONS =====
+        function showModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function showMessage(id, message, type) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = message;
+                el.className = 'message ' + type;
+                el.style.display = 'block';
+            }
+        }
+
+        // ===== VIEW SWITCHING =====
+        function showView(viewName) {
+            // Hide all content panels
+            document.querySelectorAll('.content-panel').forEach(panel => {
+                panel.classList.add('panel-hidden');
+            });
+
+            // Show selected view
+            const targetView = document.getElementById('view-' + viewName);
+            if (targetView) {
+                targetView.classList.remove('panel-hidden');
+            }
+
+            // Update sidebar button states
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+        }
+
+        // Alias for compatibility with onclick handlers
+        function switchView(viewName) {
+            showView(viewName);
+        }
+
+        // ===== CONNECTION =====
+        async function connectRobot() {
+            const ip = document.getElementById('robotIp').value;
+            const serial = document.getElementById('robotSerial').value;
+
+            if (!ip) {
+                showMessage('connectMessage', 'Please enter robot IP', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/connect?ip=${ip}&serial_number=${serial}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    connectedRobot = { ip, serial };
+                    updateConnectionUI(true);
+                    closeModal('connectModal');
+                    connectWebSocket();
+                    // Request initial state after connection
+                    setTimeout(() => requestCurrentState(), 500);
+                } else {
+                    showMessage('connectMessage', data.error || 'Connection failed', 'error');
+                }
+            } catch (err) {
+                showMessage('connectMessage', 'Connection error: ' + err.message, 'error');
+            }
+        }
+
+        function toggleConnection() {
+            if (connectedRobot) {
+                disconnectRobot();
+            } else {
+                showModal('connectModal');
+            }
+        }
+
+        async function disconnectRobot() {
+            try {
+                await fetch(`${API_URL}/disconnect`, { method: 'POST' });
+                connectedRobot = null;
+                updateConnectionUI(false);
+                if (wsConnection) wsConnection.close();
+            } catch (err) {
+                console.error('Disconnect error:', err);
+            }
+        }
+
+        function updateConnectionUI(connected) {
+            const btn = document.getElementById('topConnectBtn');
+            const statusDot = document.querySelector('.status-dot');
+            const sidebarStatus = document.getElementById('sidebarStatus');
+
+            if (connected) {
+                btn.textContent = 'Disconnect';
+                btn.classList.add('disconnect');
+                statusDot.classList.add('online');
+                sidebarStatus.textContent = 'Connected';
+            } else {
+                btn.textContent = 'Connect';
+                btn.classList.remove('disconnect');
+                statusDot.classList.remove('online');
+                sidebarStatus.textContent = 'Disconnected';
+            }
+        }
+
+        // Request current state from backend
+        async function requestCurrentState() {
+            try {
+                const response = await fetch(`${API_URL}/state`);
+                const data = await response.json();
+                if (data.success && data.state) {
+                    const state = data.state;
+                    updateStatus(state.fsm_state, state.fsm_state_value, state.allowed_transitions, null);
+                }
+            } catch (err) {
+                console.error('Failed to fetch current state:', err);
+            }
+        }
+
+        // ===== WEBSOCKET =====
+        function connectWebSocket() {
+            wsConnection = new WebSocket('ws://localhost:3000/ws');
+            
+            wsConnection.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                // Handle wrapped message format from backend
+                if (message.type === 'state_changed' && message.data) {
+                    updateStatus(message.data);
+                } else if (message.type === 'battery_update' && message.data) {
+                    updateStatus(message.data);
+                } else {
+                    // Fallback for direct data format
+                    updateStatus(message);
+                }
+            };
+
+            wsConnection.onerror = (err) => {
+                console.error('WebSocket error:', err);
+            };
+        }
+
+        function updateStatus(data) {
+            // Update top bar FSM state
+            if (data.fsm_state) {
+                document.getElementById('topFsmState').textContent = data.fsm_state;
+                console.log('FSM State updated to:', data.fsm_state);
+                updateFsmButtons(data.fsm_state_value, data.allowed_transitions);
+            }
+            
+            // Update battery
+            if (data.battery) {
+                document.getElementById('topBatteryText').textContent = data.battery + '%';
+                const fill = document.getElementById('topBatteryFill');
+                fill.style.width = data.battery + '%';
+                fill.classList.remove('critical', 'warning');
+                if (data.battery < 20) fill.classList.add('critical');
+                else if (data.battery < 50) fill.classList.add('warning');
+            }
+        }
+
+        function updateFsmButtons(currentStateId, allowedTransitions) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.state-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.disabled = true;
+            });
+
+            // Mark current state as active
+            const currentBtn = document.getElementById('btn-state-' + currentStateId);
+            if (currentBtn) {
+                currentBtn.classList.add('active');
+            }
+
+            // Enable allowed transitions
+            if (allowedTransitions && allowedTransitions.length > 0) {
+                allowedTransitions.forEach(stateName => {
+                    const btn = document.querySelector(`[data-state="${stateName}"]`);
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                });
+            }
+
+            // DAMP (1) and ZERO_TORQUE (0) are always allowed (emergency states)
+            const dampBtn = document.getElementById('btn-state-1');
+            const zeroBtn = document.getElementById('btn-state-0');
+            if (dampBtn) dampBtn.disabled = false;
+            if (zeroBtn) zeroBtn.disabled = false;
+        }
+
+        // ===== FSM STATES =====
+        async function setFsmState(name, stateId) {
+            if (!connectedRobot) return;
+            try {
+                await fetch(`${API_URL}/set_state?state_name=${name}`, { method: 'POST' });
+            } catch (err) {
+                console.error('FSM change error:', err);
+            }
+        }
+
+        // ===== MOVEMENT CONTROLS =====
+        function initKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                if (!connectedRobot) return;
+                const key = e.key.toLowerCase();
+                if (['w', 'a', 's', 'd', 'q', 'e', ' '].includes(key)) {
+                    e.preventDefault();
+                    keysPressed[key] = true;
+                    updateButtonState(key, true);
+                    sendMovement();
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (['w', 'a', 's', 'd', 'q', 'e', ' '].includes(key)) {
+                    e.preventDefault();
+                    keysPressed[key] = false;
+                    updateButtonState(key, false);
+                    if (key === ' ') stopMovement();
+                    else sendMovement();
+                }
+            });
+        }
+
+        function updateButtonState(key, pressed) {
+            const keyMap = {
+                'w': ['btn-w', 'move-btn-w'], 
+                'a': ['btn-a', 'move-btn-a'], 
+                's': ['btn-s', 'move-btn-s'], 
+                'd': ['btn-d', 'move-btn-d'], 
+                'q': ['btn-q', 'move-btn-q'], 
+                'e': ['btn-e', 'move-btn-e'], 
+                ' ': ['btn-space']
+            };
+            
+            const ids = keyMap[key];
+            if (ids) {
+                ids.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        if (pressed) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    }
+                });
+            }
+        }
+                btn.classList.toggle('active', pressed);
+            }
+        }
+
+        async function sendMovement() {
+            if (!connectedRobot) return;
+            
+            let vx = 0, vy = 0, omega = 0;
+            // Base velocities
+            const baseVx = 0.3;  // Forward/backward
+            const baseVy = 0.6;  // Strafe left/right
+            const baseOmega = 0.5;  // Rotation
+            
+            if (keysPressed['w']) vx += baseVx * velocityScale;
+            if (keysPressed['s']) vx -= baseVx * velocityScale;
+            if (keysPressed['a']) vy += baseVy * velocityScale;
+            if (keysPressed['d']) vy -= baseVy * velocityScale;
+            if (keysPressed['q']) omega += baseOmega * velocityScale;
+            if (keysPressed['e']) omega -= baseOmega * velocityScale;
+
+            try {
+                await fetch(`${API_URL}/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vx, vy, omega })
+                });
+            } catch (err) {
+                console.error('Movement error:', err);
+            }
+        }
+
+        async function stopMovement() {
+            if (!connectedRobot) return;
+            try {
+                await fetch(`${API_URL}/stop`, { method: 'POST' });
+                keysPressed = {};
+                document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+            } catch (err) {
+                console.error('Stop error:', err);
+            }
+        }
+
+        // ===== SLAM FUNCTIONS =====
+        async function startMapping() {
+            const mapName = document.getElementById('mapName').value;
+            if (!mapName) {
+                alert('Please enter a map name');
+                return;
+            }
+            // Implementation
+        }
+
+        async function stopMapping() {
+            // Implementation
+        }
+
+        async function navigateTo() {
+            // Implementation
+        }
+
+        // ===== ACTION TEACHING =====
+        async function startTeaching() {
+            const actionName = document.getElementById('actionName').value;
+            if (!actionName) {
+                alert('Please enter an action name');
+                return;
+            }
+            // Implementation
+        }
+
+        async function stopTeaching() {
+            // Implementation
+        }
+
+        // ===== GESTURES =====
+        let velocityScale = 1.0;
+
+        async function executeGesture(gestureName) {
+            if (!connectedRobot) {
+                alert('Please connect to robot first');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_URL}/gesture?gesture_name=${gestureName}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    alert('Gesture failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Gesture error:', err);
+                alert('Gesture failed: ' + err.message);
+            }
+        }
+
+        function updateVelocityScale(value) {
+            velocityScale = parseFloat(value);
+            document.getElementById('velocityScaleValue').textContent = velocityScale.toFixed(1) + 'x';
+        }
+
+        // ===== UTILITIES =====
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `message ${type}`;
+            el.style.display = 'block';
+        }
+
+        // ===== INIT =====
+        document.addEventListener('DOMContentLoaded', () => {
+            initKeyboardControls();
+            showView('movement'); // Show movement view by default
+            document.querySelectorAll('a').forEach(a => a.addEventListener('click', (e) => {
+                if (document.querySelector('.modal.active')) e.preventDefault();
+            }));
+        });
+
+        // Close modal on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

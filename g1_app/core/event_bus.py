@@ -87,6 +87,7 @@ class Events:
     LIDAR_CLOUD = "lidar_cloud"
     LIDAR_IMU = "lidar_imu"
     VIDEO_FRAME = "video_frame"
+    SLAM_POSITION_UPDATED = "slam_position_updated"
     
     # VUI
     ASR_TEXT = "asr_text"

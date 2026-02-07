@@ -67,6 +67,7 @@ async def main():
     # Connect to robot
     try:
         await controller.connect()
+        await controller.initialize_subscriptions(include_video=False)
     except Exception as e:
         logger.error(f"Failed to connect: {e}")
         return

@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G1 Robot Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f1419;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 350px;
+            grid-template-rows: 70px 1fr;
+            height: 100vh;
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            grid-column: 1 / -1;
+            background: #1a202c;
+            border-bottom: 2px solid #2d3748;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+        }
+
+        .robot-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .robot-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .status-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #e0e0e0;
+            min-width: 80px;
+        }
+
+        .battery-bar {
+            width: 120px;
+            height: 20px;
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .battery-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            width: 80%;
+            transition: width 0.3s;
+        }
+
+        .battery-fill.warning {
+            background: linear-gradient(90deg, #f6ad55, #ed8936);
+        }
+
+        .battery-fill.critical {
+            background: linear-gradient(90deg, #f56565, #c53030);
+        }
+
+        .connection-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            border: 1px solid #38a169;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .connection-btn:hover {
+            box-shadow: 0 0 12px rgba(72, 187, 120, 0.5);
+        }
+
+        .connection-btn.disconnect {
+            background: linear-gradient(135deg, #f56565, #c53030);
+            border-color: #c53030;
+        }
+
+        .connection-btn.disconnect:hover {
+            box-shadow: 0 0 12px rgba(245, 101, 101, 0.5);
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            grid-row: 2;
+            background: #1a202c;
+            border-right: 2px solid #2d3748;
+            padding: 20px 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 0 15px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2d3748;
+            padding-bottom: 15px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 16px;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .robot-status-mini {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e53e3e;
+            transition: background 0.3s;
+        }
+
+        .status-dot.online {
+            background: #48bb78;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-section {
+            margin-bottom: 0;
+        }
+
+        .nav-section-title {
+            padding: 12px 15px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: #0f1419;
+        }
+
+        .nav-btn {
+            width: 100%;
+            padding: 12px 15px;
+            background: transparent;
+            border: none;
+            border-left: 3px solid transparent;
+            color: #a0aec0;
+            font-size: 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover {
+            background: #2d3748;
+            color: #e0e0e0;
+        }
+
+        .nav-btn.active {
+            background: #2d3748;
+            border-left-color: #667eea;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .nav-btn-icon {
+            font-size: 18px;
+            min-width: 20px;
+        }
+
+        /* ===== MAIN CONTENT AREA ===== */
+        .main-content {
+            grid-row: 2;
+            grid-column: 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 250px 1fr;
+            gap: 15px;
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        /* Video takes top-left (smaller now) */
+        .video-container {
+            grid-column: 1;
+            grid-row: 1;
+            background: #1a202c;
+            border: 2px solid #2d3748;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 100%;
+            background: #0f1419;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #718096;
+            gap: 10px;
+        }
+
+        .video-placeholder-icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+
+        /* FSM Controls on right sidebar (always visible) */
+        .fsm-panel {
+            grid-column: 3;
+            grid-row: 2;
+            background: #1a202c;
+            border-left: 2px solid #2d3748;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .fsm-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #a0aec0;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .current-state {
+            background: #2d3748;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            text-align: center;
+            border: 2px solid #667eea;
+        }
+
+        .current-state-label {
+            font-size: 11px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .current-state-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .state-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .state-btn {
+            padding: 12px;
+            background: #2d3748;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            color: #a0aec0;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .state-btn:hover:not(:disabled) {
+            background: #4a5568;
+            border-color: #667eea;
+            color: #e0e0e0;
+        }
+
+        .state-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .state-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .state-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .velocity-btn {
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 1px solid #667eea;
+            border-radius: 6px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .velocity-btn:hover {
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.5);
+            transform: scale(1.05);
+        }
+
+        .velocity-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Content area (below video + map) */
+        .content-area {
+            grid-column: 2;
+            grid-row: 2;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            overflow: hidden;
+        }
+
+        .content-views {
+            background: #1a202c;
+            border: 2px solid #2d3748;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .content-panel {
+            display: none;
+        }
+
+        .content-panel.active {
+            display: block;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .panel-subtitle {
+            color: #a0aec0;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        /* Gesture grid */
+        .gesture-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .gesture-btn {
+            padding: 12px;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            border: 2px solid #2d3748;
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .gesture-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .gesture-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .gesture-btn:disabled {
+            background: linear-gradient(135deg, #4a5568, #2d3748);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .gesture-emoji {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .gesture-name {
+            font-size: 11px;
+        }
+
+        /* 3D Map/Point Cloud Container (top-right) */
+        .map-container {
+            grid-column: 2;
+            grid-row: 1;
+            background: #1a202c;
+            border: 2px solid #2d3748;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            background: #0f1419;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #718096;
+            gap: 10px;
+        }
+
+        /* Right sidebar (info panel) - removed from grid positioning */
+        .info-panel {
+            display: none;
+        }
+
+        .info-section {
+            background: #0f1419;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #2d3748;
+        }
+
+        .info-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #a0aec0;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+
+        /* ===== MODAL ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a202c;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #a0aec0;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #0f1419;
+            border: 2px solid #2d3748;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input[readonly] {
+            background: #0f1419;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: #0f1419;
+            border: 2px solid #2d3748;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary:disabled:hover {
+            box-shadow: none;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-primary {
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: 1px solid #667eea;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            padding: 12px;
+            background: #2d3748;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            color: #a0aec0;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            border-color: #667eea;
+            color: #e0e0e0;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        /* ===== SCROLLBARS ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f1419;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #667eea;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .video-container {
+                grid-column: 1;
+                height: 250px;
+            }
+            
+            .fsm-panel {
+                grid-column: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- TOP BAR -->
+        <div class="top-bar">
+            <div class="robot-info">
+                <div class="robot-title" id="topRobotName">G1 Robot</div>
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="status-label">Status</div>
+                        <div class="robot-status-mini">
+                            <span class="status-dot"></span>
+                            <span id="topRobotStatus">Disconnected</span>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">FSM State</div>
+                        <div class="status-value" id="topFsmState">-</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Battery</div>
+                        <div class="battery-bar">
+                            <div id="topBatteryFill" class="battery-fill" style="width: 80%;"></div>
+                        </div>
+                        <div style="font-size: 11px; color: #a0aec0; margin-top: 4px; display: grid; grid-template-columns: 1fr 1fr;">
+                            <span id="topBatteryPercent">80%</span>
+                            <span id="topBatteryVoltage" style="text-align: right;">--V</span>
+                            <span id="topBatteryTemp" style="grid-column: 1/-1; text-align: center;">--°C</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="connection-btn" id="topConnectBtn" onclick="toggleConnection()">Connect</button>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Navigation</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Views</div>
+                    <button class="nav-btn active" onclick="switchView('gestures', this)">
+                        <span class="nav-btn-icon">👋</span>
+                        <span>Gestures</span>
+                    </button>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">SLAM</div>
+                    <button class="nav-btn" onclick="switchView('map', this)">
+                        <span class="nav-btn-icon">🗺️</span>
+                        <span>Teach Map</span>
+                    </button>
+                    <button class="nav-btn" onclick="switchView('navigate', this)">
+                        <span class="nav-btn-icon">🧭</span>
+                        <span>Navigate</span>
+                    </button>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Advanced</div>
+                    <button class="nav-btn" onclick="switchView('teach', this)">
+                        <span class="nav-btn-icon">🎓</span>
+                        <span>Teach Action</span>
+                    </button>
+                    <button class="nav-btn" onclick="switchView('status', this)">
+                        <span class="nav-btn-icon">📊</span>
+                        <span>Status</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- Video (top-left) -->
+            <div class="video-container">
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <div class="video-placeholder-icon">📹</div>
+                    <div>Waiting for video stream...</div>
+                </div>
+                <img id="videoStream" style="width: 100%; height: 100%; object-fit: contain; display: none;" alt="Robot camera feed">
+            </div>
+
+            <!-- 3D Map / Point Cloud (top-right) -->
+            <div class="map-container">
+                <div class="map-placeholder" id="mapPlaceholder">
+                    <div style="font-size: 48px; opacity: 0.5;">🗺️</div>
+                    <div>Point Cloud / Odometry</div>
+                </div>
+                <canvas id="mapCanvas" style="width: 100%; height: 100%; display: none;"></canvas>
+            </div>
+
+            <!-- Content Area (bottom) -->
+            <div class="content-area">
+                <!-- Views -->
+                <div class="content-views">
+                    <!-- Gestures View (default) -->
+                    <div id="view-gestures" class="content-panel active">
+                        <h2 class="panel-title">👋 Gestures</h2>
+                        <p class="panel-subtitle">Available only in WALK (500) or RUN (801) modes</p>
+                        <div id="gesturesWarning" style="background: #fef3c7; color: #92400e; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 12px; display: none; border: 1px solid #f59e0b;">
+                            ⚠️ Gestures disabled in current state
+                        </div>
+                        <div class="gesture-grid" id="gesturesList"></div>
+                    </div>
+
+                    <!-- Map View -->
+                    <div id="view-map" class="content-panel">
+                        <h2 class="panel-title">🗺️ Teach Map (SLAM)</h2>
+                        <p class="panel-subtitle">Record a map of your environment</p>
+                        <div class="form-group">
+                            <label>Map Name</label>
+                            <input type="text" id="mapName" placeholder="e.g., living_room">
+                        </div>
+                        <button class="btn-primary" onclick="startMapping()" style="width: 100%;">Start Mapping</button>
+                        <button class="btn-secondary" onclick="stopMapping()" style="width: 100%; margin-top: 10px;">Stop & Save</button>
+                    </div>
+
+                    <!-- Navigate View -->
+                    <div id="view-navigate" class="content-panel">
+                        <h2 class="panel-title">🧭 Navigate</h2>
+                        <p class="panel-subtitle">Go to saved waypoints</p>
+                        <div class="form-group">
+                            <label>Select Map</label>
+                            <input type="text" id="mapSelect" placeholder="Select map">
+                        </div>
+                        <div class="form-group">
+                            <label>Waypoint</label>
+                            <input type="text" id="waypoint" placeholder="kitchen or 2.5 1.3">
+                        </div>
+                        <button class="btn-primary" onclick="navigateTo()" style="width: 100%;">Navigate</button>
+                    </div>
+
+                    <!-- Custom Actions View -->
+                    <div id="view-teach" class="content-panel">
+                        <h2 class="panel-title">🎬 Custom Actions</h2>
+                        <p class="panel-subtitle">Record, play, and manage custom robot actions</p>
+                        
+                        <!-- Add Custom Action -->
+                        <div style="background: #0f1419; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                            <div style="font-weight: bold; color: #a0aec0; font-size: 13px; margin-bottom: 8px;">Add New Action</div>
+                            <input type="text" id="newActionName" placeholder="action name" style="width: 100%; padding: 8px; border: 1px solid #2d3748; border-radius: 4px; background: #1a202c; color: white; margin-bottom: 8px;">
+                            <button onclick="addCustomAction()" class="btn-primary" style="width: 100%; padding: 10px; font-size: 12px;">➕ Add Action</button>
+                        </div>
+
+                        <!-- Status -->
+                        <div id="customActionsStatus" style="font-size: 12px; color: #718096; margin-bottom: 10px; text-align: center;">Loading actions...</div>
+
+                        <!-- Custom Actions List -->
+                        <div id="customActionsList" style="display: grid; gap: 8px; max-height: 300px; overflow-y: auto;">
+                            <div style="text-align: center; padding: 20px; color: #718096;">Loading...</div>
+                        </div>
+
+                        <!-- Stop Action Button -->
+                        <button onclick="stopCustomAction()" class="btn-danger" style="width: 100%; margin-top: 12px; padding: 10px; font-size: 12px;">⏹️ Stop Current Action</button>
+                    </div>
+
+                    <!-- Status View -->
+                    <div id="view-status" class="content-panel">
+                        <h2 class="panel-title">📊 Robot Status</h2>
+                        
+                        <!-- Battery Status -->
+                        <div style="background: #0f1419; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                            <div style="font-weight: bold; color: #a0aec0; margin-bottom: 8px;">🔋 Battery</div>
+                            <div class="battery-bar" style="margin-bottom: 8px;">
+                                <div id="statusBatteryFill" class="battery-fill" style="width: 80%;"></div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                                <div>
+                                    <div style="color: #718096;">SOC</div>
+                                    <div style="color: white; font-weight: bold;" id="statusBatterySOC">--</div>
+                                </div>
+                                <div>
+                                    <div style="color: #718096;">Voltage</div>
+                                    <div style="color: white; font-weight: bold;" id="statusBatteryVoltage">--V</div>
+                                </div>
+                                <div>
+                                    <div style="color: #718096;">Current</div>
+                                    <div style="color: white; font-weight: bold;" id="statusBatteryCurrent">--mA</div>
+                                </div>
+                                <div>
+                                    <div style="color: #718096;">Temperature</div>
+                                    <div style="color: white; font-weight: bold;" id="statusBatteryTemp">--°C</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Robot State Info -->
+                        <div style="background: #0f1419; padding: 12px; border-radius: 6px;">
+                            <div style="font-weight: bold; color: #a0aec0; margin-bottom: 8px;">🤖 Robot State</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                                <div>
+                                    <div style="color: #718096;">FSM State</div>
+                                    <div style="color: white; font-weight: bold;" id="statusFsmState">--</div>
+                                </div>
+                                <div>
+                                    <div style="color: #718096;">FSM Mode</div>
+                                    <div style="color: white; font-weight: bold;" id="statusFsmMode">--</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR - FSM Panel (always visible) -->
+        <div class="fsm-panel">
+            <!-- STATE CONTROL SECTION -->
+            <div>
+                <div class="fsm-title">State Control</div>
+                <div class="current-state">
+                    <div class="current-state-label">Current State</div>
+                    <div class="current-state-value" id="fsmCurrentState">-</div>
+                </div>
+                <div class="fsm-title" style="margin-top: 15px;">Available Transitions</div>
+                <div class="state-buttons" id="fsmStateButtons"></div>
+            </div>
+
+            <!-- MOVEMENT CONTROL SECTION -->
+            <div style="margin-top: 20px; display: flex; flex-direction: column; height: calc(100% - 250px);">
+                <div class="fsm-title">🎮 Movement Control</div>
+                
+                <!-- Speed Control -->
+                <div style="background: #0f1419; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #2d3748;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-weight: bold; color: #a0aec0; font-size: 11px; text-transform: uppercase;">Speed</label>
+                        <span id="speedValue" style="color: #667eea; font-weight: bold; font-size: 13px;">1.0x</span>
+                    </div>
+                    <input type="range" class="speed-slider" id="speedSlider" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)" style="width: 100%; height: 6px; cursor: pointer;">
+                </div>
+
+                <!-- Movement Buttons Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; flex-grow: 0;">
+                    <!-- Top row -->
+                    <div></div>
+                    <button onclick="sendMovement(0.3, 0, 0)" class="velocity-btn" title="W - Forward">⬆️</button>
+                    <div></div>
+                    
+                    <!-- Middle row -->
+                    <button onclick="sendMovement(0, 0.6, 0)" class="velocity-btn" title="A - Strafe Left">⬅️</button>
+                    <button onclick="sendMovement(0, 0, 0)" class="velocity-btn" style="background: #f56565; border-color: #f56565;">⏹️</button>
+                    <button onclick="sendMovement(0, -0.6, 0)" class="velocity-btn" title="D - Strafe Right">➡️</button>
+                    
+                    <!-- Bottom row -->
+                    <button onclick="sendMovement(0, 0, 0.5)" class="velocity-btn" title="Q - Turn Left">↶</button>
+                    <button onclick="sendMovement(-0.3, 0, 0)" class="velocity-btn" title="S - Backward">⬇️</button>
+                    <button onclick="sendMovement(0, 0, -0.5)" class="velocity-btn" title="E - Turn Right">↷</button>
+                </div>
+
+                <!-- Telemetry Display -->
+                <div style="background: #0f1419; padding: 12px; border-radius: 6px; border: 1px solid #2d3748;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px;">
+                        <!-- Row 1: vx and vy -->
+                        <div>
+                            <div style="color: #718096; font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">vx</div>
+                            <div style="color: #667eea; font-weight: bold; font-size: 14px;"><span id="moveVx">0.00</span> <span style="color: #a0aec0; font-size: 11px;">m/s</span></div>
+                        </div>
+                        <div>
+                            <div style="color: #718096; font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">vy</div>
+                            <div style="color: #667eea; font-weight: bold; font-size: 14px;"><span id="moveVy">0.00</span> <span style="color: #a0aec0; font-size: 11px;">m/s</span></div>
+                        </div>
+                        <!-- Row 2: omega (full width) -->
+                        <div style="grid-column: 1 / -1;">
+                            <div style="color: #718096; font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">ω (angular)</div>
+                            <div style="color: #667eea; font-weight: bold; font-size: 14px;"><span id="moveOmega">0.00</span> <span style="color: #a0aec0; font-size: 11px;">rad/s</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="connectModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Select Robot</h3>
+            <div class="form-group">
+                <label>Saved Robots</label>
+                <select id="robotSelect" onchange="onRobotSelected()">
+                    <option value="">Loading robots...</option>
+                </select>
+            </div>
+            <div id="robotDetailsContainer" style="display:none; border: 1px solid #ccc; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                <div class="form-group">
+                    <label>MAC Address</label>
+                    <input type="text" id="robotMac" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input type="text" id="robotSerialDisplay" readonly>
+                </div>
+                <div class="form-group">
+                    <label>IP Address (Auto-discovered)</label>
+                    <input type="text" id="robotIpDisplay" placeholder="Discovering..." readonly>
+                </div>
+            </div>
+            <div id="connectMessage" class="message"></div>
+            <div class="modal-buttons">
+                <button class="btn-primary" id="connectBtn" onclick="connectRobot()" disabled>Connect</button>
+                <button class="btn-secondary" onclick="showAddRobotForm()">+ Add Robot</button>
+                <button class="btn-secondary" onclick="closeModal('connectModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Robot Modal -->
+    <div id="addRobotModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Add New Robot</h3>
+            <div class="form-group">
+                <label>Robot Nickname</label>
+                <input type="text" id="newRobotNickname" placeholder="e.g. G1 Kitchen">
+            </div>
+            <div class="form-group">
+                <label>MAC Address</label>
+                <input type="text" id="newRobotMac" placeholder="e.g. fc:23:cd:92:60:02">
+            </div>
+            <div class="form-group">
+                <label>Serial Number</label>
+                <input type="text" id="newRobotSerial" placeholder="e.g. E21D1000PAHBMB06">
+            </div>
+            <div id="addRobotMessage" class="message"></div>
+            <div class="modal-buttons">
+                <button class="btn-primary" onclick="addNewRobot()">Add Robot</button>
+                <button class="btn-secondary" onclick="backToRobotList()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let connectedRobot = null;
+        let wsConnection = null;
+        let keysPressed = {};
+        let velocityScale = 1.0;
+        let allRobots = [];
+        let selectedRobotId = null;
+
+        // FSM States definition
+        const FSM_STATES = {
+            0: { name: 'ZERO_TORQUE', display: 'Zero Torque' },
+            1: { name: 'DAMP', display: 'Damp' },
+            2: { name: 'SQUAT', display: 'Squat' },
+            3: { name: 'SIT', display: 'Sit' },
+            4: { name: 'LOCK_STANDING', display: 'Lock Standing' },
+            200: { name: 'START', display: 'Start' },
+            500: { name: 'LOCK_STAND', display: 'Walk Mode' },
+            702: { name: 'STAND_UP', display: 'Stand Up' },
+            706: { name: 'SQUAT_TO_STAND', display: 'Squat↔Stand' },
+            801: { name: 'RUN', display: 'Run Mode' }
+        };
+
+        const GESTURES = [
+            'FACE_WAVE', 'HIGH_WAVE', 'SHAKE_HAND', 'HIGH_FIVE',
+            'TWO_HAND_KISS', 'HANDS_UP', 'CLAP', 'HUG',
+            'HEART', 'RIGHT_HEART', 'REJECT', 'RIGHT_HAND_UP', 'X_RAY', 'RELEASE_ARM'
+        ];
+
+        const GESTURE_EMOJIS = {
+            'FACE_WAVE': '👋', 'HIGH_WAVE': '🙋', 'SHAKE_HAND': '🤝', 'HIGH_FIVE': '🖐️',
+            'TWO_HAND_KISS': '😘', 'HANDS_UP': '🙌', 'CLAP': '👏', 'HUG': '🤗',
+            'HEART': '❤️', 'RIGHT_HEART': '💜', 'REJECT': '🙅', 'RIGHT_HAND_UP': '✋',
+            'X_RAY': '🔬', 'RELEASE_ARM': '🔓'
+        };
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', () => {
+            initKeyboardControls();
+            populateGestureButtons();
+            requestCurrentState();
+        });
+
+        // ===== MODAL FUNCTIONS =====
+        function showModal(id) {
+            if (id === 'connectModal') {
+                loadRobots();  // Load robots when opening connect modal
+            }
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // ===== VIEW SWITCHING =====
+        function switchView(viewName, btn) {
+            // Hide all panels
+            document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+            // Show selected
+            document.getElementById('view-' + viewName).classList.add('active');
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Load data for specific views
+            if (viewName === 'teach') {
+                loadCustomActionsList();
+            }
+        }
+
+        // ===== CONNECTION =====
+        async function toggleConnection() {
+            if (connectedRobot) {
+                await disconnectRobot();
+            } else {
+                showModal('connectModal');
+            }
+        }
+
+        async function connectRobot() {
+            const selected = document.getElementById('robotSelect').value;
+            if (!selected) {
+                showMessage('connectMessage', 'Please select a robot', 'error');
+                return;
+            }
+
+            const robot = allRobots.find(r => r.id === selected);
+            if (!robot) {
+                showMessage('connectMessage', 'Robot not found', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/connect?mac=${robot.mac}&serial_number=${robot.serial_number}`, { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    connectedRobot = data.robot;
+                    updateConnectionUI(true);
+                    closeModal('connectModal');
+                    connectWebSocket();
+                    setTimeout(() => requestCurrentState(), 500);
+                } else {
+                    showMessage('connectMessage', 'Connection failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                showMessage('connectMessage', 'Error: ' + err.message, 'error');
+            }
+        }
+
+        async function loadRobots() {
+            try {
+                const response = await fetch(`${API_URL}/robots`);
+                const data = await response.json();
+                allRobots = data.robots || [];
+                updateRobotList();
+            } catch (err) {
+                console.error('Failed to load robots:', err);
+                showMessage('connectMessage', 'Failed to load robot list', 'error');
+            }
+        }
+
+        function updateRobotList() {
+            const select = document.getElementById('robotSelect');
+            select.innerHTML = '';
+            
+            if (allRobots.length === 0) {
+                select.innerHTML = '<option value="">No robots configured</option>';
+                return;
+            }
+            
+            select.innerHTML = '<option value="">Select a robot...</option>';
+            allRobots.forEach(robot => {
+                const option = document.createElement('option');
+                option.value = robot.id;
+                option.textContent = `${robot.nickname} (${robot.mac})`;
+                select.appendChild(option);
+            });
+        }
+
+        function onRobotSelected() {
+            const selected = document.getElementById('robotSelect').value;
+            const connectBtn = document.getElementById('connectBtn');
+            const detailsContainer = document.getElementById('robotDetailsContainer');
+            
+            if (!selected) {
+                detailsContainer.style.display = 'none';
+                connectBtn.disabled = true;
+                return;
+            }
+            
+            const robot = allRobots.find(r => r.id === selected);
+            if (robot) {
+                document.getElementById('robotMac').value = robot.mac;
+                document.getElementById('robotSerialDisplay').value = robot.serial_number;
+                detailsContainer.style.display = 'block';
+                connectBtn.disabled = false;
+                
+                // Discover IP
+                discoverRobotIP(robot.mac);
+            }
+        }
+
+        async function discoverRobotIP(mac) {
+            try {
+                const response = await fetch(`${API_URL}/discover?mac=${mac}`);
+                const data = await response.json();
+                const ipInput = document.getElementById('robotIpDisplay');
+                if (data.ip) {
+                    ipInput.value = data.ip;
+                } else {
+                    ipInput.value = 'Not found on network';
+                }
+            } catch (err) {
+                document.getElementById('robotIpDisplay').value = 'Discovery error';
+            }
+        }
+
+        function showAddRobotForm() {
+            closeModal('connectModal');
+            showModal('addRobotModal');
+        }
+
+        async function addNewRobot() {
+            const nickname = document.getElementById('newRobotNickname').value.trim();
+            const mac = document.getElementById('newRobotMac').value.trim();
+            const serial = document.getElementById('newRobotSerial').value.trim();
+
+            if (!nickname || !mac || !serial) {
+                showMessage('addRobotMessage', 'Please fill all fields', 'error');
+                return;
+            }
+
+            // Validate MAC format
+            if (!/^([0-9a-fA-F]{2}:){5}([0-9a-fA-F]{2})$/.test(mac)) {
+                showMessage('addRobotMessage', 'Invalid MAC address format (use xx:xx:xx:xx:xx:xx)', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/add_robot`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname, mac, serial_number: serial })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('addRobotMessage', 'Robot added successfully!', 'success');
+                    setTimeout(() => {
+                        document.getElementById('newRobotNickname').value = '';
+                        document.getElementById('newRobotMac').value = '';
+                        document.getElementById('newRobotSerial').value = '';
+                        closeModal('addRobotModal');
+                        showModal('connectModal');
+                        loadRobots();
+                    }, 1000);
+                } else {
+                    showMessage('addRobotMessage', 'Error: ' + (data.error || 'Unknown'), 'error');
+                }
+            } catch (err) {
+                showMessage('addRobotMessage', 'Error: ' + err.message, 'error');
+            }
+        }
+
+        function backToRobotList() {
+            closeModal('addRobotModal');
+            showModal('connectModal');
+        }
+
+        async function disconnectRobot() {
+            try {
+                await fetch(`${API_URL}/disconnect`, { method: 'POST' });
+                connectedRobot = null;
+                updateConnectionUI(false);
+                if (wsConnection) wsConnection.close();
+            } catch (err) {
+                console.error('Disconnect error:', err);
+            }
+        }
+
+        function updateConnectionUI(connected) {
+            const btn = document.getElementById('topConnectBtn');
+            const statusDot = document.querySelector('.status-dot');
+            
+            if (connected) {
+                btn.textContent = 'Disconnect';
+                btn.classList.add('disconnect');
+                statusDot.classList.add('online');
+                document.getElementById('topRobotStatus').textContent = 'Connected';
+            } else {
+                btn.textContent = 'Connect';
+                btn.classList.remove('disconnect');
+                statusDot.classList.remove('online');
+                document.getElementById('topRobotStatus').textContent = 'Disconnected';
+            }
+        }
+
+        // ===== WEBSOCKET =====
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            wsConnection = new WebSocket(wsUrl);
+            
+            wsConnection.onopen = () => {
+                console.log('✅ WebSocket connected');
+                // Send ping every 30 seconds to keep connection alive
+                setInterval(() => {
+                    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                        wsConnection.send(JSON.stringify({ type: 'ping' }));
+                    }
+                }, 30000);
+            };
+            
+            wsConnection.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleWebSocketMessage(msg);
+                } catch (error) {
+                    console.error('WebSocket parse error:', error);
+                }
+            };
+
+            wsConnection.onerror = (err) => {
+                console.error('❌ WebSocket error:', err);
+            };
+            
+            wsConnection.onclose = () => {
+                console.log('WebSocket disconnected, reconnecting...');
+                // Reconnect after 2 seconds
+                setTimeout(() => {
+                    connectWebSocket();
+                }, 2000);
+            };
+        }
+        
+        function handleWebSocketMessage(msg) {
+            if (msg.type === 'state_changed') {
+                updateStatus(msg.data);
+            } else if (msg.type === 'battery_updated') {
+                updateStatus({
+                    battery: msg.data.soc,
+                    voltage: msg.data.voltage,
+                    temperature: msg.data.temperature,
+                    current: msg.data.current
+                });
+            } else {
+                // Generic state update
+                updateStatus(msg);
+            }
+        }
+
+        // ===== STATE MANAGEMENT =====
+        async function requestCurrentState() {
+            try {
+                const response = await fetch(`${API_URL}/state`);
+                const data = await response.json();
+                if (data.success && data.state) {
+                    updateStatus(data.state);
+                }
+            } catch (err) {
+                console.error('Failed to fetch state:', err);
+            }
+        }
+
+        function updateStatus(data) {
+            if (data.fsm_state) {
+                document.getElementById('topFsmState').textContent = data.fsm_state;
+                document.getElementById('fsmCurrentState').textContent = FSM_STATES[data.fsm_state_value]?.display || '-';
+                document.getElementById('statusFsmState').textContent = data.fsm_state;
+                updateFsmButtons(data.fsm_state_value, data.allowed_transitions);
+                updateGestureAvailability(data.fsm_state_value);
+            }
+
+            if (data.fsm_mode !== undefined) {
+                document.getElementById('statusFsmMode').textContent = data.fsm_mode;
+            }
+
+            if (data.battery !== undefined) {
+                const soc = data.battery;
+                // Update top bar
+                const topFill = document.getElementById('topBatteryFill');
+                topFill.style.width = soc + '%';
+                topFill.classList.remove('critical', 'warning');
+                if (soc < 20) topFill.classList.add('critical');
+                else if (soc < 50) topFill.classList.add('warning');
+                document.getElementById('topBatteryPercent').textContent = soc + '%';
+                
+                // Update status view
+                const statusFill = document.getElementById('statusBatteryFill');
+                statusFill.style.width = soc + '%';
+                statusFill.classList.remove('critical', 'warning');
+                if (soc < 20) statusFill.classList.add('critical');
+                else if (soc < 50) statusFill.classList.add('warning');
+                document.getElementById('statusBatterySOC').textContent = soc + '%';
+            }
+
+            // Extended battery data
+            if (data.voltage !== undefined) {
+                const v = typeof data.voltage === 'number' ? data.voltage.toFixed(1) : data.voltage;
+                document.getElementById('topBatteryVoltage').textContent = v + 'V';
+                document.getElementById('statusBatteryVoltage').textContent = v + 'V';
+            }
+
+            if (data.temperature !== undefined) {
+                document.getElementById('topBatteryTemp').textContent = data.temperature + '°C';
+                document.getElementById('statusBatteryTemp').textContent = data.temperature + '°C';
+            }
+
+            if (data.current !== undefined) {
+                const c = typeof data.current === 'number' ? data.current.toFixed(0) : data.current;
+                document.getElementById('statusBatteryCurrent').textContent = c + 'mA';
+            }
+        }
+
+        function updateFsmButtons(currentStateId, allowedTransitions) {
+            const container = document.getElementById('fsmStateButtons');
+            container.innerHTML = '';
+
+            if (!allowedTransitions || allowedTransitions.length === 0) {
+                container.innerHTML = '<p style="grid-column: 1/-1; color: #718096; text-align: center; padding: 20px 0;">No transitions available</p>';
+                return;
+            }
+
+            allowedTransitions.forEach(stateName => {
+                const stateId = Object.keys(FSM_STATES).find(id => FSM_STATES[id].name === stateName);
+                if (stateId) {
+                    const btn = document.createElement('button');
+                    btn.className = 'state-btn';
+                    if (stateId == currentStateId) btn.classList.add('active');
+                    btn.textContent = FSM_STATES[stateId].display;
+                    btn.onclick = () => setFsmState(stateName, stateId);
+                    container.appendChild(btn);
+                }
+            });
+        }
+
+        async function setFsmState(name, stateId) {
+            if (!connectedRobot) return;
+            try {
+                await fetch(`${API_URL}/set_state?state_name=${name}`, { method: 'POST' });
+            } catch (err) {
+                console.error('FSM change error:', err);
+            }
+        }
+
+        // ===== GESTURES =====
+        function populateGestureButtons() {
+            const container = document.getElementById('gesturesList');
+            GESTURES.forEach(gesture => {
+                const btn = document.createElement('button');
+                btn.className = 'gesture-btn';
+                btn.id = 'gesture-' + gesture;
+                btn.innerHTML = `<div class="gesture-emoji">${GESTURE_EMOJIS[gesture] || '👋'}</div><div class="gesture-name">${gesture.replace(/_/g, ' ')}</div>`;
+                btn.onclick = () => executeGesture(gesture);
+                container.appendChild(btn);
+            });
+        }
+
+        function updateGestureAvailability(currentStateId) {
+            const canGesture = [500, 801].includes(currentStateId);
+            document.getElementById('gesturesWarning').style.display = canGesture ? 'none' : 'block';
+            document.querySelectorAll('.gesture-btn').forEach(btn => {
+                btn.disabled = !canGesture;
+            });
+        }
+
+        async function executeGesture(gestureName) {
+            if (!connectedRobot) {
+                alert('Please connect to robot first');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_URL}/gesture?gesture_name=${gestureName}`, { method: 'POST' });
+                const data = await response.json();
+                if (!data.success) {
+                    alert('Gesture failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Gesture error:', err);
+                alert('Gesture failed: ' + err.message);
+            }
+        }
+
+        // ===== MOVEMENT =====
+        function initKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                if (!connectedRobot) return;
+                const key = e.key.toLowerCase();
+                if (['w', 'a', 's', 'd', 'q', 'e', ' '].includes(key)) {
+                    e.preventDefault();
+                    keysPressed[key] = true;
+                    sendMovement();
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (['w', 'a', 's', 'd', 'q', 'e', ' '].includes(key)) {
+                    e.preventDefault();
+                    keysPressed[key] = false;
+                    sendMovement();
+                }
+            });
+        }
+
+        async function sendMovement(vx = 0, vy = 0, omega = 0) {
+            if (!connectedRobot) return;
+            
+            // If called with values from button, use those directly
+            if (arguments.length === 3) {
+                vx *= velocityScale;
+                vy *= velocityScale;
+                omega *= velocityScale;
+            } else {
+                // Keyboard-based movement
+                vx = 0; vy = 0; omega = 0;
+                const baseVx = 0.3;
+                const baseVy = 0.6;
+                const baseOmega = 0.5;
+
+                if (keysPressed['w']) vx += baseVx * velocityScale;
+                if (keysPressed['s']) vx -= baseVx * velocityScale;
+                if (keysPressed['a']) vy += baseVy * velocityScale;
+                if (keysPressed['d']) vy -= baseVy * velocityScale;
+                if (keysPressed['q']) omega += baseOmega * velocityScale;
+                if (keysPressed['e']) omega -= baseOmega * velocityScale;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vx, vy, omega })
+                });
+                
+                // Update display
+                document.getElementById('moveVx').textContent = vx.toFixed(2);
+                document.getElementById('moveVy').textContent = vy.toFixed(2);
+                document.getElementById('moveOmega').textContent = omega.toFixed(2);
+            } catch (err) {
+                console.error('Movement error:', err);
+            }
+        }
+
+        function updateSpeed(value) {
+            velocityScale = parseFloat(value);
+            document.getElementById('speedValue').textContent = velocityScale.toFixed(1) + 'x';
+        }
+
+        // ===== CUSTOM ACTIONS =====
+        async function loadCustomActionsList() {
+            const listContainer = document.getElementById('customActionsList');
+            const statusEl = document.getElementById('customActionsStatus');
+
+            listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #a0aec0;">Loading actions...</div>';
+            statusEl.textContent = 'Loading...';
+
+            try {
+                const response = await fetch(`${API_URL}/custom_action/robot_list`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    statusEl.textContent = data.error || 'Failed to load';
+                    listContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #a0aec0;">${data.error || 'No actions'}</div>`;
+                    return;
+                }
+
+                const actions = (data.custom_actions || []).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                statusEl.textContent = `${actions.length} action(s) available`;
+
+                if (actions.length === 0) {
+                    listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #a0aec0;">No custom actions found</div>';
+                    return;
+                }
+
+                listContainer.innerHTML = actions.map(action => `
+                    <div style="display: flex; gap: 8px; align-items: center; padding: 8px; background: #0f1419; border-radius: 4px; border: 1px solid #2d3748;">
+                        <button onclick="playCustomAction('${action.name}')" style="flex: 1; padding: 8px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">▶️ ${action.name}</button>
+                        <span style="font-size: 11px; color: #718096; min-width: 40px;">${action.time ? action.time + 's' : ''}</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                statusEl.textContent = 'Load failed';
+                listContainer.innerHTML = `<div style="color: #f56565;">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function addCustomAction() {
+            const input = document.getElementById('newActionName');
+            const name = input.value.trim();
+            
+            if (!name) {
+                alert('Please enter action name');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/custom_action/add?action_name=${encodeURIComponent(name)}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    input.value = '';
+                    loadCustomActionsList();
+                } else {
+                    alert(data.error || 'Failed to add action');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function playCustomAction(actionName) {
+            if (!connectedRobot) {
+                alert('Not connected to robot');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/custom_action/execute?action_name=${encodeURIComponent(actionName)}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (!data.success) {
+                    alert(data.error || 'Failed to play action');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function stopCustomAction() {
+            if (!connectedRobot) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/custom_action/stop`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (!data.success) {
+                    alert(data.error || 'Failed to stop');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // ===== SLAM FUNCTIONS =====
+        async function startMapping() {
+            const mapName = document.getElementById('mapName').value;
+            if (!mapName) {
+                alert('Please enter a map name');
+                return;
+            }
+            // Implementation
+        }
+
+        async function stopMapping() {
+            // Implementation
+        }
+
+        async function navigateTo() {
+            // Implementation
+        }
+
+        async function startTeaching() {
+            // Implementation
+        }
+
+        async function stopTeaching() {
+            // Implementation
+        }
+
+        // ===== 3D POINT CLOUD RENDERING =====
+        let canvas3D = null;
+        let ctx3D = null;
+        let points3D = [];
+        let robotPath = [];
+        let lastRobotPos = null;
+        let rotation3D = { x: -90, y: 0 };  // Top-down view
+        let scale3D = 15;
+        let offset3D = { x: 0, y: 0 };
+        let showPath = true;
+        let pointCloud3DActive = false;
+        let lastUpdateTime = Date.now();
+        
+        function init3DViewer() {
+            canvas3D = document.getElementById('mapCanvas');
+            if (!canvas3D) return;
+            
+            ctx3D = canvas3D.getContext('2d');
+            canvas3D.width = canvas3D.clientWidth;
+            canvas3D.height = canvas3D.clientHeight;
+            
+            // Set up mouse wheel zoom
+            canvas3D.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                scale3D *= (1 - e.deltaY * 0.001);
+                scale3D = Math.max(1, Math.min(100, scale3D));
+                render3DScene();
+            });
+            
+            // Set up mouse drag pan
+            let isDragging = false;
+            let dragStart = { x: 0, y: 0 };
+            
+            canvas3D.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                dragStart = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas3D.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                offset3D.x += e.clientX - dragStart.x;
+                offset3D.y += e.clientY - dragStart.y;
+                dragStart = { x: e.clientX, y: e.clientY };
+                render3DScene();
+            });
+            
+            canvas3D.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            render3DScene();
+        }
+        
+        function project3D(x, y, z) {
+            // Rotate around Y axis
+            const cosY = Math.cos(rotation3D.y * Math.PI / 180);
+            const sinY = Math.sin(rotation3D.y * Math.PI / 180);
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+            
+            // Rotate around X axis
+            const cosX = Math.cos(rotation3D.x * Math.PI / 180);
+            const sinX = Math.sin(rotation3D.x * Math.PI / 180);
+            const y1 = y * cosX - z1 * sinX;
+            const z2 = y * sinX + z1 * cosX;
+            
+            // Project to 2D
+            const screenX = canvas3D.width / 2 + x1 * scale3D + offset3D.x;
+            const screenY = canvas3D.height / 2 - y1 * scale3D + offset3D.y;
+            
+            return { x: screenX, y: screenY, depth: z2 };
+        }
+        
+        function render3DScene() {
+            if (!canvas3D || !ctx3D) return;
+            
+            // Clear canvas
+            ctx3D.fillStyle = '#0a0a0a';
+            ctx3D.fillRect(0, 0, canvas3D.width, canvas3D.height);
+            
+            // Draw grid
+            ctx3D.strokeStyle = '#222';
+            ctx3D.lineWidth = 1;
+            for (let i = -10; i <= 10; i++) {
+                const p1 = project3D(i, 0, -10);
+                const p2 = project3D(i, 0, 10);
+                ctx3D.beginPath();
+                ctx3D.moveTo(p1.x, p1.y);
+                ctx3D.lineTo(p2.x, p2.y);
+                ctx3D.stroke();
+                
+                const p3 = project3D(-10, 0, i);
+                const p4 = project3D(10, 0, i);
+                ctx3D.beginPath();
+                ctx3D.moveTo(p3.x, p3.y);
+                ctx3D.lineTo(p4.x, p4.y);
+                ctx3D.stroke();
+            }
+            
+            // Draw point cloud
+            if (points3D.length > 0) {
+                points3D.forEach(point => {
+                    const proj = project3D(point[0], point[1], point[2]);
+                    
+                    // Color by height
+                    const hue = Math.max(0, Math.min(240, (point[2] + 1) * 120));
+                    ctx3D.fillStyle = `hsl(${hue}, 80%, 50%)`;
+                    ctx3D.fillRect(proj.x - 1, proj.y - 1, 2, 2);
+                });
+            }
+            
+            // Draw robot path
+            if (showPath && robotPath.length > 1) {
+                ctx3D.strokeStyle = '#00ff00';
+                ctx3D.lineWidth = 3;
+                ctx3D.beginPath();
+                
+                const first = project3D(robotPath[0].x, robotPath[0].y, robotPath[0].z);
+                ctx3D.moveTo(first.x, first.y);
+                
+                for (let i = 1; i < robotPath.length; i++) {
+                    const proj = project3D(robotPath[i].x, robotPath[i].y, robotPath[i].z);
+                    ctx3D.lineTo(proj.x, proj.y);
+                }
+                ctx3D.stroke();
+                
+                // Draw robot position (last point)
+                const last = robotPath[robotPath.length - 1];
+                const robotProj = project3D(last.x, last.y, last.z);
+                ctx3D.fillStyle = '#ff0000';
+                ctx3D.beginPath();
+                ctx3D.arc(robotProj.x, robotProj.y, 5, 0, Math.PI * 2);
+                ctx3D.fill();
+            }
+            
+            // No data message
+            if (points3D.length === 0) {
+                ctx3D.fillStyle = '#666';
+                ctx3D.font = '16px Arial';
+                ctx3D.textAlign = 'center';
+                ctx3D.fillText('Start SLAM mapping to see points', canvas3D.width / 2, canvas3D.height / 2);
+            }
+        }
+        
+        async function update3DPointCloud() {
+            if (!pointCloud3DActive) return;
+            
+            try {
+                const response = await fetch('/api/lidar/pointcloud');
+                const data = await response.json();
+                
+                if (data.success && data.points && data.points.length > 0) {
+                    points3D = data.points;
+                    
+                    // Update robot path (use center of point cloud as rough position)
+                    if (data.count > 10) {
+                        const avgX = points3D.reduce((sum, p) => sum + p[0], 0) / points3D.length;
+                        const avgY = points3D.reduce((sum, p) => sum + p[1], 0) / points3D.length;
+                        const avgZ = points3D.reduce((sum, p) => sum + p[2], 0) / points3D.length;
+                        
+                        const currentPos = { x: avgX, y: avgY, z: avgZ, timestamp: Date.now() };
+                        
+                        // Only add if moved significantly
+                        if (!lastRobotPos || 
+                            Math.sqrt(Math.pow(currentPos.x - lastRobotPos.x, 2) + 
+                                    Math.pow(currentPos.y - lastRobotPos.y, 2)) > 0.1) {
+                            robotPath.push(currentPos);
+                            lastRobotPos = currentPos;
+                            
+                            // Limit path length
+                            if (robotPath.length > 500) robotPath.shift();
+                        }
+                    }
+                    
+                    render3DScene();
+                }
+            } catch (error) {
+                console.error('3D point cloud fetch error:', error);
+            }
+        }
+        
+        function start3DVisualization() {
+            if (!canvas3D) init3DViewer();
+            pointCloud3DActive = true;
+            
+            // Start update loop
+            const updateLoop = setInterval(() => {
+                if (!pointCloud3DActive) {
+                    clearInterval(updateLoop);
+                    return;
+                }
+                update3DPointCloud();
+            }, 100); // 10 Hz
+        }
+        
+        function stop3DVisualization() {
+            pointCloud3DActive = false;
+        }
+        
+        function resetView() {
+            rotation3D = { x: -90, y: 0 };  // Top-down view for horizontal SLAM map
+            scale3D = 15;
+            offset3D = { x: 0, y: 0 };
+            render3DScene();
+        }
+        
+        function togglePath() {
+            showPath = !showPath;
+            render3DScene();
+        }
+
+        // ===== VIDEO STREAM =====
+        function initializeVideoStream() {
+            // Check if video stream endpoint is available
+            const videoImg = document.getElementById('videoStream');
+            if (!videoImg) return;
+            
+            // Set up video stream image
+            videoImg.src = '/api/video/stream';
+            videoImg.onerror = () => {
+                console.warn('Video stream not available on this robot');
+                const videoPlaceholder = document.getElementById('videoPlaceholder');
+                if (videoPlaceholder) {
+                    videoPlaceholder.textContent = 'Video stream not available';
+                }
+            };
+            
+            videoImg.onload = () => {
+                const videoPlaceholder = document.getElementById('videoPlaceholder');
+                if (videoPlaceholder) {
+                    videoPlaceholder.style.display = 'none';
+                }
+                videoImg.style.display = 'block';
+            };
+        }
+
+        // ===== UTILITIES =====
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+        }
+
+        // Close modal on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+        
+        // Initialize video stream when page loads
+        window.addEventListener('load', initializeVideoStream);
+    </script>
+</body>
+</html>

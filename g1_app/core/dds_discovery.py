@@ -7,9 +7,12 @@ import asyncio
 import subprocess
 import re
 import json
+import os
 from typing import Dict, Optional, Set
 from datetime import datetime
 from dataclasses import dataclass, asdict
+
+from g1_app.utils.pathing import get_cyclonedds_uri
 
 @dataclass
 class DiscoveredRobot:
@@ -62,11 +65,17 @@ class DDSDiscovery:
             try:
                 # Use ddsls to discover DDS participants
                 # This shows all DDS participants on the network
+                cyclonedds_uri = get_cyclonedds_uri()
+                env = None
+                if cyclonedds_uri:
+                    env = os.environ.copy()
+                    env['CYCLONEDDS_URI'] = cyclonedds_uri
+
                 proc = await asyncio.create_subprocess_exec(
                     'timeout', '2', 'ddsls', '-a',
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
-                    env={'CYCLONEDDS_URI': 'file:///root/G1/unitree_sdk2/cyclonedds.xml'}
+                    env=env
                 )
                 
                 stdout, stderr = await proc.communicate()

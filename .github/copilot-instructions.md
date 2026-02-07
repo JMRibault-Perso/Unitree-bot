@@ -1,5 +1,21 @@
 # Unitree SDK2 Development Guide
 
+## 📚 Documentation
+
+**IMPORTANT**: All documentation is now centralized in `/docs/README.md`. Always start there.
+
+### Quick Links
+- **[Main Documentation Index](../docs/README.md)** - Start here for all topics
+- **[Robot Discovery API](../docs/api/robot-discovery.md)** - How to find robots (SINGLE SOURCE OF TRUTH)
+- **[SLAM Navigation Guide](../docs/guides/slam-navigation.md)** - Mapping and waypoints
+- **[Web Controller Guide](../g1_app/ui/WEB_UI_GUIDE.md)** - Browser-based control
+
+### For AI Agents
+1. Read `/docs/README.md` first
+2. Check `/docs/api/` for API references
+3. Check `/docs/guides/` for how-to guides  
+4. Archived docs are in `/docs/archived/` (DO NOT USE for new code)
+
 ## ⚠️ CRITICAL SAFETY RULE ⚠️
 
 **NEVER automatically send robot state-changing commands (FSM states, DAMP mode, balance mode, torque commands) without explicit user confirmation.**
@@ -357,8 +373,10 @@ export CYCLONEDDS_URI=file://$(pwd)/cyclonedds.xml
 export LD_LIBRARY_PATH=$(pwd)/thirdparty/lib/x86_64:$LD_LIBRARY_PATH
 ./build/bin/test_subscriber  # Should show DDS topics
 
-# Run robot example (replace eth0 with your interface)
-./build/bin/g1_loco_client --network_interface=eth1 --get_fsm_mode
+# Run robot tests (from G1_tests directory)
+cd G1_tests
+python3 test_slam_topics_realtime.py
+python3 test_relocation_detection.py
 
 # Capture Android app traffic to reverse-engineer protocol
 ./capture_robot_traffic.sh  # Run while using Android app
