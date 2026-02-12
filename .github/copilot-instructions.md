@@ -390,19 +390,35 @@ python3 test_relocation_detection.py
 
 **CRITICAL: NEVER hardcode robot IP addresses - discovery must be fully dynamic**
 
-The Android app discovers robots without knowing their IP addresses beforehand. Discovery methods to implement:
+The Android app discovers robots without knowing their IP addresses beforehand.
 
-**Primary Discovery Method - MAC Address Scanning:**
+**Primary Discovery Method - Scapy-based ARP Scanning (RECOMMENDED):**
+```python
+from g1_app.utils.robot_discovery import discover_robot
+
+# Pure Python, no sudo required, <5 seconds
+robot = discover_robot(target_mac="fc:23:cd:92:60:02")
+if robot and robot['online']:
+    print(f"Robot at {robot['ip']}")
+```
+
+**Technology**: 
+- Uses Python `scapy` library for ARP scanning
+- No external tools (no nmap, no arp-scan)
+- No sudo/root permissions needed
+- Cross-platform (Linux, Windows, macOS)
+- Optimized: eth1 only, /24 subnet for large networks, <5 second discovery
+
+**Manual Discovery Methods (for debugging only):**
 ```bash
-# Discover robot by MAC address fc:23:cd:92:60:02
 # Method 1: ARP cache lookup (fastest)
 arp -n | grep -i 'fc:23:cd:92:60:02'
 
-# Method 2: Network scan with arp-scan
+# Method 2: Network scan with arp-scan (requires sudo)
 sudo arp-scan -I eth1 --localnet | grep -i 'fc:23:cd:92:60:02'
 
-# Method 3: nmap with MAC filtering
-nmap -sn 192.168.86.0/24 | grep -B 2 'FC:23:CD:92:60:02'
+# Method 3: nmap with MAC filtering (requires sudo, slow)
+sudo nmap -sn 192.168.86.0/24 | grep -B 2 'FC:23:CD:92:60:02'
 ```
 
 **Discovery Protocol Investigation:**

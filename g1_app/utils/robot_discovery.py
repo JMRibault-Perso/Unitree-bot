@@ -22,11 +22,37 @@ from typing import Optional, Dict
 from .arp_discovery import (
     try_multicast_discovery,
     detect_network_mode,
+    discover_robot_ip as arp_discover_robot_ip,
     G1_MAC,
     G1_AP_IP
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _mac_for_ip(ip: str) -> Optional[str]:
+    """Resolve MAC for a specific IP via ip neigh/arp."""
+    try:
+        result = subprocess.run(['ip', 'neigh', 'show', ip], capture_output=True, text=True, timeout=1)
+        for line in result.stdout.split('\n'):
+            if ip in line and 'lladdr' in line:
+                parts = line.split()
+                if 'lladdr' in parts:
+                    return parts[parts.index('lladdr') + 1].lower()
+    except Exception:
+        pass
+
+    try:
+        result = subprocess.run(['arp', '-n', ip], capture_output=True, text=True, timeout=1)
+        for line in result.stdout.split('\n'):
+            if ip in line:
+                parts = line.split()
+                if len(parts) >= 3:
+                    return parts[2].lower()
+    except Exception:
+        pass
+
+    return None
 
 
 def discover_robot(target_mac: str = G1_MAC, verify_with_ping: bool = True) -> Optional[Dict[str, any]]:
@@ -58,6 +84,12 @@ def discover_robot(target_mac: str = G1_MAC, verify_with_ping: bool = True) -> O
     multicast_ip = try_multicast_discovery(timeout=0.5)
     
     if multicast_ip:
+        resolved_mac = _mac_for_ip(multicast_ip)
+        if resolved_mac and resolved_mac != target_mac:
+            logger.debug(f"Multicast IP {multicast_ip} maps to {resolved_mac}, not target {target_mac}; continuing scan")
+            multicast_ip = None
+
+    if multicast_ip:
         # Verify MAC via ARP
         try:
             result = subprocess.run(['arp', '-n', multicast_ip],
@@ -77,50 +109,61 @@ def discover_robot(target_mac: str = G1_MAC, verify_with_ping: bool = True) -> O
         except Exception as e:
             logger.debug(f"Multicast MAC verification failed: {e}")
     
-    # STEP 2: ARP scan fallback
-    logger.debug("Trying ARP scan...")
+    # STEP 2: Full ARP/broadcast fallback (fast path)
+    logger.debug("Trying ARP/broadcast scan...")
     try:
-        result = subprocess.run(['arp', '-n'], capture_output=True, text=True, timeout=1)
-        for line in result.stdout.split('\n')[1:]:
-            parts = line.split()
-            if len(parts) >= 3 and parts[2].lower() == target_mac:
-                ip = parts[0]
-                
-                # Verify with ping if requested
-                if verify_with_ping:
-                    try:
-                        ping_result = subprocess.run(
-                            ['ping', '-c', '1', '-W', '1', ip],
-                            capture_output=True,
-                            timeout=2
-                        )
-                        if ping_result.returncode != 0:
-                            logger.debug(f"Robot in ARP but not responding to ping (offline)")
-                            return {
-                                'ip': ip,
-                                'mac': target_mac,
-                                'mode': detect_network_mode(ip),
-                                'online': False
-                            }
-                    except:
-                        logger.debug(f"Ping verification failed")
-                        return {
-                            'ip': ip,
-                            'mac': target_mac,
-                            'mode': detect_network_mode(ip),
-                            'online': False
-                        }
-                
-                mode = detect_network_mode(ip)
-                logger.info(f"✓ Robot found via ARP: {ip} ({mode})")
-                return {
-                    'ip': ip,
-                    'mac': target_mac,
-                    'mode': mode,
-                    'online': True
-                }
+        ip = arp_discover_robot_ip(target_mac=target_mac, timeout=3, fast=True)
+        if ip:
+            online = True
+            if verify_with_ping:
+                try:
+                    ping_result = subprocess.run(
+                        ['ping', '-c', '1', '-W', '1', ip],
+                        capture_output=True,
+                        timeout=2
+                    )
+                    online = ping_result.returncode == 0
+                except Exception:
+                    online = False
+
+            mode = detect_network_mode(ip)
+            logger.info(f"✓ Robot found via scan: {ip} ({mode})")
+            return {
+                'ip': ip,
+                'mac': target_mac,
+                'mode': mode,
+                'online': online
+            }
     except Exception as e:
-        logger.error(f"ARP scan failed: {e}")
+        logger.error(f"ARP/broadcast scan failed: {e}")
+
+    # STEP 3: Full network scan fallback (slower)
+    logger.debug("Trying full network scan...")
+    try:
+        ip = arp_discover_robot_ip(target_mac=target_mac, timeout=8, fast=False)
+        if ip:
+            online = True
+            if verify_with_ping:
+                try:
+                    ping_result = subprocess.run(
+                        ['ping', '-c', '1', '-W', '1', ip],
+                        capture_output=True,
+                        timeout=2
+                    )
+                    online = ping_result.returncode == 0
+                except Exception:
+                    online = False
+
+            mode = detect_network_mode(ip)
+            logger.info(f"✓ Robot found via full scan: {ip} ({mode})")
+            return {
+                'ip': ip,
+                'mac': target_mac,
+                'mode': mode,
+                'online': online
+            }
+    except Exception as e:
+        logger.error(f"Full scan failed: {e}")
     
     logger.warning(f"Robot not found (MAC: {target_mac})")
     return None

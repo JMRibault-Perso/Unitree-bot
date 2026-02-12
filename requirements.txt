@@ -5,3 +5,4 @@ opencv-python
 aiohttp
 websockets
 requests
+scapy

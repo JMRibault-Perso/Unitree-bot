@@ -2,8 +2,6 @@
 
 This directory contains old/deprecated test files kept for reference only.
 
-## ⚠️ DO NOT USE THESE FILES
-
 These tests are either:
 - Replaced by standardized versions in parent directories
 - Using outdated connection patterns

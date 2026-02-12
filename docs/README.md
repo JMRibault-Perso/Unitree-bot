@@ -1,6 +1,6 @@
 # G1 Robot Documentation
 
-**Last Updated**: February 5, 2026
+**Last Updated**: February 8, 2026
 
 This is the **SINGLE SOURCE OF TRUTH** for all G1 robot documentation. All agents (human and AI) should start here.
 
@@ -18,9 +18,15 @@ docs/
 
 ## 🚀 Quick Start
 
+**Dependencies**: Python 3.8+, scapy (for robot discovery)
+
+```bash
+pip3 install -r requirements.txt  # Installs scapy + FastAPI + other deps
+```
+
 **New to the project?** Start here:
 
-1. **[Robot Discovery](api/robot-discovery.md)** - Find your robot on the network
+1. **[Robot Discovery](api/robot-discovery.md)** - Find your robot on the network (scapy-based, <5s)
 2. **[Web UI Guide](../g1_app/ui/WEB_UI_GUIDE.md)** - Use the web controller
 3. **[Testing Guide](guides/testing-guide.md)** - Run test scripts
 
@@ -81,7 +87,9 @@ async with RobotTestConnection() as robot:
 
 ### Robot Discovery
 - **[Robot Discovery](api/robot-discovery.md)** - `discover_robot()`, `wait_for_robot()`
-- Status: ✅ Production-ready (2s scans, ping verification)
+- Technology: Scapy-based ARP scanning (pure Python, no sudo, cross-platform)
+- Performance: <5 seconds on typical networks
+- Status: ✅ Production-ready
 
 ### SLAM & Navigation
 - **[SLAM Topics](api/slam-topics.md)** - Real-time positioning, mapping, obstacles

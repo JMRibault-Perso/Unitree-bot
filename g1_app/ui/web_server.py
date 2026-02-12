@@ -10,6 +10,7 @@ import os
 import json
 import socket
 import subprocess
+import platform
 from typing import Optional, List, Dict
 from pathlib import Path
 from datetime import datetime
@@ -60,6 +61,13 @@ robot: Optional[RobotController] = None
 arm_controller: Optional[ArmController] = None
 connect_lock = asyncio.Lock()
 connected_clients = []
+
+# Teach-mode recording state (API 7110)
+teach_recording_task: Optional[asyncio.Task] = None
+teach_recording_timeout_task: Optional[asyncio.Task] = None
+teach_recording_active = False
+teach_recording_name: Optional[str] = None
+TEACH_RECORDING_MAX_SECONDS = 20
 
 # Robot management
 ROBOTS_FILE = Path(__file__).parent / "robots.json"
@@ -253,8 +261,8 @@ EventBus.subscribe(Events.BATTERY_UPDATED, on_battery_update)
 logger.info(f"  ✅ Subscribed to BATTERY_UPDATED")
 EventBus.subscribe(Events.SPEECH_RECOGNIZED, on_speech_recognized)
 logger.info(f"  ✅ Subscribed to SPEECH_RECOGNIZED")
-EventBus.subscribe(Events.LIDAR_DATA_RECEIVED, on_lidar_data_received)
-logger.info(f"  ✅ Subscribed to LIDAR_DATA_RECEIVED with handler: {on_lidar_data_received}")
+EventBus.subscribe(Events.LIDAR_CLOUD, on_lidar_data_received)
+logger.info(f"  ✅ Subscribed to LIDAR_CLOUD with handler: {on_lidar_data_received}")
 logger.info("🔧 EventBus subscriptions complete")
 
 
@@ -275,10 +283,41 @@ async def shutdown_event():
 
 
 @app.get("/api/discover")
-async def discover_robots_endpoint():
-    """Get list of discovered robots on the network"""
-    logger.info("🔍 Discovery endpoint called")
+async def discover_robots_endpoint(mac: str = None):
+    """Get list of discovered robots OR discover specific robot by MAC address
     
+    Args:
+        mac: Optional MAC address to discover specific robot
+        
+    Returns:
+        If mac provided: {"ip": "...", "mac": "...", "online": bool}
+        If no mac: {"success": True, "robots": [...], "count": int}
+    """
+    logger.info(f"🔍 Discovery endpoint called (mac={mac})")
+    
+    # If MAC provided, do targeted discovery
+    if mac:
+        try:
+            logger.info(f"Discovering robot with MAC: {mac}")
+            from g1_app.utils.robot_discovery import discover_robot
+            robot = discover_robot(target_mac=mac, verify_with_ping=True)
+            
+            if robot and robot.get('online'):
+                logger.info(f"✅ Robot found at {robot['ip']} (online)")
+                return {"ip": robot['ip'], "mac": robot['mac'], "online": True}
+            elif robot and robot.get('ip'):
+                logger.warning(f"⚠️ Robot found at {robot['ip']} but may be offline")
+                return {"ip": robot['ip'], "mac": robot['mac'], "online": False}
+            else:
+                logger.error(f"❌ Robot with MAC {mac} not found on network")
+                return {"ip": None, "mac": mac, "online": False, "error": "Robot not found on network"}
+        except Exception as e:
+            logger.error(f"Discovery error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"ip": None, "mac": mac, "online": False, "error": str(e)}
+    
+    # No MAC provided - return all robots from discovery service
     try:
         discovery = get_discovery()
         
@@ -399,23 +438,6 @@ async def get_robots():
     return {"robots": robots}
 
 
-@app.get("/api/discover")
-async def discover_robot_ip(mac: str):
-    """Discover robot IP address by MAC address"""
-    try:
-        from g1_app.utils.robot_discovery import discover_robot
-        robot = discover_robot(target_mac=mac)
-        if robot and robot['online']:
-            return {"ip": robot['ip'], "mac": robot['mac'], "online": True}
-        elif robot:
-            return {"ip": robot['ip'], "mac": robot['mac'], "online": False}
-        else:
-            return {"ip": None, "mac": mac, "online": False, "error": "Robot not found"}
-    except Exception as e:
-        logger.error(f"Discovery error: {e}")
-        return {"ip": None, "mac": mac, "online": False, "error": str(e)}
-
-
 @app.post("/api/add_robot")
 async def add_robot(request: Request):
     """Add a new robot to the configuration"""
@@ -457,9 +479,95 @@ async def add_robot(request: Request):
         return {"success": False, "error": str(e)}
 
 
+@app.get("/api/wifi/current")
+async def get_current_wifi():
+    """Get current WiFi SSID"""
+    try:
+        if platform.system() == "Linux":
+            result = subprocess.run(
+                ['nmcli', '-t', '-f', 'active,ssid', 'dev', 'wifi'],
+                capture_output=True, text=True, timeout=2
+            )
+            for line in result.stdout.split('\n'):
+                if line.startswith('yes:'):
+                    ssid = line.split(':')[1]
+                    is_ap = 'G1_' in ssid or ssid == 'G1_6937'
+                    logger.info(f"Current WiFi: {ssid} (AP mode: {is_ap})")
+                    return {"ssid": ssid, "is_ap_mode": is_ap}
+        
+        elif platform.system() == "Windows":
+            result = subprocess.run(
+                ['netsh', 'wlan', 'show', 'interfaces'],
+                capture_output=True, text=True, timeout=2
+            )
+            for line in result.stdout.split('\n'):
+                if 'SSID' in line and 'BSSID' not in line:
+                    ssid = line.split(':')[1].strip()
+                    is_ap = 'G1_' in ssid
+                    logger.info(f"Current WiFi: {ssid} (AP mode: {is_ap})")
+                    return {"ssid": ssid, "is_ap_mode": is_ap}
+        
+        logger.warning("Could not detect WiFi SSID")
+        return {"ssid": None, "is_ap_mode": False}
+        
+    except Exception as e:
+        logger.error(f"Failed to get WiFi SSID: {e}")
+        return {"ssid": None, "is_ap_mode": False, "error": str(e)}
+
+
+@app.get("/api/robot/status")
+async def get_robot_status():
+    """Get current robot connection status"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {
+            "connected": False,
+            "robot": None,
+            "state": None
+        }
+    
+    try:
+        state = robot.current_state
+        allowed = robot.state_machine.get_allowed_transitions()
+        
+        return {
+            "connected": True,
+            "robot": {
+                "ip": robot.robot_ip,
+                "serial_number": robot.serial_number,
+                "mac": getattr(robot, 'robot_mac', None)
+            },
+            "state": {
+                "fsm_state": state.fsm_state.name,
+                "fsm_state_value": state.fsm_state.value,
+                "fsm_mode": state.fsm_mode,
+                "led_color": state.led_color.value,
+                "allowed_transitions": [s.name for s in allowed]
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting robot status: {e}")
+        return {
+            "connected": robot.connected,
+            "robot": {
+                "ip": robot.robot_ip if robot else None,
+                "serial_number": robot.serial_number if robot else None
+            },
+            "state": None,
+            "error": str(e)
+        }
+
+
 @app.post("/api/connect")
-async def connect_robot(mac: str, serial_number: str):
-    """Connect to robot"""
+async def connect_robot(mac: str, serial_number: str, mode: str = "auto"):
+    """Connect to robot
+    
+    Args:
+        mac: Robot MAC address
+        serial_number: Robot serial number  
+        mode: Connection mode - 'auto', 'sta', or 'ap'
+    """
     global robot
     
     try:
@@ -497,38 +605,88 @@ async def connect_robot(mac: str, serial_number: str):
             return {"success": False, "error": "Robot already connected. Disconnect first."}
         
         async with connect_lock:
-            # Discover IP from MAC address
-            logger.info(f"Discovering robot IP for MAC {mac}...")
-            from g1_app.utils.robot_discovery import discover_robot
-            discovered = discover_robot(target_mac=mac)
-            
-            if not discovered:
-                logger.error(f"Robot with MAC {mac} not found on network")
-                return {"success": False, "error": f"Robot not found on network. Check if robot is powered on and on same network."}
-            
-            ip = discovered['ip']
-            logger.info(f"Discovered robot at {ip} (SN: {serial_number})")
+            # Determine IP based on mode
+            if mode == "ap":
+                # AP mode: use fixed IP
+                robot_ip = "192.168.12.1"
+                logger.info(f"AP mode connection to {robot_ip}")
+                
+            else:
+                # STA mode or auto: Discover IP from MAC address
+                logger.info(f"Discovering robot IP for MAC {mac}...")
+                from g1_app.utils.robot_discovery import discover_robot
+                discovered = discover_robot(target_mac=mac, verify_with_ping=False)
+                
+                if not discovered:
+                    logger.error(f"Robot with MAC {mac} not found on network")
+                    return {
+                        "success": False,
+                        "error": f"Robot not found on network",
+                        "suggestions": [
+                            "Check if robot is powered on",
+                            "Ensure robot is on same WiFi network",
+                            "Try AP mode: Connect to robot's WiFi 'G1_xxxx'"
+                        ]
+                    }
+                
+                robot_ip = discovered['ip']
+                logger.info(f"Discovered robot at {robot_ip} (SN: {serial_number}, online={discovered.get('online')})")
             
             # Check if robot is reachable
             import subprocess
             import platform
             param = '-n' if platform.system().lower() == "windows" else '-c'
-            result = subprocess.run(['ping', param, '1', ip], 
+            result = subprocess.run(['ping', param, '1', robot_ip], 
                                   capture_output=True, text=True, timeout=3)
             if result.returncode != 0:
-                logger.error(f"Robot at {ip} is not reachable on network")
-                return {"success": False, "error": f"Robot at {ip} is not reachable. Check if robot is powered on."}
+                logger.error(f"Robot at {robot_ip} is not reachable on network")
+                return {
+                    "success": False,
+                    "error": f"Robot at {robot_ip} is not reachable",
+                    "suggestions": [
+                        "Check robot is powered on",
+                        "Verify network connection",
+                        "Try AP mode if on different network"
+                    ]
+                }
             
             try:
-                robot = RobotController(ip, serial_number)
+                robot = RobotController(robot_ip, serial_number)
+                robot.robot_mac = mac  # Store MAC address for status API
                 await robot.connect()
-                await robot.initialize_subscriptions()
+                
+                # Initialize subscriptions for video, state updates, battery, etc.
+                await robot.initialize_subscriptions(
+                    include_state=True,
+                    include_battery=True,
+                    include_video=True,
+                    include_lidar=True,
+                    include_lowstate=False,  # Don't need low-level motor state
+                    include_slam=False,      # Don't need SLAM data
+                    include_debug=False
+                )
+                print("DEBUG: Subscriptions initialized", flush=True)
+                logger.info("✅ Subscriptions initialized")
+                
+                # Broadcast initial state to all connected WebSocket clients
+                # (on_state_change only fires when state CHANGES, so we need this for first connection)
+                print("DEBUG: About to get initial state", flush=True)
+                initial_state = robot.current_state
+                print(f"DEBUG: Got initial state: {initial_state}", flush=True)
+                on_state_change(initial_state)
+                print("DEBUG: Called on_state_change", flush=True)
+                logger.info("📤 Broadcasted initial state to WebSocket clients")
+                
             except Exception as e:
                 logger.error(f"Failed to connect to robot: {e}")
                 import traceback
                 traceback.print_exc()
                 robot = None
-                return {"success": False, "error": f"Failed to connect: {str(e)}"}
+                return {
+                    "success": False,
+                    "error": f"Connection failed: {str(e)}",
+                    "suggestions": ["Check robot is in correct mode", "Try restarting robot"]
+                }
         
         # Get initial state
         state = robot.current_state
@@ -545,7 +703,8 @@ async def connect_robot(mac: str, serial_number: str):
             "robot": {
                 "mac": mac,
                 "serial_number": serial_number,
-                "ip": robot.robot_ip
+                "ip": robot_ip,
+                "mode": mode
             },
             "state": {
                 "fsm_state": state.fsm_state.name,
@@ -561,7 +720,11 @@ async def connect_robot(mac: str, serial_number: str):
             error_msg = "WebRTC connection failed. Robot may not support WebRTC or is not properly configured."
         elif "timeout" in error_msg.lower():
             error_msg = "Connection timeout. Check if robot is powered on and on same network."
-        return {"success": False, "error": error_msg}
+        return {
+            "success": False,
+            "error": error_msg,
+            "suggestions": ["Check robot power", "Verify network", "Try different mode"]
+        }
 
 
 @app.post("/api/disconnect")
@@ -580,6 +743,54 @@ async def disconnect_robot():
     except Exception as e:
         logger.error(f"Disconnect failed: {e}")
         return {"success": False, "error": str(e)}
+
+
+@app.post("/api/subscriptions/enable")
+async def enable_subscriptions(request: Request):
+    """Enable subscription groups for the active robot connection."""
+    global robot
+
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+
+    payload = await request.json()
+    groups = payload.get("groups", [])
+    enable_lidar_service = bool(payload.get("enable_lidar_service", False))
+
+    if not groups:
+        return {"success": False, "error": "No subscription groups provided"}
+
+    await robot.enable_subscriptions(groups, enable_lidar_service=enable_lidar_service)
+    return {"success": True, "enabled": groups}
+
+
+@app.post("/api/subscriptions/disable")
+async def disable_subscriptions(request: Request):
+    """Disable subscription groups for the active robot connection."""
+    global robot
+
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+
+    payload = await request.json()
+    groups = payload.get("groups", [])
+
+    if not groups:
+        return {"success": False, "error": "No subscription groups provided"}
+
+    robot.disable_subscriptions(groups)
+    return {"success": True, "disabled": groups}
+
+
+@app.get("/api/subscriptions/status")
+async def subscriptions_status():
+    """Get current subscription topics."""
+    global robot
+
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+
+    return {"success": True, **robot.get_subscription_status()}
 
 
 @app.post("/api/set_state")
@@ -716,7 +927,7 @@ async def set_speed_mode_endpoint(mode: int):
 
 
 @app.post("/api/balance_mode")
-async def set_balance_mode_endpoint(mode: int):
+async def set_balance_mode_endpoint(request: Request):
     """
     ⚠️⚠️⚠️ SAFETY CRITICAL - USER ACTION ONLY ⚠️⚠️⚠️
     
@@ -735,10 +946,22 @@ async def set_balance_mode_endpoint(mode: int):
         return {"success": False, "error": "Executor not initialized"}
     
     try:
+        data = await request.json()
+        mode = data.get("mode")
+    except Exception as e:
+        return {"success": False, "error": f"Invalid request body: {e}"}
+    
+    if mode is None:
+        return {"success": False, "error": "Missing 'mode' parameter"}
+    
+    if mode not in [0, 1]:
+        return {"success": False, "error": "Mode must be 0 (teach) or 1 (normal)"}
+    
+    try:
         await robot.executor.set_balance_mode(mode)
         return {
             "success": True,
-            "message": f"Balance mode set to {mode} (FSM should transition to 501)"
+            "message": f"Balance mode set to {mode} ({'teach/zero-torque' if mode == 0 else 'normal'})"
         }
     except Exception as e:
         logger.error(f"Set balance mode failed: {e}")
@@ -763,7 +986,7 @@ async def get_max_speeds_endpoint():
         return {"success": False, "error": str(e)}
 
 @app.post("/api/gesture")
-async def execute_gesture_endpoint(gesture_name: str):
+async def execute_gesture_endpoint(request: Request):
     """
     Execute arm gesture with FSM validation
     
@@ -773,6 +996,15 @@ async def execute_gesture_endpoint(gesture_name: str):
     
     if not robot or not robot.connected:
         return {"success": False, "error": "Not connected"}
+    
+    try:
+        data = await request.json()
+        gesture_name = data.get("gesture_name")
+    except Exception as e:
+        return {"success": False, "error": f"Invalid request body: {e}"}
+    
+    if not gesture_name:
+        return {"success": False, "error": "Missing 'gesture_name' parameter"}
     
     try:
         result = await robot.execute_gesture(gesture_name)
@@ -824,7 +1056,7 @@ async def get_gestures_list():
 
 
 @app.post("/api/custom_action/execute")
-async def execute_custom_action_endpoint(action_name: str):
+async def execute_custom_action_endpoint(request: Request):
     """Execute custom teach mode recording"""
     global robot
     
@@ -833,6 +1065,15 @@ async def execute_custom_action_endpoint(action_name: str):
     
     if not robot.executor:
         return {"success": False, "error": "Command executor not initialized"}
+    
+    try:
+        data = await request.json()
+        action_name = data.get("action_name")
+    except Exception as e:
+        return {"success": False, "error": f"Invalid request body: {e}"}
+    
+    if not action_name:
+        return {"success": False, "error": "Missing 'action_name' parameter"}
     
     try:
         result = await robot.executor.execute_custom_action(action_name)
@@ -920,132 +1161,186 @@ async def list_custom_actions_endpoint():
 # Teach Mode Endpoints
 # ============================================================================
 
-@app.post("/api/teach/start_record")
-async def start_recording():
-    """Start recording arm movements via teaching protocol"""
-    global robot
-    
+def _generate_action_timestamp() -> str:
+    """Generate action name like YYYY-MM-DD_HH:MM:SS (matches phone logs)."""
+    return datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+
+async def _teach_keepalive_loop():
+    """Send keepalive packets during teach-mode recording."""
+    global teach_recording_active, robot
+    while teach_recording_active:
+        try:
+            if robot and robot.connected and robot.executor:
+                await robot.executor.keepalive_teach_recording()
+        except Exception as e:
+            logger.warning(f"Teach recording keepalive failed: {e}")
+        await asyncio.sleep(1.0)
+
+
+async def _teach_recording_timeout():
+    """Auto-stop teach recording after max duration."""
+    global teach_recording_active, teach_recording_timeout_task
+    await asyncio.sleep(TEACH_RECORDING_MAX_SECONDS)
+    if teach_recording_active:
+        try:
+            await stop_teach_recording()
+        except Exception as e:
+            logger.warning(f"Teach recording auto-stop failed: {e}")
+    teach_recording_timeout_task = None
+
+
+@app.post("/api/teach/record/start")
+async def start_teach_recording(request: Request):
+    """Start teach-mode recording using API 7110 with keepalive."""
+    global robot, teach_recording_task, teach_recording_timeout_task, teach_recording_active, teach_recording_name
+
     if not robot or not robot.connected:
         return {"success": False, "error": "Robot not connected"}
-    
-    try:
-        result = await robot.executor.start_recording()
-        return {"success": True, "data": result}
-    except Exception as e:
-        logger.error(f"Start recording failed: {e}")
-        return {"success": False, "error": str(e)}
 
+    if not robot.executor:
+        return {"success": False, "error": "Executor not initialized"}
 
-@app.post("/api/teach/stop_record")
-async def stop_recording():
-    """Stop recording arm movements via teaching protocol"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Robot not connected"}
-    
-    try:
-        result = await robot.executor.stop_recording()
-        return {"success": True, "data": result}
-    except Exception as e:
-        logger.error(f"Stop recording failed: {e}")
-        return {"success": False, "error": str(e)}
+    if teach_recording_active:
+        return {"success": False, "error": "Recording already in progress"}
 
-
-@app.post("/api/teach/save_action")
-async def save_recorded_action(request: Request):
-    """Save recorded action with a name via teaching protocol"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Robot not connected"}
-    
     try:
         data = await request.json()
         action_name = data.get("action_name", "").strip()
-        
         if not action_name:
-            return {"success": False, "error": "action_name required"}
-        
-        # Validate action name
-        if not re.match(r'^[a-zA-Z0-9_]+$', action_name):
-            return {"success": False, "error": "Invalid action name. Use only letters, numbers, and underscores."}
-        
-        # Use teaching protocol save command (not official SDK API)
-        result = await robot.executor.save_teaching_action(action_name)
-        
-        # Also add to local favorites list
-        actions = load_custom_actions()
-        if action_name not in actions:
-            actions.append(action_name)
-            save_custom_actions(actions)
-        
-        return {"success": True, "data": result, "action_name": action_name}
+            action_name = _generate_action_timestamp()
+
+        result = await robot.executor.start_teach_recording(action_name)
+        teach_recording_active = True
+        teach_recording_name = action_name
+        teach_recording_task = asyncio.create_task(_teach_keepalive_loop())
+        teach_recording_timeout_task = asyncio.create_task(_teach_recording_timeout())
+
+        return {"success": True, "action_name": action_name, "data": result}
     except Exception as e:
-        logger.error(f"Save action failed: {e}")
+        logger.error(f"Teach record start failed: {e}")
         return {"success": False, "error": str(e)}
 
 
-@app.post("/api/teach/delete_action")
-async def delete_recorded_action(request: Request):
-    """Delete a saved action from local favorites only (no SDK API exists)"""
-    global robot
-    
-    try:
-        data = await request.json()
-        action_name = data.get("action_name", "").strip()
-        
-        if not action_name:
-            return {"success": False, "error": "action_name required"}
-        
-        # Remove from local favorites list only
-        # Note: There is NO official SDK API to delete actions from robot
-        actions = load_custom_actions()
-        if action_name in actions:
-            actions.remove(action_name)
-            save_custom_actions(actions)
-            return {"success": True, "message": f"Removed '{action_name}' from favorites", "action_name": action_name}
-        else:
-            return {"success": False, "error": f"Action '{action_name}' not found in favorites"}
-    except Exception as e:
-        logger.error(f"Delete action failed: {e}")
-        return {"success": False, "error": str(e)}
+@app.post("/api/teach/record/stop")
+async def stop_teach_recording():
+    """Stop teach-mode recording (API 7110) and stop keepalive."""
+    global robot, teach_recording_task, teach_recording_timeout_task, teach_recording_active, teach_recording_name
 
-
-@app.get("/api/teach/action_list")
-async def get_teach_action_list():
-    """Get list of all recorded actions from robot (API 7107)"""
-    global robot
-    
     if not robot or not robot.connected:
-        # Return local favorites if robot not connected
-        actions = load_custom_actions()
-        return {"success": True, "actions": actions, "source": "local"}
-    
+        return {"success": False, "error": "Robot not connected"}
+
+    if not robot.executor:
+        return {"success": False, "error": "Executor not initialized"}
+
     try:
-        result = await robot.get_custom_action_list()
-        
-        if result.get("success"):
-            # Parse the action list from robot response
-            actions_data = result.get("data")
-            if actions_data and isinstance(actions_data, dict):
-                # Extract action names from response
-                # Format might be: {"actions": ["action1", "action2"]} or similar
-                actions = actions_data.get("actions", actions_data.get("action_list", []))
-            else:
-                # Fallback to local favorites
-                actions = load_custom_actions()
-            
-            return {"success": True, "actions": actions, "source": "robot"}
-        else:
-            # Fallback to local favorites
-            actions = load_custom_actions()
-            return {"success": True, "actions": actions, "source": "local"}
+        result = await robot.executor.stop_teach_recording()
+
+        teach_recording_active = False
+        if teach_recording_task:
+            teach_recording_task.cancel()
+            teach_recording_task = None
+
+        if teach_recording_timeout_task:
+            teach_recording_timeout_task.cancel()
+            teach_recording_timeout_task = None
+
+        return {"success": True, "action_name": teach_recording_name, "data": result}
+    except Exception as e:
+        logger.error(f"Teach record stop failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/teach/actions")
+async def get_custom_actions():
+    """Get list of custom actions from robot (API 7107)"""
+    global robot
+
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Robot not connected"}
+
+    if not robot.executor:
+        return {"success": False, "error": "Executor not initialized"}
+
+    try:
+        result = await robot.executor.get_custom_action_list()
+        return {"success": True, "data": result}
     except Exception as e:
         logger.error(f"Get action list failed: {e}")
-        # Fallback to local favorites
-        actions = load_custom_actions()
-        return {"success": True, "actions": actions, "source": "local"}
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/teach/rename")
+async def rename_teach_action(request: Request):
+    """Rename a taught action (API 7109)."""
+    global robot
+
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Robot not connected"}
+
+    if not robot.executor:
+        return {"success": False, "error": "Executor not initialized"}
+
+    try:
+        data = await request.json()
+        old_name = data.get("old_name", "").strip()
+        new_name = data.get("new_name", "").strip()
+
+        if not old_name or not new_name:
+            return {"success": False, "error": "old_name and new_name required"}
+
+        result = await robot.executor.rename_custom_action(old_name, new_name)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.error(f"Teach rename failed: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/teach/play")
+async def play_teach_action(request: Request):
+    """Play a custom action (API 7108)"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Robot not connected"}
+    
+    if not robot.executor:
+        return {"success": False, "error": "Executor not initialized"}
+    
+    try:
+        data = await request.json()
+        action_name = data.get("action_name", "").strip()
+        
+        if not action_name:
+            return {"success": False, "error": "action_name required"}
+        
+        result = await robot.executor.execute_custom_action(action_name)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.error(f"Play action failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/teach/stop")
+async def stop_teach_action():
+    """Stop current custom action playback (API 7113)"""
+    global robot
+    
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Robot not connected"}
+    
+    if not robot.executor:
+        return {"success": False, "error": "Executor not initialized"}
+    
+    try:
+        result = await robot.executor.stop_custom_action()
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.error(f"Stop action failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ========================================================================
+# ARM TEACHING ENDPOINTS (Coordinate-based motion control)
+# ========================================================================
 
 
 # Teach mode page route
@@ -1549,20 +1844,37 @@ async def get_lidar_status():
         if not robot or not robot.connected:
             return {"success": False, "error": "Not connected"}
         
-        lidar_active = False
-        if hasattr(robot, 'state_machine') and robot.state_machine:
-            if hasattr(robot.state_machine, 'current_state'):
-                lidar_active = robot.state_machine.current_state.lidar_active
-        
+        topics = robot.get_subscription_status().get("topics", [])
+        lidar_topics = [
+            "rt/unitree/slam_mapping/points",
+            "rt/utlidar/cloud_livox_mid360",
+            "rt/utlidar/imu_livox_mid360",
+        ]
+        subscribed = [topic for topic in lidar_topics if topic in topics]
+
         return {
             "success": True,
-            "active": lidar_active,
-            "topic": "rt/utlidar/cloud_livox_mid360",
-            "frequency": "10Hz" if lidar_active else "N/A"
+            "subscribed_topics": subscribed,
+            "all_topics": lidar_topics,
         }
     except Exception as e:
         logger.error(f"Error in /api/lidar/status: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
+
+
+@app.post("/api/lidar/service")
+async def set_lidar_service(request: Request):
+    """Enable or disable the lidar_driver service (explicit user action only)."""
+    global robot
+
+    if not robot or not robot.connected:
+        return {"success": False, "error": "Not connected"}
+
+    payload = await request.json()
+    enable = bool(payload.get("enable", False))
+
+    await robot.set_lidar_service(enable)
+    return {"success": True, "enable": enable}
 
 @app.get("/api/lidar/pointcloud")
 async def get_lidar_pointcloud():
@@ -1980,156 +2292,10 @@ async def get_current_position():
 
 
 # ========================================================================
-# Teaching Mode API Endpoints (WebRTC via datachannel)
+# ALL Teaching Mode API Endpoints REMOVED - Used Unconfirmed UDP Protocol
+# Phone logs show WebRTC JSON protocol only (APIs 7107-7113)
+# See /api/teach/* endpoints above for confirmed phone-log-based implementation
 # ========================================================================
-
-@app.post("/api/teaching/list")
-async def teaching_list():
-    """Query teaching actions via UDP"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    try:
-        import socket
-        import struct
-        import zlib
-        
-        # Build 0x1A packet
-        packet = bytearray()
-        packet.append(0x17)
-        packet.extend([0xFE, 0xFD, 0x00])
-        packet.extend([0x01, 0x00])
-        packet.extend([0x00, 0x00])
-        packet.extend([0x00, 0x00])
-        packet.extend([0x00, 0x01])
-        packet.append(0x1A)  # LIST command
-        
-        payload = bytes(44)
-        packet.extend(struct.pack('>H', len(payload)))
-        packet.extend(payload)
-        
-        crc = zlib.crc32(packet) & 0xFFFFFFFF
-        packet.extend(struct.pack('>I', crc))
-        
-        logger.info(f"📋 Sending 0x1A LIST command to {robot.robot_ip}:49504")
-        
-        # Send via UDP
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(2)
-        sock.sendto(bytes(packet), (robot.robot_ip, 49504))
-        
-        # Try to receive response
-        try:
-            response, _ = sock.recvfrom(4096)
-            logger.info(f"✅ Got response: {len(response)} bytes")
-            return {"success": True, "response_size": len(response)}
-        except socket.timeout:
-            logger.warning("No response from robot (timeout)")
-            return {"success": True, "sent": True, "response": None}
-        finally:
-            sock.close()
-            
-    except Exception as e:
-        logger.error(f"Teaching list failed: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teaching/enter_damping")
-async def teaching_enter_damping():
-    """Enter damping/teaching mode (command 0x0D)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    try:
-        result = await robot.executor.enter_teaching_mode()
-        return {"success": True, "result": result, "message": "Robot entered damping mode - it is now compliant"}
-    except Exception as e:
-        logger.error(f"Enter teaching mode failed: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teaching/exit_damping")
-async def teaching_exit_damping():
-    """Exit damping/teaching mode (command 0x0E)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    try:
-        result = await robot.executor.exit_teaching_mode()
-        return {"success": True, "result": result, "message": "Robot exited damping mode"}
-    except Exception as e:
-        logger.error(f"Exit teaching mode failed: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teaching/start_record")
-async def teaching_start_record():
-    """Start recording trajectory (command 0x0F)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    try:
-        result = await robot.executor.start_recording()
-        return {"success": True, "result": result, "message": "Recording started"}
-    except Exception as e:
-        logger.error(f"Start recording failed: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teaching/stop_record")
-async def teaching_stop_record():
-    """Stop recording trajectory (command 0x0F toggle)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    try:
-        result = await robot.executor.stop_recording()
-        return {"success": True, "result": result, "message": "Recording stopped"}
-    except Exception as e:
-        logger.error(f"Stop recording failed: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teaching/save")
-async def teaching_save(action_name: str, duration_ms: int = 0):
-    """Save teaching action (command 0x2B)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    try:
-        result = await robot.executor.save_teaching_action(action_name, duration_ms)
-        return {"success": True, "result": result, "message": f"Saved action '{action_name}'"}
-    except Exception as e:
-        logger.error(f"Save teaching action failed: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/teaching/play")
-async def teaching_play(action_id: int = 1):
-    """Play teaching action (command 0x41)"""
-    global robot
-    
-    if not robot or not robot.connected:
-        return {"success": False, "error": "Not connected"}
-    
-    try:
-        result = await robot.executor.play_teaching_action(action_id)
-        return {"success": True, "result": result, "message": f"Playing action {action_id}"}
-    except Exception as e:
-        logger.error(f"Play teaching action failed: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
 
 
 # ============================================================================
@@ -2381,25 +2547,6 @@ async def arm_go_to_preset(preset_name: str, arm: str = "left", speed: float = 1
     except Exception as e:
         logger.error(f"Go to preset failed: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
-
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time updates"""
-    await manager.connect(websocket)
-    
-    try:
-        while True:
-            # Keep connection alive and handle incoming messages
-            data = await websocket.receive_json()
-            # Echo back for ping/pong
-            if data.get("type") == "ping":
-                await websocket.send_json({"type": "pong"})
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-        manager.disconnect(websocket)
 
 
 def main():

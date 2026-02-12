@@ -7,7 +7,7 @@ import sys
 import logging
 import struct
 import os
-from typing import Optional
+from typing import Optional, List
 
 from ..utils.pathing import get_webrtc_paths
 
@@ -66,6 +66,11 @@ class RobotController:
         # LiDAR point cloud storage and handler
         self.latest_lidar_points = []
         self.lidar_handler = LiDARPointCloudHandler()
+
+        # Subscription tracking
+        self._subscriptions = set()
+        self._debug_logging_enabled = False
+        self._datachannel_dispatch_original = None
         
         # SLAM and Navigation state
         self.slam_active = False
@@ -88,7 +93,7 @@ class RobotController:
                 logger.debug(f"📊 Point cloud updated: {len(points)} points -> {len(self.latest_lidar_points)} downsampled")
                 
                 # Emit event for real-time UI updates
-                event_bus.emit(Events.LIDAR_CLOUD, {'points': self.latest_lidar_points})
+                EventBus.emit(Events.LIDAR_CLOUD, {'points': self.latest_lidar_points})
             except Exception as e:
                 logger.error(f"Error updating point cloud display: {e}")
         
@@ -145,11 +150,11 @@ class RobotController:
         include_battery: bool = True,
         include_video: bool = True,
         include_slam: bool = True,
-        include_debug: bool = True,
+        include_debug: bool = False,
         include_lidar: bool = True,
-        enable_lidar_service: bool = True,
+        enable_lidar_service: bool = False,
     ) -> None:
-        """Subscribe to default topics and enable supporting services."""
+        """Subscribe to default topics and optionally enable supporting services."""
         if not self.conn or not self.executor:
             raise RuntimeError("Not connected")
 
@@ -187,7 +192,99 @@ class RobotController:
 
         # Enable LiDAR driver service (required for LiDAR data to publish)
         if enable_lidar_service:
-            await self._enable_lidar_service()
+            await self._set_lidar_service(True)
+
+    async def enable_subscriptions(self, groups: List[str], *, enable_lidar_service: bool = False) -> None:
+        """Enable a set of subscription groups."""
+        groups_set = set(groups)
+        await self.initialize_subscriptions(
+            include_state="state" in groups_set,
+            include_lowstate="lowstate" in groups_set,
+            include_battery="battery" in groups_set,
+            include_video="video" in groups_set,
+            include_slam="slam" in groups_set,
+            include_debug="debug" in groups_set,
+            include_lidar="lidar" in groups_set,
+            enable_lidar_service=enable_lidar_service,
+        )
+
+    def disable_subscriptions(self, groups: List[str]) -> None:
+        """Disable a set of subscription groups."""
+        groups_set = set(groups)
+
+        if not self.conn:
+            return
+
+        if "state" in groups_set:
+            self._unsubscribe_topics([Topic.SPORT_MODE_STATE_LF])
+
+        if "lowstate" in groups_set:
+            self._unsubscribe_topics(["rt/lowstate", "rt/lf/lowstate"])
+
+        if "battery" in groups_set:
+            self._unsubscribe_topics(self._get_battery_topics())
+
+        if "slam" in groups_set:
+            self._unsubscribe_topics([
+                "rt/slam_info",
+                "rt/slam_key_info",
+                "rt/api/slam_operate/response",
+                "rt/unitree/slam_relocation/odom",
+            ])
+
+        if "lidar" in groups_set:
+            self._unsubscribe_topics([
+                "rt/unitree/slam_mapping/points",
+                Topic.LIDAR_CLOUD,
+                Topic.LIDAR_IMU,
+            ])
+
+        if "debug" in groups_set:
+            self._unsubscribe_topics(self._get_debug_topics())
+            self._disable_debug_logging()
+
+    def get_subscription_status(self) -> dict:
+        """Return current subscription topics."""
+        return {
+            "topics": sorted(self._subscriptions),
+        }
+
+    def _subscribe_topic(self, topic: str, callback) -> None:
+        if not self.conn:
+            return
+        if topic in self._subscriptions:
+            return
+        self.conn.datachannel.pub_sub.subscribe(topic, callback)
+        self._subscriptions.add(topic)
+
+    def _unsubscribe_topics(self, topics: List[str]) -> None:
+        if not self.conn:
+            return
+        for topic in topics:
+            if topic in self._subscriptions:
+                self.conn.datachannel.pub_sub.unsubscribe(topic)
+                self._subscriptions.discard(topic)
+
+    def _get_battery_topics(self) -> List[str]:
+        return [
+            "rt/lf/bmsstate",
+            "rt/bmsstate",
+            "rt/lf/agvbmsstate",
+            "rt/agvbmsstate",
+            "rt/lf/bms",
+            "rt/bms",
+            "rt/battery",
+            "rt/lf/battery",
+            "rt/sensor/bms",
+        ]
+
+    def _get_debug_topics(self) -> List[str]:
+        return [
+            "rt/utlidar/cloud_livox_mid360",
+            "rt/lidar/cloud",
+            "rt/pointcloud",
+            "rt/cloud",
+        ]
     
     async def disconnect(self) -> None:
         """Close connection to robot"""
@@ -259,10 +356,7 @@ class RobotController:
         try:
             # Subscribe to low-frequency sportmodestate (20Hz)
             # This is more reliable than high-frequency version
-            self.conn.datachannel.pub_sub.subscribe(
-                Topic.SPORT_MODE_STATE_LF,  # rt/lf/sportmodestate
-                on_state_update
-            )
+            self._subscribe_topic(Topic.SPORT_MODE_STATE_LF, on_state_update)
             logger.info(f"✅ Subscribed to {Topic.SPORT_MODE_STATE_LF}")
         except Exception as e:
             logger.warning(f"Could not subscribe to state topic: {e}")
@@ -295,11 +389,11 @@ class RobotController:
         
         try:
             # Try both possible topic names
-            self.conn.datachannel.pub_sub.subscribe("rt/lowstate", on_lowstate_update)
+            self._subscribe_topic("rt/lowstate", on_lowstate_update)
             logger.info("✅ Subscribed to rt/lowstate for arm position reading")
-            
+
             # Also try the LF prefix version (like other topics)
-            self.conn.datachannel.pub_sub.subscribe("rt/lf/lowstate", on_lowstate_update)
+            self._subscribe_topic("rt/lf/lowstate", on_lowstate_update)
             logger.info("✅ Also subscribed to rt/lf/lowstate as fallback")
         except Exception as e:
             logger.warning(f"Could not subscribe to rt/lowstate: {e}")
@@ -348,21 +442,11 @@ class RobotController:
         
         try:
             # Try all possible BMS topic patterns
-            potential_topics = [
-                "rt/lf/bmsstate",     # Most likely based on lowstate pattern
-                "rt/bmsstate",
-                "rt/lf/agvbmsstate",
-                "rt/agvbmsstate", 
-                "rt/lf/bms",
-                "rt/bms",
-                "rt/battery",
-                "rt/lf/battery",
-                "rt/sensor/bms"       # Sensor data pattern
-            ]
+            potential_topics = self._get_battery_topics()
             
             for topic in potential_topics:
                 try:
-                    self.conn.datachannel.pub_sub.subscribe(topic, on_bms_update)
+                    self._subscribe_topic(topic, on_bms_update)
                     logger.info(f"✅ Subscribed to {topic} for BMS data")
                 except Exception as sub_err:
                     logger.debug(f"Could not subscribe to {topic}: {sub_err}")
@@ -565,14 +649,45 @@ class RobotController:
             # rt/unitree/slam_relocation/odom ONLY publishes when navigating (API 1804 + 1102)
             # Subscribe to them dynamically when SLAM/navigation starts (see _subscribe_to_slam_odom)
             
+            def on_utlidar_point_cloud(data: dict):
+                """Handle raw LiDAR point cloud from rt/utlidar/cloud_livox_mid360"""
+                try:
+                    points_array = None
+
+                    if isinstance(data, dict) and 'data' in data and isinstance(data.get('data'), dict):
+                        inner = data['data']
+                        if 'points' in inner:
+                            points_array = inner['points']
+                    elif isinstance(data, dict) and 'points' in data:
+                        points_array = data['points']
+
+                    if points_array is not None and hasattr(points_array, '__len__') and len(points_array) > 0:
+                        points_list = points_array[::10].tolist() if hasattr(points_array, 'tolist') else list(points_array[::10])
+                        self.latest_lidar_points = points_list
+                        EventBus.emit(Events.LIDAR_CLOUD, {'points': points_list})
+                        logger.info(f"Point cloud (utlidar): {len(points_array)} points -> {len(points_list)} downsampled")
+                except Exception as e:
+                    logger.error(f"Error processing utlidar point cloud: {e}", exc_info=True)
+
+            def on_utlidar_imu(data: dict):
+                """Handle raw LiDAR IMU data"""
+                EventBus.emit(Events.LIDAR_IMU, data)
+
             # CRITICAL: Subscribe to point cloud topic (binary data)
             # This provides the 3D visualization data that shows walls, obstacles, etc.
             try:
-                self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_mapping/points", on_slam_point_cloud)
-                logger.info("📡 Subscribed to SLAM point cloud: rt/unitree/slam_mapping/points")
-                logger.info("   ⚠️  Requires LibVoxel decoder patch to work!")
+                self._subscribe_topic("rt/unitree/slam_mapping/points", on_slam_point_cloud)
+                logger.info("Subscribed to SLAM point cloud: rt/unitree/slam_mapping/points")
             except Exception as sub_err:
-                logger.warning(f"Could not subscribe to point cloud: {sub_err}")
+                logger.warning(f"Could not subscribe to SLAM point cloud: {sub_err}")
+
+            # Also subscribe to raw LiDAR point cloud if available
+            try:
+                self._subscribe_topic(Topic.LIDAR_CLOUD, on_utlidar_point_cloud)
+                self._subscribe_topic(Topic.LIDAR_IMU, on_utlidar_imu)
+                logger.info(f"Subscribed to raw LiDAR topics: {Topic.LIDAR_CLOUD}, {Topic.LIDAR_IMU}")
+            except Exception as sub_err:
+                logger.warning(f"Could not subscribe to raw LiDAR topics: {sub_err}")
             
             logger.info("ℹ️  SLAM odometry will only flow during active mapping (API 1801) or navigation (API 1804+1102)")
         
@@ -618,7 +733,7 @@ class RobotController:
                                     logger.debug(f"📊 SLAM Info point cloud: {len(points)} points -> {len(downsampled)} downsampled")
                                     
                                     # Emit event for real-time UI updates
-                                    event_bus.emit(Events.LIDAR_CLOUD, {'points': downsampled})
+                                    EventBus.emit(Events.LIDAR_CLOUD, {'points': downsampled})
                         
                         # Collect trajectory points during mapping (with deduplication)
                         if slam_data.get('type') in ['mapping_info', 'pos_info']:
@@ -706,10 +821,10 @@ class RobotController:
                 except Exception as e:
                     logger.error(f"Error processing SLAM response: {e}")
             
-            self.conn.datachannel.pub_sub.subscribe("rt/slam_info", slam_info_callback)
-            self.conn.datachannel.pub_sub.subscribe("rt/slam_key_info", slam_key_info_callback)
-            self.conn.datachannel.pub_sub.subscribe("rt/api/slam_operate/response", slam_api_response_callback)
-            self.conn.datachannel.pub_sub.subscribe("rt/unitree/slam_relocation/odom", relocation_odom_callback)
+            self._subscribe_topic("rt/slam_info", slam_info_callback)
+            self._subscribe_topic("rt/slam_key_info", slam_key_info_callback)
+            self._subscribe_topic("rt/api/slam_operate/response", slam_api_response_callback)
+            self._subscribe_topic("rt/unitree/slam_relocation/odom", relocation_odom_callback)
             
             logger.info("📡 Subscribed to SLAM feedback topics (including relocation odometry)")
             
@@ -718,12 +833,7 @@ class RobotController:
     
     def _debug_all_topics(self) -> None:
         """Subscribe to common topics to see what's available"""
-        debug_topics = [
-            "rt/utlidar/cloud_livox_mid360",
-            "rt/lidar/cloud",
-            "rt/pointcloud",
-            "rt/cloud",
-        ]
+        debug_topics = self._get_debug_topics()
         
         def debug_callback(topic_name):
             def callback(data: dict):
@@ -732,7 +842,7 @@ class RobotController:
         
         for topic in debug_topics:
             try:
-                self.conn.datachannel.pub_sub.subscribe(topic, debug_callback(topic))
+                self._subscribe_topic(topic, debug_callback(topic))
                 logger.info(f"📡 Debug subscribed to: {topic}")
             except Exception as e:
                 logger.debug(f"Could not subscribe to {topic}: {e}")
@@ -740,7 +850,9 @@ class RobotController:
     def _log_all_datachannel_messages(self) -> None:
         """Patch datachannel to log ALL incoming messages"""
         try:
-            original_dispatch = self.conn.datachannel.pub_sub._dispatch_message
+            if self._debug_logging_enabled:
+                return
+            self._datachannel_dispatch_original = self.conn.datachannel.pub_sub._dispatch_message
             message_count = [0]
             seen_topics = set()
             
@@ -766,17 +878,26 @@ class RobotController:
                         logger.warning(f"🔶   Keys: {list(message.keys())}")
                 
                 # Call original dispatch
-                return original_dispatch(topic, message)
+                return self._datachannel_dispatch_original(topic, message)
             
             # Monkey-patch the dispatch method
             self.conn.datachannel.pub_sub._dispatch_message = logging_dispatch
-            logger.warning("🔧 PATCHED datachannel to log ALL messages!")
+            self._debug_logging_enabled = True
+            logger.warning("Patched datachannel to log messages")
             
         except Exception as e:
             logger.error(f"Failed to patch datachannel logging: {e}")
     
-    async def _enable_lidar_service(self) -> None:
-        """Enable LiDAR driver service to publish point cloud data"""
+    def _disable_debug_logging(self) -> None:
+        """Restore original datachannel dispatch when debug logging is disabled."""
+        if not self.conn or not self._debug_logging_enabled:
+            return
+        if self._datachannel_dispatch_original:
+            self.conn.datachannel.pub_sub._dispatch_message = self._datachannel_dispatch_original
+        self._debug_logging_enabled = False
+
+    async def _set_lidar_service(self, enable: bool) -> None:
+        """Enable/disable LiDAR driver service to publish point cloud data."""
         try:
             from ..api.constants import SystemService
             
@@ -784,12 +905,13 @@ class RobotController:
             def on_robot_state_response(data: dict):
                 logger.warning(f"🔧 ROBOT_STATE RESPONSE: {data}")
             
-            self.conn.datachannel.pub_sub.subscribe("rt/api/robot_state/response", on_robot_state_response)
-            
-            logger.info("Enabling lidar_driver service...")
+            self._subscribe_topic("rt/api/robot_state/response", on_robot_state_response)
+
+            action = "Enabling" if enable else "Disabling"
+            logger.info(f"{action} lidar_driver service...")
             response = await self.executor.service_switch(
                 service_name=SystemService.LIDAR_DRIVER,
-                enable=True
+                enable=enable
             )
             
             # Wait a moment for response
@@ -798,7 +920,7 @@ class RobotController:
             logger.info(f"LiDAR service command sent: {response}")
                 
         except Exception as e:
-            logger.warning(f"Could not enable LiDAR service: {e}")
+            logger.warning(f"Could not set LiDAR service: {e}")
     
     # ========================================================================
     # Command Methods (delegate to executor)
@@ -822,6 +944,10 @@ class RobotController:
         except Exception as e:
             logger.error(f"Set speed mode failed: {e}")
             return False
+
+    async def set_lidar_service(self, enable: bool) -> None:
+        """Enable/disable the lidar_driver service (explicit user action only)."""
+        await self._set_lidar_service(enable)
     
     def get_max_speeds(self) -> dict:
         """Get current max speeds based on FSM state and speed mode"""

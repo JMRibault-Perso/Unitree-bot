@@ -26,6 +26,10 @@ class CommandExecutor:
             datachannel: WebRTC datachannel for sending commands
         """
         self.datachannel = datachannel
+        
+        # Gesture execution tracking
+        self.gesture_executing = False
+        self.gesture_complete_event = None
     
     # ========================================================================
     # System Service Management (robot_state Service)
@@ -315,22 +319,75 @@ class CommandExecutor:
     # Arm Action Commands (Arm Service)
     # ========================================================================
     
-    async def execute_gesture(self, gesture: ArmGesture) -> dict:
+    async def execute_gesture(self, gesture: ArmGesture, wait_for_completion: bool = True, timeout: float = 10.0) -> dict:
         """
         Execute pre-programmed arm gesture
         
         Args:
             gesture: Gesture ID from ArmGesture enum
+            wait_for_completion: If True, wait for gesture to complete before returning
+            timeout: Maximum seconds to wait for completion
             
         Returns:
             Command payload
         """
+        # Check if another gesture is running
+        if self.gesture_executing:
+            logger.warning(f"Gesture {gesture.name} blocked - another gesture is running")
+            return {"success": False, "error": "Another gesture is already executing"}
+        
         payload = {
             "api_id": ArmAPI.EXECUTE_ACTION,
             "parameter": json.dumps({"action_id": int(gesture)})
         }
         logger.info(f"Executing gesture: {gesture.name}")
-        return await self._send_command(payload, service=Service.ARM)
+        
+        if not wait_for_completion:
+            return await self._send_command(payload, service=Service.ARM)
+        
+        # Set up completion tracking
+        self.gesture_executing = True
+        self.gesture_complete_event = asyncio.Event()
+        
+        # Subscribe to action state updates
+        def _gesture_state_callback(message):
+            try:
+                if isinstance(message, dict):
+                    data = message.get("data", {})
+                    if isinstance(data, str):
+                        data = json.loads(data)
+                    
+                    # Check if action completed (status == 0 means idle/complete)
+                    status = data.get("status", -1)
+                    if status == 0 and self.gesture_complete_event:
+                        logger.info(f"✅ Gesture {gesture.name} completed")
+                        self.gesture_complete_event.set()
+            except Exception as e:
+                logger.error(f"Gesture state callback error: {e}")
+        
+        try:
+            self.datachannel.pub_sub.subscribe("rt/arm/action/state", _gesture_state_callback)
+            
+            # Send gesture command
+            result = await self._send_command(payload, service=Service.ARM)
+            
+            # Wait for completion or timeout
+            try:
+                await asyncio.wait_for(self.gesture_complete_event.wait(), timeout=timeout)
+                logger.info(f"Gesture {gesture.name} finished successfully")
+            except asyncio.TimeoutError:
+                logger.warning(f"Gesture {gesture.name} timed out after {timeout}s")
+        
+        finally:
+            # Clean up
+            self.gesture_executing = False
+            self.gesture_complete_event = None
+            try:
+                self.datachannel.pub_sub.unsubscribe("rt/arm/action/state")
+            except Exception as e:
+                logger.warning(f"Failed to unsubscribe from action state: {e}")
+        
+        return result
     
     async def get_action_list(self) -> dict:
         """
@@ -350,22 +407,75 @@ class CommandExecutor:
         """Release arm from held position"""
         return await self.execute_gesture(ArmGesture.RELEASE_ARM)
     
-    async def execute_custom_action(self, action_name: str) -> dict:
+    async def execute_custom_action(self, action_name: str, wait_for_completion: bool = True, timeout: float = 30.0) -> dict:
         """
         Play custom teach mode recording
         
         Args:
             action_name: Name of recorded action
+            wait_for_completion: If True, wait for action to complete before returning
+            timeout: Maximum seconds to wait for completion
             
         Returns:
             Command payload
         """
+        # Check if another action is running
+        if self.gesture_executing:
+            logger.warning(f\"Custom action {action_name} blocked - another action is running\")
+            return {\"success\": False, \"error\": \"Another action is already executing\"}
+        
         payload = {
-            "api_id": ArmAPI.EXECUTE_CUSTOM_ACTION,
-            "parameter": json.dumps({"action_name": action_name})
+            \"api_id\": ArmAPI.EXECUTE_CUSTOM_ACTION,
+            \"parameter\": json.dumps({\"action_name\": action_name})
         }
-        logger.info(f"Playing custom action: {action_name}")
-        return await self._send_command(payload, service=Service.ARM)
+        logger.info(f\"Playing custom action: {action_name}\")
+        
+        if not wait_for_completion:
+            return await self._send_command(payload, service=Service.ARM)
+        
+        # Set up completion tracking
+        self.gesture_executing = True
+        self.gesture_complete_event = asyncio.Event()
+        
+        # Subscribe to action state updates
+        def _action_state_callback(message):
+            try:
+                if isinstance(message, dict):
+                    data = message.get(\"data\", {})
+                    if isinstance(data, str):
+                        data = json.loads(data)
+                    
+                    # Check if action completed (status == 0 means idle/complete)
+                    status = data.get(\"status\", -1)
+                    if status == 0 and self.gesture_complete_event:
+                        logger.info(f\"\u2705 Custom action {action_name} completed\")
+                        self.gesture_complete_event.set()
+            except Exception as e:
+                logger.error(f\"Action state callback error: {e}\")
+        
+        try:
+            self.datachannel.pub_sub.subscribe(\"rt/arm/action/state\", _action_state_callback)
+            
+            # Send action command
+            result = await self._send_command(payload, service=Service.ARM)
+            
+            # Wait for completion or timeout
+            try:
+                await asyncio.wait_for(self.gesture_complete_event.wait(), timeout=timeout)
+                logger.info(f\"Custom action {action_name} finished successfully\")
+            except asyncio.TimeoutError:
+                logger.warning(f\"Custom action {action_name} timed out after {timeout}s\")
+        
+        finally:
+            # Clean up
+            self.gesture_executing = False
+            self.gesture_complete_event = None
+            try:
+                self.datachannel.pub_sub.unsubscribe(\"rt/arm/action/state\")
+            except Exception as e:
+                logger.warning(f\"Failed to unsubscribe from action state: {e}\")
+        
+        return result
     
     async def stop_custom_action(self) -> dict:
         """Stop custom action playback"""
@@ -375,6 +485,94 @@ class CommandExecutor:
         }
         logger.info("Stopping custom action")
         return self._send_command(payload, service=Service.ARM)
+
+    async def start_teach_recording(self, action_name: str) -> dict:
+        """
+        Start teach-mode recording using Arm API 7110.
+        
+        Phone log sequence:
+        1. Send API 7110 with action_name
+        2. Send keepalive API 7110 with empty action_name
+        3. Subscribe to rt/arm/action/state for status updates
+
+        Args:
+            action_name: Initial action name (timestamp or user-provided)
+
+        Returns:
+            Command payload
+        """
+        # Step 1: Send start command
+        payload = {
+            "api_id": ArmAPI.RECORD_CUSTOM_ACTION,
+            "parameter": json.dumps({"action_name": action_name})
+        }
+        logger.info(f"Starting teach recording: {action_name}")
+        result = await self._send_command(payload, service=Service.ARM)
+        
+        # Step 2: Send immediate keepalive (phone logs show this)
+        await self.keepalive_teach_recording()
+        
+        # Step 3: Subscribe to action state topic for status updates
+        def _action_state_callback(message):
+            try:
+                if isinstance(message, dict):
+                    data = message.get("data", {})
+                    if isinstance(data, str):
+                        import json
+                        data = json.loads(data)
+                    logger.info(f"📝 Teach mode status: {data}")
+            except Exception as e:
+                logger.error(f"Action state callback error: {e}")
+        
+        self.datachannel.pub_sub.subscribe("rt/arm/action/state", _action_state_callback)
+        logger.info("✅ Subscribed to rt/arm/action/state topic")
+        
+        return result
+
+    async def keepalive_teach_recording(self) -> dict:
+        """Keep teach-mode recording alive (API 7110 with empty action_name)."""
+        payload = {
+            "api_id": ArmAPI.RECORD_CUSTOM_ACTION,
+            "parameter": json.dumps({"action_name": ""})
+        }
+        logger.debug("Teach recording keepalive")
+        return await self._send_command(payload, service=Service.ARM)
+
+    async def stop_teach_recording(self) -> dict:
+        """Stop teach-mode recording (API 7110 with EMPTY parameter - phone log confirmed)."""
+        payload = {
+            "api_id": ArmAPI.RECORD_CUSTOM_ACTION,
+            "parameter": ""  # Empty string, NOT json.dumps({"action_name": ""})
+        }
+        logger.info("Stopping teach recording")
+        result = await self._send_command(payload, service=Service.ARM)
+        
+        # Unsubscribe from action state updates
+        try:
+            self.datachannel.pub_sub.unsubscribe("rt/arm/action/state")
+            logger.info("✅ Unsubscribed from rt/arm/action/state topic")
+        except Exception as e:
+            logger.warning(f"Failed to unsubscribe from action state: {e}")
+        
+        return result
+
+    async def rename_custom_action(self, old_name: str, new_name: str) -> dict:
+        """
+        Rename a taught action (API 7109).
+
+        Args:
+            old_name: Existing action name
+            new_name: New action name
+
+        Returns:
+            Command payload
+        """
+        payload = {
+            "api_id": ArmAPI.RENAME_CUSTOM_ACTION,
+            "parameter": json.dumps({"pre_name": old_name, "new_name": new_name})
+        }
+        logger.info(f"Renaming action '{old_name}' -> '{new_name}'")
+        return await self._send_command(payload, service=Service.ARM)
     
     # ========================================================================
     # High-Level Convenience Methods
@@ -484,176 +682,22 @@ class CommandExecutor:
         return await self._send_command(payload, service=service)
     
     # ========================================================================
-    # Teaching Mode Commands (WebRTC Datachannel Protocol)
+    # Custom Action Management (Phone Log APIs 7107-7110, 7113)
     # ========================================================================
     
-    async def list_teaching_actions(self) -> dict:
+    async def get_custom_action_list(self) -> dict:
         """
-        Query robot for list of saved teaching actions
-        
-        Uses WebRTC datachannel to send teaching protocol command 0x1A
+        Get list of saved custom actions (API 7107)
         
         Returns:
             Response with action list
         """
-        logger.info("📋 Querying teaching actions...")
-        
-        # Send raw teaching protocol packet via WebRTC
-        # Teaching mode uses datachannel directly with binary protocol
-        return await self._send_teaching_command(cmd_id=0x1A)
-    
-    async def enter_teaching_mode(self) -> dict:
-        """
-        Enter damping/teaching mode (command 0x0D)
-        
-        Puts robot into compliant state for manual manipulation
-        
-        Returns:
-            Response from robot
-        """
-        logger.warning("⚠️  ENTERING TEACHING MODE - Robot will become compliant!")
-        return await self._send_teaching_command(cmd_id=0x0D, extended_payload=True)
-    
-    async def exit_teaching_mode(self) -> dict:
-        """
-        Exit damping/teaching mode (command 0x0E)
-        
-        Returns robot to normal control
-        
-        Returns:
-            Response from robot
-        """
-        logger.info("Exiting teaching mode...")
-        return await self._send_teaching_command(cmd_id=0x0E)
-    
-    async def start_recording(self) -> dict:
-        """
-        Start recording trajectory (command 0x0F)
-        
-        Must be in teaching mode first
-        
-        Returns:
-            Response from robot
-        """
-        logger.info("▶️  Starting trajectory recording...")
-        return await self._send_teaching_command(cmd_id=0x0F, payload_data=bytes([0x01]) + bytes(43))
-    
-    async def stop_recording(self) -> dict:
-        """
-        Stop recording trajectory (command 0x0F toggle)
-        
-        Returns:
-            Response from robot
-        """
-        logger.info("⏹️  Stopping trajectory recording...")
-        return await self._send_teaching_command(cmd_id=0x0F, payload_data=bytes([0x00]) + bytes(43))
-    
-    async def save_teaching_action(self, action_name: str, duration_ms: int = 0) -> dict:
-        """
-        Save recorded teaching action (command 0x2B)
-        
-        Args:
-            action_name: Name for the saved action
-            duration_ms: Duration in milliseconds
-            
-        Returns:
-            Response from robot
-        """
-        logger.info(f"💾 Saving teaching action: {action_name}")
-        
-        # Build payload with action name and duration
-        import struct
-        payload = bytearray(144)
-        
-        # Action name (32 bytes, null-terminated)
-        name_bytes = action_name.encode('utf-8')[:31]
-        payload[0:len(name_bytes)] = name_bytes
-        
-        # Duration (4 bytes at offset 32)
-        struct.pack_into('>I', payload, 32, duration_ms)
-        
-        return await self._send_teaching_command(cmd_id=0x2B, payload_data=bytes(payload))
-    
-    async def play_teaching_action(self, action_id: int = 1) -> dict:
-        """
-        Play recorded teaching action (command 0x41)
-        
-        Args:
-            action_id: ID of the action to play
-            
-        Returns:
-            Response from robot
-        """
-        logger.info(f"▶️  Playing teaching action {action_id}...")
-        
-        # Build playback payload
-        import struct
-        payload = bytearray(144)
-        struct.pack_into('>I', payload, 0, action_id)
-        
-        return await self._send_teaching_command(cmd_id=0x41, payload_data=bytes(payload))
-    
-    async def _send_teaching_command(self, cmd_id: int, payload_data: bytes = None, extended_payload: bool = False) -> dict:
-        """
-        Send teaching mode command via WebRTC datachannel
-        
-        Teaching protocol (reverse-engineered from PCAP):
-        - Port: 49504 (but via WebRTC datachannel in this case)
-        - Format: Type 0x17, magic 0xFE 0xFD 0x00, CRC32 checksum
-        
-        Args:
-            cmd_id: Command ID (0x1A, 0x0D, 0x0E, 0x0F, 0x2B, 0x41)
-            payload_data: Optional custom payload (44 or 144 bytes)
-            extended_payload: If True, use 144-byte payload for extended state
-            
-        Returns:
-            Command sent status
-        """
-        import struct
-        import zlib
-        
-        # Build packet
-        packet = bytearray()
-        
-        # Header (13 bytes)
-        packet.append(0x17)                    # Message type
-        packet.extend([0xFE, 0xFD, 0x00])     # Magic
-        packet.extend([0x01, 0x00])            # Flags
-        packet.extend([0x00, 0x00])            # Sequence (will be updated)
-        packet.extend([0x00, 0x00])            # Reserved
-        packet.extend([0x00, 0x01])            # Reserved
-        packet.append(cmd_id)                   # Command ID
-        
-        # Payload (44 or 144 bytes)
-        if payload_data:
-            payload = payload_data
-        elif extended_payload:
-            payload = bytes(144)  # Full state packet
-        else:
-            payload = bytes(44)   # Standard packet
-        
-        packet.extend(struct.pack('>H', len(payload)))  # Payload length
-        packet.extend(payload)
-        
-        # CRC32 checksum
-        crc = zlib.crc32(packet) & 0xFFFFFFFF
-        packet.extend(struct.pack('>I', crc))
-        
-        logger.info(f"📤 Teaching command 0x{cmd_id:02X}: {len(packet)} bytes")
-        logger.debug(f"   Packet: {packet.hex()}")
-        
-        # Send via WebRTC datachannel
-        try:
-            # Use publish without callback for teaching commands
-            self.datachannel.pub_sub.publish_without_callback(
-                "rt/teaching_cmd",
-                bytes(packet)
-            )
-            logger.info(f"✅ Teaching command sent")
-            return {"status": "sent", "cmd_id": cmd_id, "packet_size": len(packet)}
-        except Exception as e:
-            logger.error(f"❌ Failed to send teaching command: {e}")
-            return {"status": "error", "error": str(e)}
+        payload = {
+            "api_id": ArmAPI.GET_CUSTOM_ACTION_LIST,
+            "parameter": json.dumps({})
+        }
+        logger.info("📋 Getting custom action list (API 7107)")
+        return await self._send_command(payload, service=Service.ARM)
     
     # =========================================================================
     # SLAM Control (enables/disables LiDAR)

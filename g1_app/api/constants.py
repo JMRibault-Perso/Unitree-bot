@@ -15,6 +15,14 @@ class Topic:
     LOW_STATE = "rt/lowstate"                     # Motor/sensor state
     LOW_CMD = "rt/lowcmd"                         # Motor commands
     BMS_STATE = "rt/lf/bms"                       # Battery management system
+
+    # Command topics
+    API_SPORT_REQUEST = "rt/api/sport/request"
+    API_ARM_REQUEST = "rt/api/arm/request"
+
+    # Odometry topics
+    ODOM_STATE = "rt/odommodestate"           # 500Hz
+    ODOM_STATE_LF = "rt/lf/odommodestate"     # 20Hz
     
     # Multimedia topics  
     AUDIO_MSG = "rt/audio_msg"                    # ASR (speech recognition) messages
@@ -87,6 +95,8 @@ class ArmAPI(IntEnum):
     EXECUTE_ACTION = 7106           # Execute pre-programmed gesture
     GET_ACTION_LIST = 7107          # Retrieve available gestures
     EXECUTE_CUSTOM_ACTION = 7108    # Play teach mode recording
+    RENAME_CUSTOM_ACTION = 7109     # Rename a taught action
+    RECORD_CUSTOM_ACTION = 7110     # Start/keepalive/stop recording (action_name or empty)
     STOP_CUSTOM_ACTION = 7113       # Stop teach playback
 
 
@@ -212,38 +222,6 @@ class ArmTask(IntEnum):
     WAVE_HAND_TURN = 1
     SHAKE_HAND_STAGE_1 = 2
     SHAKE_HAND_STAGE_2 = 3
-
-
-# ============================================================================
-# DDS Topics
-# ============================================================================
-class Topic:
-    """DDS topic names"""
-    # State
-    SPORT_MODE_STATE = "rt/sportmodestate"
-    SPORT_MODE_STATE_LF = "rt/lf/sportmodestate"  # Low-frequency
-    
-    # Commands
-    API_SPORT_REQUEST = "rt/api/sport/request"
-    API_ARM_REQUEST = "rt/api/arm/request"
-    
-    # Odometry
-    ODOM_STATE = "rt/odommodestate"           # 500Hz
-    ODOM_STATE_LF = "rt/lf/odommodestate"     # 20Hz
-    
-    # LiDAR
-    LIDAR_CLOUD = "rt/utlidar/cloud_livox_mid360"   # 10Hz PointCloud2
-    LIDAR_IMU = "rt/utlidar/imu_livox_mid360"       # 200Hz IMU
-    
-    # Audio/VUI
-    AUDIO_MSG = "rt/audio_msg"  # ASR results
-    
-    # Battery
-    BMS_STATE = "rt/lf/bms"  # Battery management system
-    
-    # Low-level (for reference, not used in high-level control)
-    LOW_STATE = "rt/lowstate"
-    LOW_CMD = "rt/lowcmd"
 
 
 # ============================================================================

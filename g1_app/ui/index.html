@@ -33,7 +33,7 @@
 
         .container {
             display: grid;
-            grid-template-columns: 280px 1fr 350px;
+            grid-template-columns: 240px 1fr 350px;
             grid-template-rows: 60px 1fr;
             height: 100vh;
             gap: 0;
@@ -195,15 +195,17 @@
 
         /* CENTER AREA */
         .center-area {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr auto;
             gap: 10px;
             padding: 10px;
             overflow: hidden;
         }
 
         .video-container {
-            flex: 0 0 45%;
+            grid-column: 1;
+            grid-row: 1;
             background: #000;
             border-radius: 4px;
             overflow: hidden;
@@ -217,7 +219,8 @@
         }
 
         .map-container {
-            flex: 1;
+            grid-column: 2;
+            grid-row: 1;
             background: var(--bg-panel);
             border-radius: 4px;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -319,6 +322,17 @@
             cursor: not-allowed;
         }
 
+        .state-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .state-id {
+            font-size: 12px;
+            color: #718096;
+        }
+
         /* MOVEMENT CONTROLS */
         .movement-panel {
             display: flex;
@@ -382,7 +396,7 @@
         /* MOVEMENT GRID */
         .movement-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin: 15px 0;
         }
@@ -447,7 +461,12 @@
             display: none;
             padding: 20px;
             overflow-y: auto;
-            flex: 1;
+            grid-column: 1 / -1;
+            grid-row: 2;
+            background: var(--bg-panel);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 500px;
         }
 
         .content-view.active {
@@ -608,6 +627,86 @@
             gap: 10px;
         }
 
+        .actions-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .actions-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 12px;
+        }
+
+        .actions-card-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .actions-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .actions-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 8px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        .action-name {
+            font-size: 13px;
+            color: var(--text-light);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .action-rename {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .action-rename input {
+            width: 120px;
+        }
+
+        .teach-status {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .teach-status.active {
+            color: #f59e0b;
+        }
+
+        .mode-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .mode-hint.warning {
+            color: #f59e0b;
+        }
+
         .gesture-btn {
             padding: 12px;
             background: rgba(255, 255, 255, 0.05);
@@ -639,6 +738,232 @@
         .gesture-name {
             font-size: 12px;
             font-weight: 600;
+        }
+
+        /* Network Mode Selector */
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-option:hover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .radio-option input[type="radio"] {
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"]:checked ~ .radio-label {
+            color: var(--primary);
+        }
+
+        .radio-label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .radio-label-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .radio-description {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Info Box (AP Mode Instructions) */
+        .info-box {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 13px;
+            margin: 10px 0;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .info-box code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: var(--primary);
+        }
+
+        .info-box ol {
+            margin: 10px 0 10px 20px;
+        }
+
+        /* Discovery Progress */
+        .discovery-progress {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .progress-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .progress-steps {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .progress-steps li {
+            padding: 8px 0 8px 30px;
+            position: relative;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .progress-steps li::before {
+            content: '⏱️';
+            position: absolute;
+            left: 0;
+            top: 8px;
+        }
+
+        .progress-steps li.active {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .progress-steps li.active::before {
+            content: '🔄';
+            animation: spin 1s linear infinite;
+        }
+
+        .progress-steps li.complete::before {
+            content: '✅';
+        }
+
+        .progress-steps li.failed::before {
+            content: '❌';
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .status-indicator .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status-indicator.online .status-dot {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.offline .status-dot {
+            background: var(--danger);
+        }
+
+        /* Button Loading State */
+        .btn-primary.loading {
+            opacity: 0.7;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .btn-primary.loading::after {
+            content: '';
+            width: 14px;
+            height: 14px;
+            margin-left: 8px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            animation: spin 0.6s linear infinite;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Help Text */
+        .help-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .help-text a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* Error Box */
+        .error-box {
+            background: rgba(245, 101, 101, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .error-box strong {
+            color: var(--danger);
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .error-box ul {
+            margin: 10px 0 10px 20px;
+            font-size: 13px;
+        }
+
+        .error-box ul li {
+            margin: 5px 0;
         }
 
         /* SCROLLBAR */
@@ -691,7 +1016,7 @@
         <!-- LEFT SIDEBAR -->
         <div class="left-sidebar">
             <div class="nav-section">
-                <button class="nav-button active" onclick="switchView('gestures')">👋 Gestures</button>
+                <button class="nav-button" onclick="switchView('gestures')">👋 Gestures</button>
                 <button class="nav-button" onclick="switchView('slam')">🗺️ SLAM</button>
             </div>
             <div class="nav-section">
@@ -710,6 +1035,92 @@
             </div>
             <div class="map-container">
                 <canvas id="mapCanvas"></canvas>
+            </div>
+            
+            <!-- CONTENT VIEWS MOVED HERE -->
+            <div id="gestures-view" class="content-view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">👋 Gestures</h2>
+                    <button class="btn-secondary" onclick="closeView()">✕ Close</button>
+                </div>
+                <div id="gestureModeHint" class="mode-hint" style="margin-bottom: 10px;">Available in WALK or RUN mode.</div>
+                <div class="gesture-grid" id="gestureGrid"></div>
+            </div>
+
+            <div id="slam-view" class="content-view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">🗺️ SLAM Mapping</h2>
+                    <button class="btn-secondary" onclick="closeView()">✕ Close</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn-primary" onclick="startMapping()">▶️ Start Mapping</button>
+                    <button class="btn-secondary" onclick="stopMapping()">⏹️ Stop Mapping</button>
+                </div>
+                <p style="color: var(--text-muted); font-size: 12px;">Point cloud displays in real-time. Odometry data only available during active mapping.</p>
+            </div>
+
+            <div id="actions-view" class="content-view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">🎬 Custom Actions</h2>
+                    <button class="btn-secondary" onclick="closeView()">✕ Close</button>
+                </div>
+                <div class="actions-layout">
+                    <div class="actions-card">
+                        <div class="actions-card-title">Record (Teach Mode)</div>
+                        <div class="actions-row">
+                            <button class="btn-secondary" id="enterTeachBtn" onclick="enterTeachMode()">Enter Teach Mode</button>
+                            <button class="btn-secondary" id="exitTeachBtn" onclick="exitTeachMode()">Exit Teach Mode</button>
+                            <span id="teachModeStatus" class="teach-status">Teach mode: off</span>
+                        </div>
+                        <div class="actions-row">
+                            <input type="text" id="recordActionName" class="form-input" placeholder="Optional name (auto timestamp)" style="flex: 1;">
+                            <button class="btn-primary" id="recordStartBtn" onclick="startTeachRecording()">Start</button>
+                            <button class="btn-secondary" id="recordStopBtn" onclick="stopTeachRecording()">Stop &amp; Save</button>
+                        </div>
+                        <div class="actions-row" style="font-size: 12px; color: var(--text-muted);">
+                            <span id="recordStatus">Idle</span>
+                            <span id="recordTimer">00:00</span>
+                            <span id="recordingName" style="color: var(--primary);"></span>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 11px;">
+                            Start sends API 7110 and keeps it alive every second. Stop saves the action.
+                        </div>
+                    </div>
+                    <div class="actions-card">
+                        <div class="actions-card-title">Saved Actions</div>
+                        <div class="actions-row">
+                            <button class="btn-secondary" id="refreshActionsBtn" onclick="refreshTeachActions()">Refresh List</button>
+                            <button class="btn-secondary" id="stopPlaybackBtn" onclick="stopCustomAction()">Stop Playback</button>
+                        </div>
+                        <div id="actionsModeHint" class="mode-hint" style="margin-bottom: 8px;">Available in WALK or RUN mode.</div>
+                        <div id="actionsList" class="actions-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="status-view" class="content-view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">📊 Robot Status</h2>
+                    <button class="btn-secondary" onclick="closeView()">✕ Close</button>
+                </div>
+                <div style="display: grid; gap: 15px;">
+                    <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">FSM State</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusFsmId">0</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">FSM Mode</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusFsmMode">0</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Battery Voltage</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusVoltage">-- V</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Temperature</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusTemp">-- °C</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -740,25 +1151,19 @@
                     <div></div>
                     <button class="move-btn" onclick="sendMovement(0.3, 0)" title="Forward (W)">⬆️</button>
                     <div></div>
-                    <button class="move-btn" onclick="sendMovement(0, 0.5)" title="Rotate Left (Q)">↶</button>
-                    <div></div>
                     
                     <!-- Row 2: Left, Stop, Right -->
                     <button class="move-btn" onclick="sendMovement(0, 0.6)" title="Left (A)">⬅️</button>
                     <button class="move-btn stop-btn" onclick="sendMovement(0, 0)" title="Stop (Space)">⏹️</button>
                     <button class="move-btn" onclick="sendMovement(0, -0.6)" title="Right (D)">➡️</button>
-                    <div></div>
-                    <div></div>
                     
-                    <!-- Row 3: Empty, Backward, Empty -->
-                    <div></div>
+                    <!-- Row 3: Rotate Left, Backward, Rotate Right -->
+                    <button class="move-btn" onclick="sendMovement(0, 0, 0.5)" title="Rotate Left (Q)">↶</button>
                     <button class="move-btn" onclick="sendMovement(-0.3, 0)" title="Backward (S)">⬇️</button>
-                    <div></div>
-                    <button class="move-btn" onclick="sendMovement(0, -0.5)" title="Rotate Right (E)">↷</button>
-                    <div></div>
+                    <button class="move-btn" onclick="sendMovement(0, 0, -0.5)" title="Rotate Right (E)">↷</button>
                     
-                    <!-- Rotation buttons -->
-                    <button class="move-btn rotate-btn" style="grid-column: 1 / -1; grid-row: 5;" onclick="sendMovement(0, -0.5)" title="Rotate Right (E)">↷ Rotate Right</button>
+                    <!-- Row 4: Emergency Stop spanning all 3 columns -->
+                    <button class="move-btn stop-btn" onclick="setState('DAMP', true)" title="Emergency Stop - Enter DAMP Mode" style="grid-column: 1 / -1; background: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.5); aspect-ratio: auto;">🛑 Emergency Stop</button>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 8px; font-size: 10px;">
                     <div style="color: var(--text-muted);">vx: <span id="velX" style="color: var(--primary);">0</span></div>
@@ -769,96 +1174,95 @@
         </div>
     </div>
 
-    <!-- CONTENT VIEWS -->
-    <div id="movement-view" class="content-view active">
-        <h2 style="margin-bottom: 20px;">Movement Control</h2>
-        <p>Use WASD keys or click buttons to control movement.</p>
-        <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">
-            <strong>W</strong> - Forward | <strong>A</strong> - Left | <strong>S</strong> - Backward | <strong>D</strong> - Right | <strong>Q</strong> - Rotate Left | <strong>E</strong> - Rotate Right | <strong>Space</strong> - Stop
-        </p>
-    </div>
-
-    <div id="gestures-view" class="content-view">
-        <h2 style="margin-bottom: 20px;">Gestures</h2>
-        <div class="gesture-grid" id="gestureGrid"></div>
-    </div>
-
-    <div id="slam-view" class="content-view">
-        <h2 style="margin-bottom: 20px;">SLAM Mapping</h2>
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <button class="btn-primary" onclick="startMapping()">▶️ Start Mapping</button>
-            <button class="btn-secondary" onclick="stopMapping()">⏹️ Stop Mapping</button>
-        </div>
-        <p style="color: var(--text-muted); font-size: 12px;">Point cloud displays in real-time. Odometry data only available during active mapping.</p>
-    </div>
-
-    <div id="actions-view" class="content-view">
-        <h2 style="margin-bottom: 20px;">Custom Actions</h2>
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <input type="text" id="actionName" class="form-input" placeholder="Action name" style="flex: 1;">
-            <button class="btn-primary" onclick="addCustomAction()">+ Add</button>
-        </div>
-        <div id="actionsList" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;"></div>
-    </div>
-
-    <div id="status-view" class="content-view">
-        <h2 style="margin-bottom: 20px;">Robot Status</h2>
-        <div style="display: grid; gap: 15px;">
-            <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
-                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">FSM State</div>
-                <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusFsmId">0</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
-                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">FSM Mode</div>
-                <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusFsmMode">0</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
-                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Battery Voltage</div>
-                <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusVoltage">-- V</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
-                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Temperature</div>
-                <div style="font-size: 16px; font-weight: 600; color: var(--primary); margin-top: 4px;" id="statusTemp">-- °C</div>
-            </div>
-        </div>
-    </div>
-
     <!-- CONNECTION MODAL -->
     <div id="connectionModal" class="modal">
         <div class="modal-content">
             <div class="modal-title">Connect to Robot</div>
             
+            <!-- Network Mode Selection -->
             <div class="form-group">
+                <label class="form-label">Connection Method</label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="connectionMode" value="sta" checked onchange="updateConnectionMode()">
+                        <div class="radio-label">
+                            <span class="radio-label-title">Home WiFi Network</span>
+                            <span class="radio-description">Robot is on same WiFi as this computer</span>
+                        </div>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="connectionMode" value="ap" onchange="updateConnectionMode()">
+                        <div class="radio-label">
+                            <span class="radio-label-title">Direct Connection (AP Mode)</span>
+                            <span class="radio-description">Connect to robot's WiFi "G1_6937"</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- STA Mode: Robot Selection -->
+            <div id="staMode" class="form-group">
                 <label class="form-label">Select Robot</label>
                 <select id="robotSelect" class="form-input" onchange="selectRobot()">
                     <option value="">-- Choose a robot --</option>
                 </select>
+                <div class="help-text" style="display: none;">Don't see your robot? <a href="#" onclick="event.preventDefault(); scanNetwork(); return false;">Scan network</a> or <a href="#" onclick="event.preventDefault(); showAddRobot(); return false;">add manually</a></div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Or Add New Robot</label>
-                <div class="select-group">
-                    <input type="text" id="newRobotNickname" class="form-input" placeholder="Nickname (e.g., G1_1)">
-                    <input type="text" id="newRobotMac" class="form-input" placeholder="MAC Address">
+            <!-- AP Mode: WiFi Check -->
+            <div id="apMode" class="form-group" style="display: none;">
+                <div class="info-box">
+                    <strong>ℹ️ AP Mode Connection</strong>
+                    <ol>
+                        <li>Connect your computer to WiFi: <code id="apWifiName">G1_6937</code></li>
+                        <li>Robot IP address: <code>192.168.12.1</code> (fixed)</li>
+                    </ol>
+                    <div id="wifiStatus" class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span id="wifiStatusText">Checking WiFi connection...</span>
+                    </div>
                 </div>
-                <input type="text" id="newRobotSerial" class="form-input" placeholder="Serial Number">
-                <button class="btn-secondary" style="width: 100%; margin-top: 8px;" onclick="addRobot()">+ Add Robot</button>
             </div>
 
-            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
-
-            <div class="form-group">
-                <label class="form-label">Robot IP</label>
-                <input type="text" id="robotIp" class="form-input" placeholder="IP Address" readonly>
+            <!-- Discovery Progress (hidden by default) -->
+            <div id="discoveryProgress" class="discovery-progress" style="display: none;">
+                <div class="progress-header">🔍 Searching for robot...</div>
+                <ul class="progress-steps">
+                    <li id="step-multicast" class="pending">Trying multicast discovery...</li>
+                    <li id="step-ap" class="pending">Checking AP mode (192.168.12.1)...</li>
+                    <li id="step-network" class="pending">Scanning network...</li>
+                </ul>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Serial Number</label>
-                <input type="text" id="robotSerial" class="form-input" placeholder="Serial Number" readonly>
+            <!-- Add New Robot (collapsed by default) -->
+            <div id="addRobotSection" class="form-group" style="display: none;">
+                <label class="form-label">Add New Robot</label>
+                <input type="text" id="newRobotNickname" class="form-input" placeholder="Nickname (e.g., Kitchen G1)" style="margin-bottom: 8px;">
+                <input type="text" id="newRobotMac" class="form-input" placeholder="MAC Address (fc:23:cd:92:60:02)" style="margin-bottom: 8px;">
+                <input type="text" id="newRobotSerial" class="form-input" placeholder="Serial Number (E21D1000PAHBMB06)" style="margin-bottom: 8px;">
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-secondary" style="flex: 1;" onclick="addRobot()">Add Robot</button>
+                    <button class="btn-secondary" style="flex: 1;" onclick="hideAddRobot()">Cancel</button>
+                </div>
             </div>
+
+            <!-- Hidden fields for debugging -->
+            <details style="margin: 15px 0; font-size: 12px;">
+                <summary style="cursor: pointer; color: var(--text-muted);">Advanced Options</summary>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label class="form-label">Robot IP (auto-discovered)</label>
+                    <input type="text" id="robotIp" class="form-input" placeholder="Auto-discover" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Serial Number</label>
+                    <input type="text" id="robotSerial" class="form-input" placeholder="Serial Number" readonly>
+                </div>
+            </details>
 
             <div class="form-buttons">
-                <button class="btn-primary" onclick="connectRobot()">Connect</button>
+                <button class="btn-primary" id="connectBtn" onclick="connectRobot()">
+                    <span id="connectBtnText">Connect to Robot</span>
+                </button>
                 <button class="btn-secondary" onclick="closeConnectionModal()">Cancel</button>
             </div>
         </div>
@@ -881,45 +1285,49 @@
         ];
         let connectedRobotMac = null;
 
-        // State variables
-        const FSM_STATES = {
-            0: { name: "ZERO_TORQUE", label: "Motors Off" },
-            1: { name: "DAMP", label: "Safe Mode" },
-            2: { name: "SQUAT", label: "Squat" },
-            3: { name: "SIT", label: "Sitting" },
-            4: { name: "LOCK_STANDING", label: "Stand Up" },
-            200: { name: "START", label: "Ready" },
-            500: { name: "LOCK_STAND", label: "Walk Mode" },
-            702: { name: "STAND_UP", label: "Rise" },
-            706: { name: "SQUAT_TO_STAND", label: "Toggle Squat" },
-            801: { name: "RUN", label: "Run Mode" }
-        };
+        // FSM States with their IDs (must match backend FSMState enum names)
+        const FSM_STATES = [
+            { name: 'ZERO_TORQUE', value: 0, description: 'Motors Off' },
+            { name: 'DAMP', value: 1, description: 'Safe Mode (Orange)' },
+            { name: 'SQUAT', value: 2, description: 'Squat Position' },
+            { name: 'SIT', value: 3, description: 'Sitting (Green)' },
+            { name: 'LOCK_STANDING', value: 4, description: 'Standing Up' },
+            { name: 'START', value: 200, description: 'Ready/Standing (Blue)' },
+            { name: 'LOCK_STAND', value: 500, description: 'Walk Mode' },
+            { name: 'STAND_UP', value: 702, description: 'Stand Up (from lying down)' },
+            { name: 'SQUAT_TO_STAND', value: 706, description: 'Squat Down/Up (context-sensitive)' },
+            { name: 'RUN', value: 801, description: 'Run Mode (Faster)' }
+        ];
 
-        const STATE_TRANSITIONS = {
-            0: [1],
-            1: [0, 200, 3, 706],
-            3: [1, 707],
-            200: [1, 500, 706, 801],
-            500: [1, 200],
-            706: [500],
-            801: [1, 200],
-            707: [1],
-            702: [200],
-            2: [1],
-            4: [1]
-        };
+        let currentFsmState = null;
+        let allowedTransitions = [];
+        let buttonsDisabled = false;
+        let targetState = null;
+        let actionOriginState = null;
 
         const GESTURES = [
-            { emoji: "👋", name: "Wave" },
-            { emoji: "🤝", name: "Shake Hand" },
-            { emoji: "👏", name: "Clap" },
-            { emoji: "💋", name: "Kiss" },
-            { emoji: "🙌", name: "Hands Up" },
-            { emoji: "❤️", name: "Heart" },
-            { emoji: "🤗", name: "Hug" },
-            { emoji: "✋", name: "High Five" },
-            { emoji: "👍", name: "Thumbs Up" },
-            { emoji: "👎", name: "Thumbs Down" }
+            // ArmTask gestures (simple)
+            { emoji: "👋", name: "WAVE_HAND" },
+            { emoji: "👋🔄", name: "WAVE_HAND_TURN" },
+            { emoji: "🤝", name: "SHAKE_HAND_STAGE_1" },
+            { emoji: "🤝✓", name: "SHAKE_HAND_STAGE_2" },
+            
+            // ArmGesture gestures (complex)
+            { emoji: "💋", name: "TWO_HAND_KISS" },
+            { emoji: "💋👈", name: "LEFT_KISS" },
+            { emoji: "💋👉", name: "RIGHT_KISS" },
+            { emoji: "🙌", name: "HANDS_UP" },
+            { emoji: "👏", name: "CLAP" },
+            { emoji: "✋", name: "HIGH_FIVE" },
+            { emoji: "🤗", name: "HUG" },
+            { emoji: "❤️", name: "HEART" },
+            { emoji: "❤️👉", name: "RIGHT_HEART" },
+            { emoji: "🚫", name: "REJECT" },
+            { emoji: "✋👉", name: "RIGHT_HAND_UP" },
+            { emoji: "☢️", name: "X_RAY" },
+            { emoji: "👋😊", name: "FACE_WAVE" },
+            { emoji: "👋⬆️", name: "HIGH_WAVE" },
+            { emoji: "🤝👉", name: "SHAKE_HAND" }
         ];
 
         // Initialize on load
@@ -929,10 +1337,7 @@
             setupKeyboardControls();
             connectWebSocket();
             initializePointCloudViewer();
-            updateFsmButtons(0, [1]);
-            updateConnectionStatus(false);
-            stopVideoStream();
-            stopPointCloudPolling();
+            syncRobotConnectionState();  // NEW: Check actual backend state
 
             window.addEventListener('beforeunload', () => {
                 if (connectedRobotMac && navigator.sendBeacon) {
@@ -941,11 +1346,58 @@
             });
         });
 
+        // Sync connection state from backend on page load
+        async function syncRobotConnectionState() {
+            try {
+                const response = await fetch('/api/robot/status');
+                const status = await response.json();
+                
+                if (status.connected && status.robot) {
+                    // Backend says we're connected - sync frontend state
+                    console.log('Backend is connected, syncing frontend state');
+                    connectedRobotMac = status.robot.mac || null;
+                    updateConnectionStatus(true);
+                    
+                    // Update FSM display if state available
+                    if (status.state) {
+                        currentFsmState = status.state.fsm_state;
+                        allowedTransitions = status.state.allowed_transitions || [];
+                        updateFsmDisplay(status.state.fsm_state);
+                        updateStateButtons();
+                        updateGestureAvailability();
+                        updateActionsAvailability();
+                    }
+                    
+                    // Start video/lidar polling
+                    startVideoStream();
+                    startPointCloudPolling();
+                } else {
+                    // Not connected - ensure clean state
+                    console.log('Backend not connected, ensuring clean state');
+                    connectedRobotMac = null;
+                    currentFsmState = null;
+                    allowedTransitions = [];
+                    updateConnectionStatus(false);
+                    stopVideoStream();
+                    stopPointCloudPolling();
+                    updateGestureAvailability();
+                    updateActionsAvailability();
+                }
+            } catch (e) {
+                console.warn('Could not sync connection state:', e);
+                // Assume not connected on error
+                updateConnectionStatus(false);
+                stopVideoStream();
+                stopPointCloudPolling();
+            }
+        }
+
         // Robot Management
         async function loadRobots() {
             try {
                 const response = await fetch('/api/robots');
-                allRobots = await response.json();
+                const data = await response.json();
+                allRobots = data.robots || data; // Handle both formats
                 populateRobotDropdown();
                 localStorage.setItem('storedRobots', JSON.stringify(allRobots));
             } catch (e) {
@@ -1003,6 +1455,7 @@
                 document.getElementById('newRobotNickname').value = '';
                 document.getElementById('newRobotMac').value = '';
                 document.getElementById('newRobotSerial').value = '';
+                hideAddRobot();
             }).catch(() => {
                 const newRobot = { nickname, mac, serial_number: serial, ip: '' };
                 if (!allRobots) allRobots = [];
@@ -1013,43 +1466,326 @@
                 document.getElementById('newRobotMac').value = '';
                 document.getElementById('newRobotSerial').value = '';
                 alert('Robot added successfully!');
+                hideAddRobot();
             });
+        }
+
+        function showAddRobot() {
+            document.getElementById('addRobotSection').style.display = 'block';
+        }
+
+        function hideAddRobot() {
+            document.getElementById('addRobotSection').style.display = 'none';
+            document.getElementById('newRobotNickname').value = '';
+            document.getElementById('newRobotMac').value = '';
+            document.getElementById('newRobotSerial').value = '';
+        }
+
+        // Connection Mode Management
+        function updateConnectionMode() {
+            const mode = document.querySelector('input[name="connectionMode"]:checked').value;
+            console.log('Connection mode changed to:', mode);
+            
+            if (mode === 'ap') {
+                // Show AP mode instructions, hide STA mode robot selection
+                document.getElementById('staMode').style.display = 'none';
+                document.getElementById('apMode').style.display = 'block';
+                document.getElementById('discoveryProgress').style.display = 'none';
+                
+                // Check current WiFi status
+                checkAPModeStatus();
+            } else {
+                // Show STA mode robot selection, hide AP mode instructions
+                document.getElementById('staMode').style.display = 'block';
+                document.getElementById('apMode').style.display = 'none';
+                document.getElementById('discoveryProgress').style.display = 'none';
+            }
+        }
+
+        // Check if computer is connected to robot's AP WiFi
+        async function checkAPModeStatus() {
+            try {
+                const response = await fetch('/api/wifi/current');
+                const data = await response.json();
+                
+                const wifiStatus = document.getElementById('wifiStatus');
+                const wifiStatusText = document.getElementById('wifiStatusText');
+                
+                console.log('WiFi status:', data);
+                
+                if (data.ssid && data.ssid.includes('G1_')) {
+                    wifiStatus.classList.add('online');
+                    wifiStatus.classList.remove('offline');
+                    wifiStatusText.textContent = `✓ Connected to ${data.ssid}`;
+                    
+                    // Update AP WiFi name dynamically
+                    document.getElementById('apWifiName').textContent = data.ssid;
+                } else {
+                    wifiStatus.classList.add('offline');
+                    wifiStatus.classList.remove('online');
+                    wifiStatusText.textContent = `✗ Not connected to robot WiFi. Current: ${data.ssid || 'Unknown'}`;
+                }
+            } catch (e) {
+                console.error('Failed to check WiFi status:', e);
+                const wifiStatus = document.getElementById('wifiStatus');
+                const wifiStatusText = document.getElementById('wifiStatusText');
+                wifiStatus.classList.add('offline');
+                wifiStatus.classList.remove('online');
+                wifiStatusText.textContent = '✗ Could not detect WiFi status';
+            }
+        }
+
+        // Network scan with progress
+        async function scanNetwork() {
+            const progressDiv = document.getElementById('discoveryProgress');
+            progressDiv.style.display = 'block';
+            
+            // Reset all steps
+            ['multicast', 'ap', 'network'].forEach(step => {
+                const el = document.getElementById(`step-${step}`);
+                el.className = 'pending';
+            });
+            
+            const steps = ['multicast', 'ap', 'network'];
+            let currentStep = 0;
+            
+            // Animate progress
+            const stepInterval = setInterval(() => {
+                if (currentStep > 0) {
+                    const prevEl = document.getElementById(`step-${steps[currentStep - 1]}`);
+                    if (prevEl && prevEl.className === 'active') {
+                        prevEl.className = 'complete';
+                    }
+                }
+                if (currentStep < steps.length) {
+                    document.getElementById(`step-${steps[currentStep]}`).className = 'active';
+                    currentStep++;
+                }
+            }, 1500);
+            
+            try {
+                const mac = document.getElementById('robotSelect').value || G1_MAC;
+                console.log('Discovering robot with MAC:', mac);
+                const response = await fetch(`/api/discover?mac=${mac}`);
+                const data = await response.json();
+                
+                clearInterval(stepInterval);
+                
+                if (data.ip) {
+                    // Mark all steps complete
+                    steps.forEach(step => {
+                        const el = document.getElementById(`step-${step}`);
+                        if (el) el.className = 'complete';
+                    });
+                    
+                    console.log('Robot discovered at:', data.ip);
+                    
+                    // Update robot IP in the list
+                    const robot = allRobots.find(r => r.mac === mac);
+                    if (robot) {
+                        robot.ip = data.ip;
+                        localStorage.setItem('storedRobots', JSON.stringify(allRobots));
+                    }
+                    
+                    // Update UI
+                    document.getElementById('robotIp').value = data.ip;
+                    
+                    // Show success message briefly
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                        alert(`✅ Robot found at ${data.ip}`);
+                    }, 1000);
+                } else {
+                    // Mark last active step as failed
+                    if (currentStep > 0) {
+                        document.getElementById(`step-${steps[currentStep - 1]}`).className = 'failed';
+                    }
+                    showDiscoveryError(data.error || 'Robot not found');
+                }
+            } catch (e) {
+                clearInterval(stepInterval);
+                console.error('Discovery error:', e);
+                showDiscoveryError(e.message);
+            }
+        }
+
+        function showDiscoveryError(message = '') {
+            const progressDiv = document.getElementById('discoveryProgress');
+            progressDiv.innerHTML = `
+                <div class="error-box">
+                    <strong>❌ Robot not found</strong>
+                    <p>${message}</p>
+                    <p><strong>Troubleshooting:</strong></p>
+                    <ul>
+                        <li>Is the robot powered on?</li>
+                        <li>Are you connected to the same WiFi network?</li>
+                        <li>Try Direct Connection (AP mode) instead</li>
+                        <li>Check MAC address is correct: ${G1_MAC}</li>
+                    </ul>
+                    <button class="btn-secondary" onclick="hideDiscoveryError()" style="margin-top: 10px;">
+                        Close
+                    </button>
+                </div>
+            `;
+        }
+
+        function hideDiscoveryError() {
+            const progressDiv = document.getElementById('discoveryProgress');
+            progressDiv.style.display = 'none';
+            progressDiv.innerHTML = `
+                <div class="progress-header">🔍 Searching for robot...</div>
+                <ul class="progress-steps">
+                    <li id="step-multicast" class="pending">Trying multicast discovery...</li>
+                    <li id="step-ap" class="pending">Checking AP mode (192.168.12.1)...</li>
+                    <li id="step-network" class="pending">Scanning network...</li>
+                </ul>
+            `;
         }
 
         // Connection
         async function connectRobot() {
-            const robotSelect = document.getElementById('robotSelect').value || G1_MAC;
-            const ip = document.getElementById('robotIp').value;
-            const robot = allRobots.find(r => r.mac === robotSelect) || {
-                mac: robotSelect,
-                serial_number: G1_SERIAL,
-                nickname: 'G1'
-            };
-
-            if (!robot.serial_number) {
-                alert('Serial number is required to connect. Please add/select a robot with a serial number.');
-                return;
-            }
-
+            const connectBtn = document.getElementById('connectBtn');
+            const connectBtnText = document.getElementById('connectBtnText');
+            const mode = document.querySelector('input[name="connectionMode"]:checked').value;
+            
+            // Update button state
+            connectBtn.classList.add('loading');
+            connectBtn.disabled = true;
+            connectBtnText.textContent = 'Connecting...';
+            
             try {
-                const response = await fetch(`/api/connect?ip=${ip}&mac=${robot.mac}&serial_number=${robot.serial_number}`, {
+                let robotIp;
+                let robotMac;
+                let serialNumber;
+                
+                if (mode === 'ap') {
+                    // AP Mode: Use fixed IP
+                    robotIp = '192.168.12.1';
+                    robotMac = G1_MAC; // Use default or from selection if implemented
+                    serialNumber = G1_SERIAL;
+                    
+                    console.log('AP mode connection to', robotIp);
+                    
+                } else {
+                    // STA Mode: Discover IP
+                    const selectedRobotMac = document.getElementById('robotSelect').value;
+                    if (!selectedRobotMac) {
+                        throw new Error('Please select a robot');
+                    }
+                    
+                    const robot = allRobots.find(r => r.mac === selectedRobotMac);
+                    if (!robot) {
+                        throw new Error('Robot not found in list');
+                    }
+                    
+                    robotMac = robot.mac;
+                    serialNumber = robot.serial_number;
+                    
+                    // ALWAYS do discovery for STA mode (IPs can change with DHCP)
+                    console.log('Discovering robot IP for MAC:', robotMac);
+                    const progressDiv = document.getElementById('discoveryProgress');
+                    progressDiv.style.display = 'block';
+                    
+                    // Reset steps
+                    ['multicast', 'ap', 'network'].forEach(step => {
+                        document.getElementById(`step-${step}`).className = 'pending';
+                    });
+                    
+                    document.getElementById('step-multicast').className = 'active';
+                    
+                    const response = await fetch(`/api/discover?mac=${robotMac}`);
+                    const data = await response.json();
+                    
+                    if (!data.ip) {
+                        document.getElementById('step-network').className = 'failed';
+                        throw new Error('Robot not found on network. Check power and WiFi.');
+                    }
+                    
+                    robotIp = data.ip;
+                    robot.ip = robotIp; // Update cache
+                    localStorage.setItem('storedRobots', JSON.stringify(allRobots));
+                    
+                    // Mark steps complete
+                    ['multicast', 'ap', 'network'].forEach(step => {
+                        document.getElementById(`step-${step}`).className = 'complete';
+                    });
+                    
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                    }, 1000);
+                    
+                    console.log('Discovered robot at:', robotIp);
+                }
+                
+                // Update readonly fields for debugging
+                document.getElementById('robotIp').value = robotIp;
+                document.getElementById('robotSerial').value = serialNumber;
+                
+                // Make connection request
+                console.log(`Connecting to robot at ${robotIp} (MAC: ${robotMac}, SN: ${serialNumber}, Mode: ${mode})`);
+                const response = await fetch(`/api/connect?mac=${robotMac}&serial_number=${serialNumber}&mode=${mode}`, {
                     method: 'POST'
                 });
                 const data = await response.json();
                 
                 if (data.success) {
-                    connectedRobotMac = robot.mac;
-                    currentRobot = robot;
-                    document.getElementById('robotName').textContent = robot.nickname || 'G1 Robot';
+                    connectedRobotMac = robotMac;
+                    currentRobot = { mac: robotMac, serial_number: serialNumber, ip: robotIp };
+                    const robot = allRobots.find(r => r.mac === robotMac);
+                    document.getElementById('robotName').textContent = robot?.nickname || 'G1 Robot';
                     closeConnectionModal();
                     updateConnectionStatus(true);
+                    
+                    // CRITICAL: Extract initial state from response and render FSM buttons
+                    if (data.state) {
+                        console.log('Received initial state:', data.state);
+                        currentFsmState = data.state.fsm_state_value;
+                        
+                        // Convert allowed transition names to values
+                        allowedTransitions = data.state.allowed_transitions.map(name => {
+                            const state = FSM_STATES.find(s => s.name === name);
+                            return state ? state.value : null;
+                        }).filter(v => v !== null);
+                        
+                        console.log('Set currentFsmState:', currentFsmState, 'allowedTransitions:', allowedTransitions);
+                        
+                        // Update the FSM display
+                        updateFsmDisplay(data.state.fsm_state, data.state.fsm_state_value);
+                        
+                        // Render the state buttons
+                        updateStateButtons();
+                        updateGestureAvailability();
+                        updateActionsAvailability();
+                    }
+                    
                     startVideoStream();
                     startPointCloudPolling();
+                    
+                    console.log('✅ Connected successfully!');
                 } else {
-                    alert('Connection failed: ' + (data.error || 'Unknown error'));
+                    throw new Error(data.error || 'Connection failed');
                 }
+                
             } catch (e) {
-                alert('Connection error: ' + e.message);
+                console.error('Connection error:', e);
+                
+                // Show user-friendly error
+                let errorMsg = `Connection failed: ${e.message}\n\nTroubleshooting:\n`;
+                errorMsg += '• Check robot is powered on\n';
+                errorMsg += '• Verify WiFi connection\n';
+                if (mode === 'sta') {
+                    errorMsg += '• Try Direct Connection (AP mode) instead';
+                } else {
+                    errorMsg += '• Make sure you\'re connected to robot WiFi "G1_6937"';
+                }
+                
+                alert(errorMsg);
+                
+            } finally {
+                // Reset button
+                connectBtn.classList.remove('loading');
+                connectBtn.disabled = false;
+                connectBtnText.textContent = 'Connect to Robot';
             }
         }
 
@@ -1070,6 +1806,8 @@
                 connectedRobotMac = null;
                 currentRobot = null;
                 updateConnectionStatus(false);
+                stopVideoStream();
+                stopPointCloudPolling();
             }
         }
 
@@ -1089,24 +1827,67 @@
             };
         }
 
-        function handleWebSocketMessage(data) {
-            if (data.type === 'state_changed') {
-                const state = data.data;
-                if (state) {
-                    updateFsmDisplay(state.fsm_id, state.fsm_mode);
-                    updateStatus(state);
+        function handleWebSocketMessage(msg) {
+            if (msg.type === 'state_changed') {
+                const newStateValue = msg.data.fsm_state_value;
+                const newStateName = msg.data.fsm_state;
+                const oldState = currentFsmState;
+                
+                // Update the robot state display
+                currentFsmState = newStateValue;  // Use VALUE not NAME
+                
+                // Convert allowed transition names to values
+                allowedTransitions = (msg.data.allowed_transitions || []).map(name => {
+                    const state = FSM_STATES.find(s => s.name === name);
+                    return state ? state.value : null;
+                }).filter(v => v !== null);
+                
+                updateStatus(msg.data);
+                updateFsmDisplay(newStateName, newStateValue);
+                updateGestureAvailability();
+                updateActionsAvailability();
+                
+                // SAFETY-CRITICAL: Re-enable buttons only when reaching stable endpoint state
+                if (newStateValue !== null && newStateValue !== oldState) {
+                    // Find state names for comparison
+                    const targetStateObj = FSM_STATES.find(s => s.name === targetState);
+                    const targetStateValue = targetStateObj ? targetStateObj.value : null;
+                    
+                    if (buttonsDisabled && targetStateValue !== null && newStateValue === targetStateValue) {
+                        console.log(`✓ Reached target state: ${newStateName} - RE-ENABLING BUTTONS`);
+                        buttonsDisabled = false;
+                        targetState = null;
+                        actionOriginState = null;
+                    } else if (buttonsDisabled && targetStateValue !== null) {
+                        console.log(`→ Transitioning through ${newStateName}, target: ${targetState}`);
+                    } else if (buttonsDisabled && !targetState) {
+                        const stableStates = [0, 1, 200, 500, 4, 801];  // ZERO_TORQUE, DAMP, START, LOCK_STAND, LOCK_STANDING, RUN
+                        const isStableState = stableStates.includes(newStateValue);
+                        const isActionComplete = actionOriginState !== null ? (newStateValue !== actionOriginState) : true;
+                        
+                        if (isStableState && isActionComplete) {
+                            console.log(`✓ Action complete: ${newStateName} - RE-ENABLING BUTTONS`);
+                            buttonsDisabled = false;
+                            actionOriginState = null;
+                        }
+                    }
                 }
-            } else if (data.type === 'connection_changed') {
-                const connected = !!data.data?.connected;
+                
+                // ALWAYS update button state to reflect current state and allowed transitions
+                updateStateButtons();
+            } else if (msg.type === 'connection_changed') {
+                const connected = !!msg.data?.connected;
                 if (!connected) {
                     connectedRobotMac = null;
                     currentRobot = null;
+                    stopVideoStream();
+                    stopPointCloudPolling();
                 }
                 updateConnectionStatus(connected);
-            } else if (data.type === 'battery_updated') {
-                updateBattery(data.data);
-            } else if (data.type === 'lidar_cloud') {
-                updatePointCloud(data.data);
+            } else if (msg.type === 'battery_updated') {
+                updateBattery(msg.data);
+            } else if (msg.type === 'lidar_cloud') {
+                updatePointCloud(msg.data);
             }
         }
 
@@ -1134,48 +1915,153 @@
         }
 
         // FSM State Management
-        function updateFsmDisplay(stateId, mode) {
-            const state = FSM_STATES[stateId] || FSM_STATES[0];
-            document.getElementById('currentStateDisplay').textContent = state.name;
-            document.getElementById('currentStateValue').textContent = `(ID: ${stateId}, Mode: ${mode})`;
-            document.getElementById('statusFsmId').textContent = stateId;
-            document.getElementById('statusFsmMode').textContent = mode;
-            
-            const transitions = STATE_TRANSITIONS[stateId] || [];
-            updateFsmButtons(stateId, transitions);
+        function updateFsmDisplay(stateName) {
+            const state = FSM_STATES.find(s => s.name === stateName);
+            if (state) {
+                document.getElementById('currentStateDisplay').textContent = state.name;
+                document.getElementById('currentStateValue').textContent = `(ID: ${state.value})`;
+                document.getElementById('statusFsmId').textContent = state.value;
+            }
         }
 
-        function updateFsmButtons(currentState, allowedTransitions) {
+        function updateStateButtons() {
             const container = document.getElementById('fsmButtons');
+            if (!container) {
+                console.error('fsmButtons container not found!');
+                return;
+            }
+            
+            // Check if we have FSM state data (null/undefined check, not falsy check since 0 is valid state)
+            if (currentFsmState === null || currentFsmState === undefined) {
+                console.log('No currentFsmState - buttons hidden');
+                container.innerHTML = '';
+                return;
+            }
+            
+            console.log(`Updating buttons: currentFsmState=${currentFsmState}, transitions=${JSON.stringify(allowedTransitions)}`);
+            
             container.innerHTML = '';
-
-            Object.entries(FSM_STATES).forEach(([id, state]) => {
-                const btn = document.createElement('button');
-                btn.className = 'state-btn';
-                btn.textContent = state.label;
-                btn.dataset.state = id;
-
-                if (parseInt(id) === currentState) {
-                    btn.classList.add('active');
-                } else if (allowedTransitions.includes(parseInt(id))) {
-                    btn.onclick = () => setFsmState(parseInt(id));
-                } else {
-                    btn.disabled = true;
+            
+            // Ensure allowedTransitions is an array
+            const transitions = Array.isArray(allowedTransitions) ? allowedTransitions : [];
+            
+            FSM_STATES.forEach((state) => {
+                const button = document.createElement('button');
+                button.className = 'state-btn';
+                
+                // Check if this is the current state (compare VALUES, not names)
+                const isCurrent = state.value === currentFsmState;
+                if (isCurrent) {
+                    button.classList.add('active');
                 }
-
-                container.appendChild(btn);
+                
+                // Check if transition is allowed (compare VALUES, not names)
+                const isAllowed = transitions.includes(state.value);
+                
+                // SAFETY-FIRST: During transition (buttonsDisabled), disable ALL buttons except current for visual reference
+                if (buttonsDisabled) {
+                    button.disabled = true;
+                    button.classList.add('invalid');
+                    button.style.opacity = isCurrent ? '0.8' : '0.3';
+                } else if (!isAllowed && !isCurrent) {
+                    // Not transitioning, but this state is not allowed from current state
+                    button.classList.add('invalid');
+                    button.disabled = true;
+                    button.style.opacity = '0.5';
+                } else {
+                    // Either current state or valid transition - enable
+                    button.style.opacity = '1';
+                }
+                
+                // User-friendly display names
+                let displayName = state.name;
+                switch(state.name) {
+                    case 'LOCK_STAND':
+                        displayName = 'WALK';
+                        break;
+                    case 'LOCK_STANDING':
+                        displayName = 'STAND UP';
+                        break;
+                    case 'SQUAT_TO_STAND':
+                        const currentStateObj = FSM_STATES.find(s => s.value === currentFsmState);
+                        const currentStateValue = currentStateObj ? currentStateObj.value : null;
+                        displayName = (currentStateValue === 0 || currentStateValue === 1) ? 'SQUAT UP' : 'SQUAT DOWN';
+                        break;
+                    case 'STAND_UP':
+                        displayName = 'STAND UP';
+                        break;
+                }
+                
+                button.innerHTML = `
+                    <div class="state-name">${displayName.replace(/_/g, ' ')}</div>
+                    <div class="state-id">ID: ${state.value}</div>
+                `;
+                
+                if (!button.disabled) {
+                    button.onclick = () => setState(state.name);
+                }
+                
+                container.appendChild(button);
             });
+            
+            console.log(`✅ Rendered ${FSM_STATES.length} state buttons`);
         }
 
-        async function setFsmState(stateId) {
+        async function setState(stateName, isEmergency = false) {
+            if (!connectedRobotMac) {
+                console.error('Not connected to robot');
+                return;
+            }
+            
+            // Emergency stop has priority - bypass button disable check
+            if (isEmergency) {
+                console.warn('🚨 EMERGENCY STOP - Bypassing normal checks');
+            } else if (buttonsDisabled) {
+                console.log('Buttons disabled, ignoring click');
+                return;
+            }
+            
+            // Prevent clicking on current state (no transition needed)
+            const targetStateObj = FSM_STATES.find(s => s.name === stateName);
+            if (targetStateObj && targetStateObj.value === currentFsmState) {
+                console.log(`Already in ${stateName}, ignoring click`);
+                return;
+            }
+            
+            // Disable all buttons during transition
+            buttonsDisabled = true;
+            
+            // CRITICAL: States 702 (STAND_UP) and 706 (SQUAT_TO_STAND) are ACTIONS, not final states
+            const isActionState = stateName === 'STAND_UP' || stateName === 'SQUAT_TO_STAND';
+            
+            if (isActionState) {
+                targetState = null;
+                actionOriginState = currentFsmState;
+            } else {
+                targetState = stateName;
+                actionOriginState = null;
+            }
+            
+            updateStateButtons();
+            
             try {
-                const response = await fetch(`/api/set_state?state_name=${FSM_STATES[stateId].name}`);
+                const response = await fetch(`/api/set_state?state_name=${stateName}`, {
+                    method: 'POST'
+                });
+                
                 const data = await response.json();
+                
                 if (!data.success) {
-                    console.error('Failed to set state:', data.message);
+                    console.error('Transition failed:', data.error);
+                    buttonsDisabled = false;
+                    targetState = null;
+                    actionOriginState = null;
+                    updateStateButtons();
                 }
-            } catch (e) {
-                console.error('State change error:', e);
+            } catch (error) {
+                console.error('State change error:', error);
+                buttonsDisabled = false;
+                updateStateButtons();
             }
         }
 
@@ -1214,11 +2100,21 @@
             const keysPressed = {};
 
             window.addEventListener('keydown', (e) => {
+                // Ignore if user is typing in an input field
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+                
                 keysPressed[e.key.toLowerCase()] = true;
                 processKeyboardMovement(keysPressed);
             });
 
             window.addEventListener('keyup', (e) => {
+                // Ignore if user is typing in an input field
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+                
                 keysPressed[e.key.toLowerCase()] = false;
                 processKeyboardMovement(keysPressed);
             });
@@ -1235,9 +2131,9 @@
             if (keys['e']) omega -= 0.5;
             if (keys[' ']) { vx = vy = omega = 0; }
 
-            if (vx !== 0 || vy !== 0 || omega !== 0) {
-                sendMovement(vx, vy, omega);
-            }
+            // CRITICAL: ALWAYS send movement command, even when all zeros
+            // This ensures robot stops when keys are released
+            sendMovement(vx, vy, omega);
         }
 
         // Gestures
@@ -1250,55 +2146,419 @@
                 btn.onclick = () => executeGesture(g.name);
                 grid.appendChild(btn);
             });
+            updateGestureAvailability();
         }
 
+        // Custom Actions (Teach Mode)
+        const RECORD_MAX_SECONDS = 20;
+        const ACTION_ALLOWED_STATES = [500, 801]; // WALK (LOCK_STAND) or RUN
+        let teachModeActive = false;
+        let recordTimerInterval = null;
+        let recordStopTimeout = null;
+        let recordStartTime = null;
+        let gestureExecuting = false;  // Track if gesture/action is running
+
         async function executeGesture(name) {
+            if (!isActionModeAllowed()) {
+                alert('Gestures are only available in WALK or RUN mode.');
+                return;
+            }
+            
+            if (gestureExecuting) {
+                console.warn('Gesture blocked - another gesture is already executing');
+                return;
+            }
+            
             try {
-                const response = await fetch(`/api/custom_action/execute?action_name=${name}`);
+                gestureExecuting = true;
+                setGestureButtonsEnabled(false);
+                console.log(`⏳ Executing gesture: ${name}...`);
+                
+                const response = await fetch('/api/gesture', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gesture_name: name })
+                });
                 const data = await response.json();
                 if (!data.success) {
-                    console.error('Gesture failed:', data.message);
+                    console.error('Gesture failed:', data.error || data.message);
+                    alert(`Gesture failed: ${data.error || data.message}`);
+                } else {
+                    console.log(`✅ Gesture ${name} completed successfully`);
                 }
             } catch (e) {
                 console.error('Gesture error:', e);
+                alert('Gesture error: ' + e.message);
+            } finally {
+                gestureExecuting = false;
+                setGestureButtonsEnabled(true);
             }
         }
+        
+        function setGestureButtonsEnabled(enabled) {
+            // Disable/enable gesture buttons
+            const gestureButtons = document.querySelectorAll('#gestureGrid .gesture-btn');
+            gestureButtons.forEach(btn => {
+                if (enabled && isActionModeAllowed()) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                } else {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                }
+            });
+            
+            // Also disable/enable action Play buttons
+            const playButtons = document.querySelectorAll('.action-play-btn');
+            playButtons.forEach(btn => {
+                if (enabled && isActionModeAllowed()) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                } else {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                }
+            });
+        }
 
-        // Custom Actions
-        async function addCustomAction() {
-            const name = document.getElementById('actionName').value;
-            if (!name) return;
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+
+        function setTeachModeStatus(active) {
+            teachModeActive = active;
+            const statusEl = document.getElementById('teachModeStatus');
+            if (!statusEl) return;
+            statusEl.textContent = active ? 'Teach mode: ON (arms compliant)' : 'Teach mode: off';
+            statusEl.classList.toggle('active', active);
+        }
+
+        function isActionModeAllowed() {
+            return ACTION_ALLOWED_STATES.includes(currentFsmState);
+        }
+
+        function updateGestureAvailability() {
+            const allowed = isActionModeAllowed();
+            const hint = document.getElementById('gestureModeHint');
+            if (hint) {
+                hint.textContent = allowed ? 'Available in WALK or RUN mode.' : 'Switch to WALK or RUN mode to use gestures.';
+                hint.classList.toggle('warning', !allowed);
+            }
+
+            // Use the new helper that respects gesture execution state
+            setGestureButtonsEnabled(allowed && !gestureExecuting);
+        }
+
+        function updateActionsAvailability() {
+            const allowed = isActionModeAllowed();
+            const hint = document.getElementById('actionsModeHint');
+            if (hint) {
+                hint.textContent = allowed ? 'Available in WALK or RUN mode.' : 'Switch to WALK or RUN mode to use custom actions.';
+                hint.classList.toggle('warning', !allowed);
+            }
+
+            const controlIds = [
+                'enterTeachBtn',
+                'exitTeachBtn',
+                'recordStartBtn',
+                'recordStopBtn',
+                'refreshActionsBtn',
+                'stopPlaybackBtn'
+            ];
+
+            controlIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = !allowed;
+                el.classList.toggle('invalid', !allowed);
+                el.style.opacity = allowed ? '1' : '0.5';
+            });
+
+            document.querySelectorAll('#actionsList .action-row button').forEach(btn => {
+                btn.disabled = !allowed;
+                btn.classList.toggle('invalid', !allowed);
+                btn.style.opacity = allowed ? '1' : '0.6';
+            });
+
+            document.querySelectorAll('#actionsList .action-row input').forEach(input => {
+                input.disabled = !allowed;
+            });
+        }
+
+        async function enterTeachMode() {
+            const confirmText = 'Enter Teach Mode?\n\n⚠️ WARNING: Arms will go limp!\n\nThis will disable motor torque so you can move the arms by hand.\n\nMake sure robot is stable and won\'t fall.';
+            if (!confirm(confirmText)) return;
 
             try {
-                const response = await fetch(`/api/custom_action/add?action_name=${name}`, { method: 'POST' });
+                // Set balance mode to 0 (zero torque / compliant mode)
+                const response = await fetch('/api/balance_mode', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 0 })
+                });
                 const data = await response.json();
-                if (data.success) {
-                    document.getElementById('actionName').value = '';
-                    loadCustomActions();
+                if (!data.success) {
+                    alert(data.error || 'Failed to enter teach mode');
+                    return;
                 }
+                setTeachModeStatus(true);
+                console.log('✅ Entered teach mode (balance_mode=0)');
             } catch (e) {
-                console.error('Add action error:', e);
+                console.error('Enter teach mode error:', e);
+                alert('Failed to enter teach mode: ' + e.message);
             }
         }
 
-        async function loadCustomActions() {
+        async function exitTeachMode() {
+            const confirmText = 'Exit Teach Mode?\n\nArms will return to normal motor control.';
+            if (!confirm(confirmText)) return;
+
+            try {
+                // Set balance mode to 1 (normal motor control)
+                const response = await fetch('/api/balance_mode', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 1 })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    alert(data.error || 'Failed to exit teach mode');
+                    return;
+                }
+                setTeachModeStatus(false);
+                console.log('✅ Exited teach mode (balance_mode=1)');
+            } catch (e) {
+                console.error('Exit teach mode error:', e);
+                alert('Failed to exit teach mode: ' + e.message);
+            }
+        }
+
+        async function startTeachRecording() {
+            if (!isActionModeAllowed()) {
+                alert('Teach recording is only available in WALK or RUN mode.');
+                return;
+            }
+            const nameInput = document.getElementById('recordActionName');
+            const actionName = nameInput.value.trim();
+            const statusEl = document.getElementById('recordStatus');
+            const timerEl = document.getElementById('recordTimer');
+            const nameEl = document.getElementById('recordingName');
+
+            try {
+                const response = await fetch('/api/teach/record/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_name: actionName })
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || 'Failed to start recording');
+                    return;
+                }
+
+                nameEl.textContent = data.action_name || '';
+                statusEl.textContent = `Recording (max ${RECORD_MAX_SECONDS}s)...`;
+                recordStartTime = Date.now();
+                timerEl.textContent = '00:00';
+
+                if (recordTimerInterval) clearInterval(recordTimerInterval);
+                if (recordStopTimeout) clearTimeout(recordStopTimeout);
+
+                recordTimerInterval = setInterval(() => {
+                    const elapsed = (Date.now() - recordStartTime) / 1000;
+                    if (elapsed >= RECORD_MAX_SECONDS) {
+                        stopTeachRecording();
+                        return;
+                    }
+                    timerEl.textContent = formatDuration(elapsed);
+                }, 500);
+
+                recordStopTimeout = setTimeout(() => {
+                    stopTeachRecording();
+                }, RECORD_MAX_SECONDS * 1000);
+            } catch (e) {
+                console.error('Start recording error:', e);
+                alert('Failed to start recording');
+            }
+        }
+
+        async function stopTeachRecording() {
+            if (!isActionModeAllowed()) {
+                alert('Teach recording is only available in WALK or RUN mode.');
+                return;
+            }
+            const statusEl = document.getElementById('recordStatus');
+            const timerEl = document.getElementById('recordTimer');
+
+            try {
+                const response = await fetch('/api/teach/record/stop', { method: 'POST' });
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || 'Failed to stop recording');
+                    return;
+                }
+
+                statusEl.textContent = 'Saved';
+                if (recordTimerInterval) {
+                    clearInterval(recordTimerInterval);
+                    recordTimerInterval = null;
+                }
+                if (recordStopTimeout) {
+                    clearTimeout(recordStopTimeout);
+                    recordStopTimeout = null;
+                }
+                timerEl.textContent = '00:00';
+                refreshTeachActions();
+            } catch (e) {
+                console.error('Stop recording error:', e);
+                alert('Failed to stop recording');
+            }
+        }
+
+        async function refreshTeachActions() {
             try {
                 const response = await fetch('/api/custom_action/robot_list');
                 const data = await response.json();
                 const list = document.getElementById('actionsList');
                 list.innerHTML = '';
 
-                if (data.actions) {
-                    data.actions.forEach(action => {
-                        const btn = document.createElement('button');
-                        btn.className = 'gesture-btn';
-                        btn.textContent = action;
-                        btn.onclick = () => executeGesture(action);
-                        list.appendChild(btn);
-                    });
+                const actions = data.custom_actions || [];
+                if (!actions.length) {
+                    const empty = document.createElement('div');
+                    empty.style.color = 'var(--text-muted)';
+                    empty.style.fontSize = '12px';
+                    empty.textContent = 'No custom actions found.';
+                    list.appendChild(empty);
+                    return;
                 }
+
+                actions.forEach(action => {
+                    // Extract action name from object (API returns {name: "...", time: ...})
+                    const actionName = typeof action === 'string' ? action : action.name;
+                    const actionTime = typeof action === 'object' ? action.time : null;
+                    
+                    const row = document.createElement('div');
+                    row.className = 'action-row';
+
+                    const name = document.createElement('div');
+                    name.className = 'action-name';
+                    name.textContent = actionName + (actionTime ? ` (${actionTime.toFixed(1)}s)` : '');
+
+                    const playBtn = document.createElement('button');
+                    playBtn.className = 'btn-primary action-play-btn';  // Add class for easy selection
+                    playBtn.textContent = 'Play';
+                    playBtn.onclick = () => playCustomAction(actionName);
+
+                    const renameWrap = document.createElement('div');
+                    renameWrap.className = 'action-rename';
+                    const renameInput = document.createElement('input');
+                    renameInput.type = 'text';
+                    renameInput.className = 'form-input';
+                    renameInput.placeholder = 'New name';
+                    const renameBtn = document.createElement('button');
+                    renameBtn.className = 'btn-secondary';
+                    renameBtn.textContent = 'Rename';
+                    renameBtn.onclick = () => renameTeachAction(actionName, renameInput.value.trim());
+
+                    renameWrap.appendChild(renameInput);
+                    renameWrap.appendChild(renameBtn);
+
+                    row.appendChild(name);
+                    row.appendChild(playBtn);
+                    row.appendChild(renameWrap);
+                    list.appendChild(row);
+                });
+                updateActionsAvailability();
             } catch (e) {
                 console.error('Load actions error:', e);
+            }
+        }
+
+        async function playCustomAction(actionName) {
+            if (!isActionModeAllowed()) {
+                alert('Custom actions are only available in WALK or RUN mode.');
+                return;
+            }
+            
+            if (gestureExecuting) {
+                console.warn('Action blocked - another gesture/action is already executing');
+                alert('Please wait for the current action to finish');
+                return;
+            }
+            
+            try {
+                gestureExecuting = true;
+                setGestureButtonsEnabled(false);
+                console.log(`⏳ Playing custom action: ${actionName}...`);
+                
+                const response = await fetch('/api/custom_action/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_name: actionName })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    alert(data.error || 'Failed to play action');
+                } else {
+                    console.log(`✅ Custom action ${actionName} completed successfully`);
+                }
+            } catch (e) {
+                console.error('Play action error:', e);
+                alert('Play action error: ' + e.message);
+            } finally {
+                gestureExecuting = false;
+                setGestureButtonsEnabled(true);
+            }
+        }
+
+        async function stopCustomAction() {
+            if (!isActionModeAllowed()) {
+                alert('Custom actions are only available in WALK or RUN mode.');
+                return;
+            }
+            try {
+                const response = await fetch('/api/custom_action/stop', { method: 'POST' });
+                const data = await response.json();
+                if (!data.success) {
+                    alert(data.error || 'Failed to stop action');
+                }
+            } catch (e) {
+                console.error('Stop action error:', e);
+            }
+        }
+
+        async function renameTeachAction(oldName, newName) {
+            if (!isActionModeAllowed()) {
+                alert('Custom actions are only available in WALK or RUN mode.');
+                return;
+            }
+            if (!newName) {
+                alert('New name required');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/teach/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: oldName, new_name: newName })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    alert(data.error || 'Failed to rename action');
+                    return;
+                }
+                refreshTeachActions();
+            } catch (e) {
+                console.error('Rename action error:', e);
             }
         }
 
@@ -1524,15 +2784,23 @@
 
         // View Switching
         function switchView(view) {
+            // Close all content views first
             document.querySelectorAll('.content-view').forEach(v => v.classList.remove('active'));
+            // Open the selected view
             document.getElementById(view + '-view').classList.add('active');
-
+            
+            // Update nav button active state
             document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
 
             if (view === 'actions') {
-                loadCustomActions();
+                refreshTeachActions();
             }
+        }
+        
+        function closeView() {
+            // Close all content views
+            document.querySelectorAll('.content-view').forEach(v => v.classList.remove('active'));
         }
     </script>
 </body>

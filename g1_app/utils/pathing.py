@@ -27,11 +27,8 @@ def get_webrtc_paths() -> List[str]:
 
     repo_root = get_repo_root()
     paths.append(str(get_deps_dir() / "g1_webrtc_connect"))
-    paths.append(str(get_deps_dir() / "go2_webrtc_connect"))
     paths.append(str(repo_root / "libs" / "g1_webrtc_connect"))
-    paths.append(str(repo_root / "libs" / "go2_webrtc_connect"))
     paths.append("/root/G1/g1_webrtc_connect")
-    paths.append("/root/G1/go2_webrtc_connect")
 
     # Deduplicate while preserving order
     seen = set()
